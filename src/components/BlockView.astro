@@ -1,0 +1,90 @@
+---
+import { displayLabel, type Block } from '../lib/data';
+import Icon from './Icon.astro';
+
+interface Props { block: Block }
+const { block: b } = Astro.props;
+
+const socialIcon = (name: string, href: string) => {
+  const n = (name + ' ' + href).toLowerCase();
+  for (const k of ['facebook', 'instagram', 'tiktok', 'youtube', 'whatsapp', 'telegram']) if (n.includes(k)) return k;
+  if (n.includes('t.me')) return 'telegram';
+  return 'link';
+};
+const ext = (href?: string) => !!href && /^(https?:)?\/\//.test(href);
+---
+{b.type === 'text' && <div class="prose" set:html={b.html} />}
+
+{b.type === 'image' && (() => {
+  const img = (
+    <img
+      src={b.src}
+      alt={b.alt}
+      width={b.width}
+      height={b.height}
+      loading="lazy"
+      decoding="async"
+      style={b.crop ? `width:${b.crop.w}%;margin:${b.crop.t}% 0 ${b.crop.b}% ${b.crop.l}%` : undefined}
+    />
+  );
+  const frame = <div class:list={['figure', { 'figure--crop': b.crop }]}>{img}</div>;
+  return b.href
+    ? <a class="figure-link" href={b.href} {...(ext(b.href) ? { target: '_blank', rel: 'noopener' } : {})}>{frame}</a>
+    : frame;
+})()}
+
+{b.type === 'button' && (
+  <p class="btn-wrap">
+    <a class="btn" href={b.href} {...(b.external ? { target: '_blank', rel: 'noopener' } : {})}>
+      <span>{displayLabel(b.label)}</span>
+      {b.external && <Icon name="external" size={16} />}
+    </a>
+  </p>
+)}
+
+{b.type === 'spacer' && <div class="spacer" style={`--h:${Math.min(b.height, 120)}px`} aria-hidden="true" />}
+
+{b.type === 'divider' && <hr class="divider" />}
+
+{b.type === 'embed' && (
+  <div class="ratio" style={`--ratio:${b.ratio}%`}>
+    <iframe src={b.src} title="محتوى مضمن" loading="lazy" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin" allow="autoplay; encrypted-media; fullscreen"></iframe>
+  </div>
+)}
+
+{b.type === 'iframe' && (
+  <div class="ratio" style={`--ratio:${b.ratio}%`}>
+    <iframe src={b.src} title={b.title || 'ملف مضمن'} loading="lazy" allow="autoplay; fullscreen" allowfullscreen></iframe>
+  </div>
+)}
+
+{b.type === 'carousel' && (
+  <div class="carousel" data-carousel style={`--ar:${b.ratio}`}>
+    <div class="carousel__track" tabindex="0" aria-label="معرض صور">
+      {b.images.map((src, i) => (
+        <img src={src} alt={`صورة ${i + 1} من ${b.images.length}`} loading="lazy" decoding="async" />
+      ))}
+    </div>
+    <button class="carousel__btn carousel__btn--prev" type="button" aria-label="الصورة السابقة"><Icon name="arrow-prev" /></button>
+    <button class="carousel__btn carousel__btn--next" type="button" aria-label="الصورة التالية"><Icon name="arrow-next" /></button>
+    <div class="carousel__dots">{b.images.map((_, i) => <span class:list={{ on: i === 0 }} />)}</div>
+  </div>
+)}
+
+{b.type === 'social' && (
+  <ul class="social">
+    {b.links.map((l) => (
+      <li>
+        <a href={l.href} target="_blank" rel="noopener" aria-label={l.name}>
+          <Icon name={socialIcon(l.name, l.href)} />
+        </a>
+      </li>
+    ))}
+  </ul>
+)}
+
+{b.type === 'placeholder' && (
+  <div class="avatar-placeholder" style={`--ratio:${b.ratio}%`} aria-hidden="true">
+    <Icon name="person" size={48} />
+  </div>
+)}

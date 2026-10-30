@@ -1,0 +1,19 @@
+{
+  "name": "xi-group-site",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Website of the 11th Group (XI Group) — Scouts & Guides Wadi El Nil, Cairo",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "import": "python3 scripts/import_google_sites.py"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "3.7.4",
+    "@fontsource/ibm-plex-sans-arabic": "5.2.8",
+    "@fontsource/reem-kufi": "5.2.8",
+    "astro": "7.3.8"
+  }
+}

@@ -1,0 +1,73 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="بحث" description="ابحث في كل صفحات موقع المجموعة الحادية عشر ووحداتها.">
+  <div class="titleband"><div class="container"><h1>بحث في الموقع</h1></div></div>
+  <div class="container search">
+    <form class="search__form" role="search" onsubmit="return false">
+      <label for="q" class="visually-hidden">كلمات البحث</label>
+      <input id="q" name="q" type="search" placeholder="مثال: الوعد، العقد، مراسم رفع العلم…" autocomplete="off" autofocus />
+    </form>
+    <p class="search__status" id="status" aria-live="polite"></p>
+    <ol class="search__results" id="results"></ol>
+  </div>
+  <script>
+    type Entry = { t: string; p: string; s: string; u: string; x: string };
+    const input = document.getElementById('q') as HTMLInputElement;
+    const results = document.getElementById('results')!;
+    const status = document.getElementById('status')!;
+
+    // Fold Arabic spelling variants so "اغنية" finds "أغنية", "الى" finds "إلي", etc.
+    const fold = (s: string) =>
+      s.toLowerCase()
+        .replace(/[ً-ٰٟـ]/g, '')
+        .replace(/[أإآٱ]/g, 'ا')
+        .replace(/ى/g, 'ي')
+        .replace(/ة/g, 'ه')
+        .replace(/ؤ/g, 'و')
+        .replace(/ئ/g, 'ي')
+        .replace(/چ/g, 'ج');
+
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+    let data: (Entry & { ft: string; fx: string })[] = [];
+    const ready = fetch('/search-index.json')
+      .then((r) => r.json())
+      .then((d: Entry[]) => (data = d.map((e) => ({ ...e, ft: fold(e.t), fx: fold(e.x) }))));
+
+    function snippet(e: Entry & { fx: string }, terms: string[]) {
+      const i = Math.max(0, e.fx.indexOf(terms[0]));
+      const start = Math.max(0, i - 60);
+      return (start > 0 ? '…' : '') + esc(e.x.slice(start, start + 180)) + '…';
+    }
+
+    async function run() {
+      await ready;
+      const q = input.value.trim();
+      const url = new URL(location.href);
+      q ? url.searchParams.set('q', q) : url.searchParams.delete('q');
+      history.replaceState(null, '', url);
+      results.innerHTML = '';
+      if (q.length < 2) { status.textContent = q ? 'اكتب حرفين على الأقل.' : ''; return; }
+      const terms = fold(q).split(/\s+/).filter(Boolean);
+      const hits = data
+        .map((e) => {
+          if (!terms.every((t) => e.ft.includes(t) || e.fx.includes(t))) return null;
+          const score = terms.reduce((n, t) => n + (e.ft.includes(t) ? 10 : 0) + (e.fx.split(t).length - 1), 0);
+          return { e, score };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b!.score - a!.score)
+        .slice(0, 60);
+      status.textContent = hits.length ? `${hits.length} نتيجة` : 'لا توجد نتائج. جرّب كلمات أخرى.';
+      results.innerHTML = hits
+        .map(({ e }: any) => `<li data-site="${e.s}"><a href="${encodeURI(e.p)}"><span class="search__unit">${esc(e.u)}</span><strong>${esc(e.t)}</strong><span class="search__snip">${snippet(e, terms)}</span></a></li>`)
+        .join('');
+    }
+
+    let t: number;
+    input.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(run, 150); });
+    const initial = new URL(location.href).searchParams.get('q');
+    if (initial) { input.value = initial; run(); }
+  </script>
+</Base>

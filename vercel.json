@@ -1,0 +1,91 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "astro",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/_astro/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/home",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/view/xi-group/home",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/view/xi-group/:path*",
+      "destination": "/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/view/xi-buds/home",
+      "destination": "/buds",
+      "permanent": true
+    },
+    {
+      "source": "/view/xi-buds/:path*",
+      "destination": "/buds/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/view/xi-cubs/home",
+      "destination": "/cubs",
+      "permanent": true
+    },
+    {
+      "source": "/view/xi-cubs/:path*",
+      "destination": "/cubs/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/view/xiscouts/home",
+      "destination": "/scouts",
+      "permanent": true
+    },
+    {
+      "source": "/view/xiscouts/:path*",
+      "destination": "/scouts/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/view/xi-rovers/home",
+      "destination": "/rovers",
+      "permanent": true
+    },
+    {
+      "source": "/view/xi-rovers/:path*",
+      "destination": "/rovers/:path*",
+      "permanent": true
+    }
+  ]
+}

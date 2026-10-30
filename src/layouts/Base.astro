@@ -1,0 +1,102 @@
+---
+import '@fontsource/ibm-plex-sans-arabic/400.css';
+import '@fontsource/ibm-plex-sans-arabic/600.css';
+import '@fontsource/ibm-plex-sans-arabic/700.css';
+import '@fontsource/reem-kufi/500.css';
+import '@fontsource/reem-kufi/700.css';
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { sites, GROUP_NAME, type SiteKey } from '../lib/data';
+
+interface Props { title: string; description?: string; siteKey?: SiteKey; image?: string | null; noindex?: boolean }
+const { title, description = '', siteKey = 'group', image, noindex = false } = Astro.props;
+const site = sites[siteKey];
+const fullTitle = title === GROUP_NAME ? `${GROUP_NAME} | XI Group` : `${title} | ${GROUP_NAME}`;
+const canonical = new URL(Astro.url.pathname, Astro.site).toString();
+const ogImage = image ?? sites.group.logo;
+---
+<!doctype html>
+<html lang="ar" dir="rtl" data-site={siteKey}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <meta name="theme-color" content="#1c1d1a" />
+    {site.logo && <link rel="icon" href={site.logo} />}
+    {site.logo && <link rel="apple-touch-icon" href={site.logo} />}
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ar_EG" />
+    <meta property="og:site_name" content={GROUP_NAME} />
+    <meta property="og:title" content={fullTitle} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:url" content={canonical} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- Images are served from Google's image CDN; send no referrer so they load from any domain. -->
+    <meta name="referrer" content="no-referrer" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">تخطي إلى المحتوى</a>
+    <Header siteKey={siteKey} currentPath={decodeURI(Astro.url.pathname).replace(/\/$/, '') || '/'} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer pageUrl={canonical} title={fullTitle} />
+    <script>
+      // Mobile drawer
+      const drawer = document.getElementById('drawer')!;
+      const opener = document.querySelector<HTMLButtonElement>('[data-menu-open]')!;
+      const open = () => {
+        drawer.hidden = false;
+        requestAnimationFrame(() => drawer.classList.add('is-open'));
+        opener.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+        drawer.querySelector<HTMLElement>('[data-menu-close].icon-btn')?.focus();
+      };
+      const close = () => {
+        drawer.classList.remove('is-open');
+        opener.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+        setTimeout(() => (drawer.hidden = true), 200);
+        opener.focus();
+      };
+      opener.addEventListener('click', open);
+      drawer.querySelectorAll('[data-menu-close]').forEach((el) => el.addEventListener('click', close));
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawer.hidden) close(); });
+      // Let a tap on a summary's link navigate instead of toggling
+      drawer.querySelectorAll('summary a').forEach((a) => a.addEventListener('click', (e) => e.stopPropagation()));
+
+      // Hide images that fail to load instead of showing broken icons
+      const markBroken = (img: HTMLImageElement) => img.closest('.figure, .carousel')?.classList.add('is-broken');
+      document.querySelectorAll<HTMLImageElement>('main img').forEach((img) => {
+        if (img.complete && img.naturalWidth === 0 && img.currentSrc) markBroken(img);
+        else img.addEventListener('error', () => markBroken(img), { once: true });
+      });
+
+      // Image carousels
+      document.querySelectorAll<HTMLElement>('[data-carousel]').forEach((root) => {
+        const track = root.querySelector<HTMLElement>('.carousel__track')!;
+        const dots = [...root.querySelectorAll<HTMLElement>('.carousel__dots span')];
+        const count = dots.length;
+        const index = () => Math.round(Math.abs(track.scrollLeft) / track.clientWidth);
+        const go = (i: number) => {
+          const n = (i + count) % count;
+          track.scrollTo({ left: n * track.clientWidth * (getComputedStyle(track).direction === 'rtl' ? -1 : 1), behavior: 'smooth' });
+        };
+        root.querySelector('.carousel__btn--next')!.addEventListener('click', () => go(index() + 1));
+        root.querySelector('.carousel__btn--prev')!.addEventListener('click', () => go(index() - 1));
+        track.addEventListener('scroll', () => dots.forEach((d, i) => d.classList.toggle('on', i === index())), { passive: true });
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          let timer = setInterval(() => go(index() + 1), 4000);
+          root.addEventListener('pointerenter', () => clearInterval(timer));
+          root.addEventListener('pointerleave', () => (timer = setInterval(() => go(index() + 1), 4000)));
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,135 @@
+---
+import { sites, UNITS, GROUP_NAME, displayLabel, type NavItem, type SiteKey } from '../lib/data';
+import Icon from './Icon.astro';
+
+interface Props { siteKey: SiteKey; currentPath: string }
+const { siteKey, currentPath } = Astro.props;
+const group = sites.group;
+const unit = siteKey === 'group' ? null : sites[siteKey];
+const unitInfo = UNITS.find((u) => u.key === siteKey);
+
+const isActive = (item: NavItem) =>
+  !item.external && (item.href === currentPath || (item.href !== '/' && item.href !== unit?.base && currentPath.startsWith(item.href + '/')));
+const linkAttrs = (item: NavItem) => (item.external ? { target: '_blank', rel: 'noopener' } : {});
+---
+<header class="site-header">
+  <div class="topbar">
+    <div class="container topbar__inner">
+      <a class="brand" href="/">
+        {group.logo && <img src={group.logo} alt="" width="40" height="40" />}
+        <span class="brand__text">
+          <strong>{GROUP_NAME}</strong>
+          <small>XI Group · SGWEN</small>
+        </span>
+      </a>
+
+      <nav class="mainnav" aria-label="القائمة الرئيسية">
+        <ul>
+          {group.nav.map((item) => (
+            <li class:list={{ 'has-sub': item.children?.length }}>
+              <a href={item.href} {...linkAttrs(item)} aria-current={isActive(item) || (item.href === '/' && currentPath === '/') ? 'page' : undefined}>
+                {displayLabel(item.label)}
+                {item.external && <Icon name="external" size={14} />}
+                {item.children?.length && <Icon name="chevron" size={16} class="chev" />}
+              </a>
+              {item.children?.length && (
+                <ul class="dropdown">
+                  {item.children.map((c) => (
+                    <li><a href={c.href} {...linkAttrs(c)}>{displayLabel(c.label)}</a></li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <div class="topbar__actions">
+        <a class="icon-btn" href="/search" aria-label="بحث في الموقع"><Icon name="search" /></a>
+        <button class="icon-btn menu-btn" type="button" aria-label="فتح القائمة" aria-controls="drawer" aria-expanded="false" data-menu-open>
+          <Icon name="menu" />
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {unit && (
+    <div class="unitbar">
+      <div class="container unitbar__inner">
+        <a class="unitbar__brand" href={unit.base}>
+          {unit.logo && <img src={unit.logo} alt="" width="32" height="32" />}
+          <span>{unitInfo?.name}</span>
+        </a>
+        <nav class="unitnav" aria-label={`قائمة ${unitInfo?.name}`}>
+          <ul>
+            {unit.nav.map((item) => (
+              <li class:list={{ 'has-sub': item.children?.length }}>
+                <a href={item.href} {...linkAttrs(item)} aria-current={isActive(item) || (item.href === unit.base && currentPath === unit.base) ? 'page' : undefined}>
+                  {displayLabel(item.label)}
+                  {item.external && <Icon name="external" size={14} />}
+                  {item.children?.length && <Icon name="chevron" size={16} class="chev" />}
+                </a>
+                {item.children?.length && (
+                  <ul class="dropdown">
+                    {item.children.map((c) => (
+                      <li><a href={c.href} {...linkAttrs(c)}>{displayLabel(c.label)}{c.external && <Icon name="external" size={14} />}</a></li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </div>
+  )}
+</header>
+
+<!-- Mobile drawer: the full navigation tree of every site -->
+<div class="drawer" id="drawer" hidden>
+  <div class="drawer__backdrop" data-menu-close></div>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="القائمة">
+    <div class="drawer__head">
+      <strong>القائمة</strong>
+      <button class="icon-btn" type="button" aria-label="إغلاق القائمة" data-menu-close><Icon name="close" /></button>
+    </div>
+    <form class="drawer__search" action="/search" role="search">
+      <input type="search" name="q" placeholder="ابحث في الموقع…" aria-label="بحث" />
+    </form>
+    {(['group', ...UNITS.map((u) => u.key)] as SiteKey[]).map((key) => {
+      const s = sites[key];
+      const label = key === 'group' ? GROUP_NAME : UNITS.find((u) => u.key === key)!.name;
+      const renderTree = (items: NavItem[]): any => (
+        <ul>
+          {items.map((it) => (
+            <li>
+              {it.children?.length ? (
+                <details open={currentPath === it.href || currentPath.startsWith(it.href + '/') ? true : undefined}>
+                  <summary>
+                    <a href={it.href}>{displayLabel(it.label)}</a>
+                    <Icon name="chevron" size={18} class="chev" />
+                  </summary>
+                  {renderTree(it.children)}
+                </details>
+              ) : (
+                <a href={it.href} {...linkAttrs(it)} aria-current={it.href === currentPath ? 'page' : undefined}>
+                  {displayLabel(it.label)}{it.external && <Icon name="external" size={14} />}
+                </a>
+              )}
+            </li>
+          ))}
+        </ul>
+      );
+      return (
+        <details class="drawer__site" data-site={key} open={key === siteKey ? true : undefined}>
+          <summary>
+            {s.logo && <img src={s.logo} alt="" width="28" height="28" loading="lazy" />}
+            <span>{label}</span>
+            <Icon name="chevron" size={18} class="chev" />
+          </summary>
+          {renderTree(s.nav)}
+        </details>
+      );
+    })}
+  </div>
+</div>
