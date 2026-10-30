@@ -72,8 +72,12 @@ const ogImage = image ?? sites.group.logo;
       drawer.querySelectorAll('summary a').forEach((a) => a.addEventListener('click', (e) => e.stopPropagation()));
 
       // Hide images that fail to load instead of showing broken icons
-      const markBroken = (img: HTMLImageElement) => img.closest('.figure, .carousel')?.classList.add('is-broken');
-      document.querySelectorAll<HTMLImageElement>('main img').forEach((img) => {
+      const markBroken = (img: HTMLImageElement) => {
+        const box = img.closest('.figure, .carousel');
+        if (box) box.classList.add('is-broken');
+        else img.style.visibility = 'hidden';
+      };
+      document.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
         if (img.complete && img.naturalWidth === 0 && img.currentSrc) markBroken(img);
         else img.addEventListener('error', () => markBroken(img), { once: true });
       });

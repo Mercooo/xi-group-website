@@ -85,7 +85,7 @@ const linkAttrs = (item: NavItem) => (item.external ? { target: '_blank', rel: '
   )}
 </header>
 
-<!-- Mobile drawer: the full navigation tree of every site -->
+<!-- Mobile drawer: the full page tree of the current site, top-level links of the others -->
 <div class="drawer" id="drawer" hidden>
   <div class="drawer__backdrop" data-menu-close></div>
   <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="القائمة">
@@ -127,7 +127,13 @@ const linkAttrs = (item: NavItem) => (item.external ? { target: '_blank', rel: '
             <span>{label}</span>
             <Icon name="chevron" size={18} class="chev" />
           </summary>
-          {renderTree(s.nav)}
+          {key === siteKey ? renderTree(s.nav) : (
+            <ul>
+              {s.nav.map((it) => (
+                <li><a href={it.href} {...linkAttrs(it)}>{displayLabel(it.label)}{it.external && <Icon name="external" size={14} />}</a></li>
+              ))}
+            </ul>
+          )}
         </details>
       );
     })}
