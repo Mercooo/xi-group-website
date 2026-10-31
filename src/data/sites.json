@@ -4,7 +4,7 @@
   "base": "/",
   "googleUrl": "https://sites.google.com/view/xi-group/home",
   "title": "XI group",
-  "logo": "https://sites.google.com/sitesv-images-rt/AMxu72vpQtwBXuaYJpzlfv8unjMP0X2LWdoNhiSH4EUNlD3A87RBr5zLLnTD-e3Pl-zz7pwtCZnQoJXLT-9GGoaSGUdWCdehkS713wJ6Q5TAvX4tJGaqPtRd1feUkASNH766lI0fWmE0yufcwxQRuDWthgTnU2IVma4bTLlrJO0s1S8cmcZP5e5TQfW8eo4D=w1600",
+  "logo": "/images/4d5bdd2d88a5b2c9.webp",
   "accent": "#e1dada",
   "nav": [
    {
@@ -332,10 +332,12 @@
         },
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72taMZL_KibtB5Jo6EVGlI9kanCjb1B1KssCxLAaAYBxBZFBNCastc6JXMdD6wNN8pAR0-QRhMGiJQ2g2TSN7WdxrywobR7VXj_n0K2rrASjuEmf8vl0f3_g_mcoPk679JkNJQl_vzgr0s7XgLvCxBu3hXiFc3JXcUlytx5JkUSifxhH6Znz2VYChQ36MxgRz_xxV0PV8YmFMGvFFc3x2hoVKxpRiqxSLX9bhjmH=w1600",
+         "src": "/images/709ce2194f0d5850.webp",
          "alt": "",
          "href": "/buds",
-         "external": false
+         "external": false,
+         "width": 438,
+         "height": 500
         }
        ]
       },
@@ -348,10 +350,12 @@
         },
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72uU7Y4TBokf2g72wPtMd21vjCRzNL4V3pxM9b3ggtNBHDTI9y2gPn7RzzjmMD5G4La-rZMYmkRNCsqvmZetKobpXpCxs_iNG6FuJzRw1BCA789BcdAqWw9z5tsD4rJyLahj8_HB_1kRs8v_54_JHrQ4DsXz-ed-S5fU77JrE5Q4DD48DvWiSoneDwowMAXobUx-mrXAt3lQzZu8M-YrEKmBLqoJe5hMpWavgvpb=w1600",
+         "src": "/images/dbde6a9cc14fa5af.webp",
          "alt": "",
          "href": "/cubs",
-         "external": false
+         "external": false,
+         "width": 436,
+         "height": 500
         }
        ]
       },
@@ -360,8 +364,10 @@
        "blocks": [
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72vCRYDwT28ujo9FSW8TRdixnvSiORPUb1MUkMAGI-nhAns9goZxGp3yCEloCvSuSIorl43FAT6FI0PU7xw439RkLFTDgIx_HZEedhmJPiMOt4PcIGGXeVvvih7ZIkg4dhsj_ZzijoBAup1hDHw84HbNK2xArEoFab6zf7JuzvApf-zBBUVR5e68QRjAZXM=w1600",
-         "alt": ""
+         "src": "/images/7d91eb5cf4358fdb.webp",
+         "alt": "",
+         "width": 1280,
+         "height": 1280
         }
        ]
       },
@@ -374,10 +380,12 @@
         },
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72u0I8ZdhAJ_T6mXMQQ5c24ACdbsPwis4pvFIxyrlJzksR7Es4xoQhBxGl_6rE-uWw6smtrWQ3Icf7ae-JyTWrvDdJ5fWrjZwyM7veMtOkkTa521SyHfdGO70bZWhqqLeELytzF416c0lVkY_H5z4kpkuNHosxMRT-eno_CuGC8aqtvdE0O6GLjBJgpptwjfTl9qwbUj3ZeiMXF-kgGYjNL7mp4Ytyu13jqSlhpk=w1600",
+         "src": "/images/10466947332ad01b.webp",
          "alt": "",
          "href": "/scouts",
-         "external": false
+         "external": false,
+         "width": 438,
+         "height": 500
         }
        ]
       },
@@ -390,10 +398,12 @@
         },
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72vrHERUBgpRsYA6ZwrUVieFsfQovLC3OvSQzhpWIPgewxpx5OusHqbc5Q3KmLxwN8uLlu5gEENRRgkhFFwDXBUDzRqktCyPpvYmeSYoKIwadl9kcvrHQOY73w6bMMy-fg_VWeSpy5Ki5Xz7C5xVun0anF-Lhp9PcmY5ZzbCeIxWuw6HRMtEVZMoZN-xjCEiuhhOXs6gxPzAAy0AkcuInDJrT74UZLQH9wx7pDSpzkU=w1600",
+         "src": "/images/5cbaa3591d1ec72f.webp",
          "alt": "",
          "href": "/rovers",
-         "external": false
+         "external": false,
+         "width": 443,
+         "height": 500
         }
        ]
       }
@@ -414,10 +424,12 @@
        "blocks": [
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72uoaLXR3FaOQs9VNU29s46gGJpZt8-tKvC8_XIQrS1cftV2mDednFltLb6MHpgKTEliCvtiOKQwq3YLBNMFoX6fzf2R9ntFSN-ElIdvmxtMDrBlMkCb4YoXrUTmwucLCnAmdQUDLbtJe2H3LGkBwuWbYrYI_yRBsDVO01kM2RZF-txRPOjWbs-89gTz2Zpm_v8xckjzepJjZ7006ppYhYjIpkwzg3bxOPxcftUvuUI=w1600",
+         "src": "/images/974d7161cab5e9bf.webp",
          "alt": "",
          "href": "https://sites.google.com/view/xiarchiveofficial/home",
-         "external": true
+         "external": true,
+         "width": 788,
+         "height": 735
         }
        ]
       },
@@ -469,7 +481,7 @@
   "base": "/buds",
   "googleUrl": "https://sites.google.com/view/xi-buds/home",
   "title": "XI Buds",
-  "logo": "https://sites.google.com/sitesv-images-rt/AMxu72uIkPYxMklH1BPjc3rzrRE1JENYH5C9XL0nJ16u-9EFjfxDN5TwrdgPtBpEUgn_0CA17WHkgXfkrwAAfnflMj29y9SRJOsHsKkXiqsdQ7oyqf5tY6M3V7w-leZFZ_XdxIdS5IIlZ23506clwLTSFMTGlVmH9wpfRVQP2CTICKuuTd7vhrrv-SLFPxUKSxs=w1600",
+  "logo": "/images/18d7b38a0ddbb585.webp",
   "accent": "#ff8000",
   "nav": [
    {
@@ -664,8 +676,10 @@
        "blocks": [
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72s3bG-wmkOTObs712FPRdReQP3bOzOWVDmIV08UdX1UEpDoBT6nHZ5FOzTEVGxt8xdirloWFScI8H5faqUMTxDYEPvp82A8XmEL5cRsauqbNHEjyQyUoUJN2WIatMEZhMiOQokl04vZnZ8vL9cG3FU8ov6wIzEez2uVz9BBeVEuTMC0_Cl3UOp9M3xD=w1600",
-         "alt": ""
+         "src": "/images/b9907e16b6877217.webp",
+         "alt": "",
+         "width": 500,
+         "height": 500
         }
        ]
       },
@@ -674,10 +688,12 @@
        "blocks": [
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72uS0Rl1-TLDgKUfuEuhmOhipeUbhF9Rktc_WCwDHq74z6HwGixzo1iHncSx8QyHRRxy6B0BK2BGXlf3s5olYEmwKmoUwlo4QksbnWudYLoU-zZfXxIM956MACaj7rtufMfIBsG8ImNqxrIRLAsCitLeudIhMAqtUcu5NSCJIGz13UMZCbN60HMtzOwa=w1600",
+         "src": "/images/5960626d14dea053.webp",
          "alt": "",
          "href": "/",
-         "external": false
+         "external": false,
+         "width": 1280,
+         "height": 1280
         }
        ]
       },
@@ -729,7 +745,7 @@
   "base": "/cubs",
   "googleUrl": "https://sites.google.com/view/xi-cubs/home",
   "title": "XI Cubs",
-  "logo": "https://sites.google.com/sitesv-images-rt/AMxu72stnu64PL5te8y0V08CJgQgT95plGykZP70LyBcjfgmgTvLmb3IBlrmvtXMNP4k9g-mUGVStM5BWx5asplSZxJjntcuKQWrsvf0cMN-OoTQWJ5ScSdt4Op8pfPhuNCUxddVoP-s3UMcklrrH91TzeAuHh1wp3bQwH9MpbLmVJURWwiG4YWwfoAg4K5e8p8=w1600",
+  "logo": "/images/e145d85d41a20686.webp",
   "accent": "#ffdd59",
   "nav": [
    {
@@ -974,10 +990,12 @@
        "blocks": [
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72vscQwD4RqLAs6NkVnNQ8PsqpqZrQsHUKBAY9qs9nrqFtWzKsjdXB8GPFpFkEMmuW1Tl5OBW6ZuLvtjxTK0LJfntFnzqE6X0I9jC0GVRjTGqMOuSZv9k3pL080Iqqh2S9DIejmUftPLV73fjknK42RyIsiUbe6TH2UIWZjQgxMSQMxF9pcBUOJF-uy_FnHOBDO8BaLumFonNWFTF7OuHMH8gPybUdfkVG0JHzZe9KI=w1600",
+         "src": "/images/0bcb5aedefb9c303.webp",
          "alt": "",
          "href": "/cubs",
-         "external": false
+         "external": false,
+         "width": 500,
+         "height": 490
         }
        ]
       },
@@ -986,10 +1004,12 @@
        "blocks": [
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72sBzwUGtlsi48U0mSMIgnen2o8Cn4TZdRvxvsiDFPyt25m0-w5Vpk68vR4f0IMhWzB4RyMWY8EHnN6hoWE0GmTcRzHv1sHuglDopCrgNlJPAHVu6Sh0ghTtcOOumZeZiC-i3uzias9EZPEu3CqqtZh2GIGHnjkfA-VHiJGZ3V8SHFJKA_mhqGcOJgevAag=w1600",
+         "src": "/images/4ecdecca711666ef.webp",
          "alt": "",
          "href": "/",
-         "external": false
+         "external": false,
+         "width": 1280,
+         "height": 1280
         }
        ]
       },
@@ -1041,7 +1061,7 @@
   "base": "/scouts",
   "googleUrl": "https://sites.google.com/view/xiscouts/home",
   "title": "XI Scouts",
-  "logo": "https://sites.google.com/sitesv-images-rt/AMxu72t5-LQ67xJ0VLIwVWwEmSHimJV-NPgdr4XnxlK7id1G0iUbKPtF5bYWx2ea2uNckNWIYgD1mM8hkKLmisg5U9bpIywx-j8gn3Ok0QK7zDdxFEzxcf04uRK4mk0lepmw6O-vkEIFs0bLS_4Ktn0JBB6odzg4sv6sELgIln4pnzHmAwFux1qSCtK7IJthHq0=w1600",
+  "logo": "/images/88df3994b734ed4c.webp",
   "accent": "#7ed958",
   "nav": [
    {
@@ -1941,14 +1961,16 @@
        "blocks": [
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72uOBgzl6lJgH2BSNCyzvg07EhHvZohwOAEBWIrzdYOzU9-weUd4fPHmDMPCmfU6Z35HBGVYRLdRoaP9TC-NBUgtNZuWUwo1SGvXa6LZdDZ2ig7aRZ4_MAzMpMuRMFdnnkpfbddhPvLl7xHKruy3r5BRcFroca-f6hBkXWNID4ceFq33ujU3jNF_Pjn8jv9OOSmkTspcRgp1dQgzLR6F83i0YX2pAFJzapjFHcxkO6M=w1600",
+         "src": "/images/c73743980dc9a140.webp",
          "alt": "",
          "crop": {
           "w": 100.6430888806,
           "t": 0.0,
           "b": 0.0,
           "l": -0.3215444403
-         }
+         },
+         "width": 497,
+         "height": 500
         }
        ]
       },
@@ -1957,10 +1979,12 @@
        "blocks": [
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72tpamnm9LxUDXTPh7AS46HBxz719ogLld5ixHO8I0x09gA6K-JuOnhs7cE3YYEl_J8nsJkAKNPRwnuXVhYcZfCGoBx4Qc-2QeHo6J5jgxqykTbnCGSz9Djjr-RWhBngrZrSYLGn86YaTYn8U6lUrHG-rjgXC_FgEAlyTK3yHkzEGKVazjyNFdeqp_H_-KQ=w1600",
+         "src": "/images/dd92c1781766f0c8.webp",
          "alt": "",
          "href": "/",
-         "external": false
+         "external": false,
+         "width": 1280,
+         "height": 1280
         }
        ]
       },
@@ -2012,7 +2036,7 @@
   "base": "/rovers",
   "googleUrl": "https://sites.google.com/view/xi-rovers/home",
   "title": "XI Rovers",
-  "logo": "https://sites.google.com/sitesv-images-rt/AMxu72s1aBukeFk3D_vBH6fMSsAD4AuqF-mP94iLmBLfYrIi-WZ8-GD6Q834oW_igefMWAYoozSeOFVRayR_0mgtvefGQW6ANZmfiTESSMtwNThZOYVp5SnxlBd45vpf-TdBjOZP1tIjHBpgwNe2Nzp034yYJboIZW0wHkVVnHvdJ-79ah1s9tYsPD9WidimtG4=w1600",
+  "logo": "/images/3075e102947b3ae9.webp",
   "accent": "#d3413f",
   "nav": [
    {
@@ -2413,8 +2437,10 @@
        "blocks": [
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72u7OcHJF12Yesj3Vy08bycWT5wKAl6mTz_SLB5sJHX4szfejNpbVU9E6O7Q97O0NNuqjFgcYMHGOXWnH0JvdO-pkkhIk4bgfVXlI7MzjR-3W7r0TnyeRpFvbqGnUF9qbEIah18Nwy1_N_GfKswqPTGbOwK31e8zzZDQM372P-Npjy5VkLlmm0RoO6sx=w1600",
-         "alt": ""
+         "src": "/images/c9355da4ff1e6c4a.webp",
+         "alt": "",
+         "width": 500,
+         "height": 500
         }
        ]
       },
@@ -2423,10 +2449,12 @@
        "blocks": [
         {
          "type": "image",
-         "src": "https://sites.google.com/sitesv-images-rt/AMxu72sMq5NHTvA5cROoWWx6vMq_P5MSvUboc6CMghWwnzPKECFHSht62wr5ECDLVipL331pU_UEjIu2ayEHXDDQIZ9YooMLj4Wqz395X3kkaYxawptE2f6ugqOkW1UgJHYseL7MksaaPuee_meeX-eo0Hex_KtAe7BwC6X1YA2743j9d9S4-O_coFZ8bZZr=w1600",
+         "src": "/images/c73bf017f3e8beb3.webp",
          "alt": "",
          "href": "/",
-         "external": false
+         "external": false,
+         "width": 1280,
+         "height": 1280
         }
        ]
       },

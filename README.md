@@ -48,15 +48,26 @@ If someone keeps editing the Google Sites, pull the changes again:
 ```sh
 pip install beautifulsoup4 pillow
 npm run import                       # re-crawl and regenerate src/data
-npm run import -- --download-images  # also save images into public/images
+npm run import -- --download-images  # also self-host images (see Images below)
 ```
 
 ## Images
 
 Google serves Google Sites images with `Cross-Origin-Resource-Policy: same-site`,
-so browsers only show them on sites.google.com. For them to appear here they must
-be downloaded into `public/images` (`--download-images` above) and committed.
-Until then, image blocks that can't load are hidden instead of showing as broken.
+so browsers only show them on sites.google.com. That is why every image is
+self-hosted in `public/images` (WebP, max 1600px wide).
+
+Google also refuses plain downloads of these images, so new images are captured
+by opening the Google Sites pages in a headless browser and keeping the images
+those pages load:
+
+```sh
+npm i -D playwright && npx playwright install chromium
+python3 -c "import json; json.dump([p['source'] for p in json.load(open('src/data/pages.json'))], open('.cache/google-sites/page-urls.json','w'))"
+mkdir -p .cache/google-sites/img
+node scripts/capture_images.cjs .cache/google-sites/page-urls.json .cache/google-sites/img
+npm run import -- --download-images   # converts the captured images and rewrites the URLs
+```
 
 ## Deploy
 

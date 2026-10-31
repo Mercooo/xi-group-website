@@ -37,8 +37,6 @@ const ogImage = image ?? sites.group.logo;
     <meta property="og:url" content={canonical} />
     {ogImage && <meta property="og:image" content={ogImage} />}
     <meta name="twitter:card" content="summary_large_image" />
-    <!-- Images are served from Google's image CDN; send no referrer so they load from any domain. -->
-    <meta name="referrer" content="no-referrer" />
   </head>
   <body>
     <a class="skip-link" href="#main">تخطي إلى المحتوى</a>
