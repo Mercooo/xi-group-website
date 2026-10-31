@@ -185,6 +185,34 @@ def download_images(out_dir, cache):
     return {v_old: results[k] for k, v_old in images.items()}
 
 
+def dedupe_images(out_dir):
+    """Google signs every image URL per page, so the same picture is captured
+    under many names. Keep one file per picture (largest wins) and return a
+    mapping from removed names to the kept one."""
+    def ahash(path):
+        im = Image.open(path).convert("L").resize((16, 16))
+        px = list(im.getdata())
+        avg = sum(px) / len(px)
+        return sum(1 << i for i, v in enumerate(px) if v > avg)
+
+    info = []
+    for f in os.listdir(out_dir):
+        p = os.path.join(out_dir, f)
+        with Image.open(p) as im:
+            w, h = im.size
+        info.append((f, ahash(p), w, h))
+    info.sort(key=lambda x: -x[2] * x[3])
+    kept, mapping = [], {}
+    for f, hsh, w, h in info:
+        same = next((k for k in kept if bin(hsh ^ k[1]).count("1") <= 6 and abs(w / h - k[2] / k[3]) < 0.03), None)
+        if same:
+            mapping["/images/" + f] = "/images/" + same[0]
+            os.remove(os.path.join(out_dir, f))
+        else:
+            kept.append((f, hsh, w, h))
+    return mapping
+
+
 def image_dims(local):
     try:
         with Image.open(os.path.join(ROOT, "public", local.lstrip("/"))) as im:
@@ -495,6 +523,8 @@ def main():
     if args.download_images:
         print(f"Downloading {len(images)} images…", file=sys.stderr)
         mapping = download_images(os.path.join(ROOT, "public", "images"), args.cache)
+        merged = dedupe_images(os.path.join(ROOT, "public", "images"))
+        mapping = {k: merged.get(v, v) for k, v in mapping.items()}
 
         def swap(obj):
             if isinstance(obj, dict):

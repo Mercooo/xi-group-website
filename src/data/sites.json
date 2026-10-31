@@ -4,7 +4,7 @@
   "base": "/",
   "googleUrl": "https://sites.google.com/view/xi-group/home",
   "title": "XI group",
-  "logo": "/images/4d5bdd2d88a5b2c9.webp",
+  "logo": "/images/4ecdecca711666ef.webp",
   "accent": "#e1dada",
   "nav": [
    {
@@ -364,7 +364,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/7d91eb5cf4358fdb.webp",
+         "src": "/images/4ecdecca711666ef.webp",
          "alt": "",
          "width": 1280,
          "height": 1280
@@ -481,7 +481,7 @@
   "base": "/buds",
   "googleUrl": "https://sites.google.com/view/xi-buds/home",
   "title": "XI Buds",
-  "logo": "/images/18d7b38a0ddbb585.webp",
+  "logo": "/images/0285e06bf2c7d9ce.webp",
   "accent": "#ff8000",
   "nav": [
    {
@@ -676,7 +676,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/b9907e16b6877217.webp",
+         "src": "/images/0285e06bf2c7d9ce.webp",
          "alt": "",
          "width": 500,
          "height": 500
@@ -688,7 +688,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/5960626d14dea053.webp",
+         "src": "/images/4ecdecca711666ef.webp",
          "alt": "",
          "href": "/",
          "external": false,
@@ -745,7 +745,7 @@
   "base": "/cubs",
   "googleUrl": "https://sites.google.com/view/xi-cubs/home",
   "title": "XI Cubs",
-  "logo": "/images/e145d85d41a20686.webp",
+  "logo": "/images/41df67476fb29279.webp",
   "accent": "#ffdd59",
   "nav": [
    {
@@ -990,12 +990,12 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/0bcb5aedefb9c303.webp",
+         "src": "/images/41df67476fb29279.webp",
          "alt": "",
          "href": "/cubs",
          "external": false,
          "width": 500,
-         "height": 490
+         "height": 500
         }
        ]
       },
@@ -1961,7 +1961,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/c73743980dc9a140.webp",
+         "src": "/images/007c7da64894aa28.webp",
          "alt": "",
          "crop": {
           "w": 100.6430888806,
@@ -1969,7 +1969,7 @@
           "b": 0.0,
           "l": -0.3215444403
          },
-         "width": 497,
+         "width": 500,
          "height": 500
         }
        ]
@@ -1979,7 +1979,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/dd92c1781766f0c8.webp",
+         "src": "/images/4ecdecca711666ef.webp",
          "alt": "",
          "href": "/",
          "external": false,
@@ -2036,7 +2036,7 @@
   "base": "/rovers",
   "googleUrl": "https://sites.google.com/view/xi-rovers/home",
   "title": "XI Rovers",
-  "logo": "/images/3075e102947b3ae9.webp",
+  "logo": "/images/09a0baff32d2883e.webp",
   "accent": "#d3413f",
   "nav": [
    {
@@ -2437,7 +2437,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/c9355da4ff1e6c4a.webp",
+         "src": "/images/09a0baff32d2883e.webp",
          "alt": "",
          "width": 500,
          "height": 500
@@ -2449,7 +2449,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/c73bf017f3e8beb3.webp",
+         "src": "/images/4ecdecca711666ef.webp",
          "alt": "",
          "href": "/",
          "external": false,

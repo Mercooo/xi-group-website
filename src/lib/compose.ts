@@ -3,7 +3,9 @@
 // galleries and running text. Google Sites pages were laid out by hand on a
 // 12-column grid; reproducing that grid literally produced lonely buttons and
 // huge empty boxes, so pages are re-composed from what their content is.
-import { childrenOf, type Block, type Page, type Section } from './data';
+import { childrenOf, getPage, pages as allPages, type Block, type Page, type Section } from './data';
+
+const pagesForEmblems = () => allPages;
 
 type ImageBlock = Extract<Block, { type: 'image' }>;
 type ButtonBlock = Extract<Block, { type: 'button' }>;
@@ -70,7 +72,9 @@ function rowGroups(row: { span: number; blocks: Block[] }[]): Group[] {
     col.filter(isPicture).length <= 1 &&
     (textLen(col) > 0 || col.some(isPicture)) &&
     textLen(col) <= 170;
-  if (cols.length >= 2 ? cols.every(personCol) : cols.length === 1 && personCol(cols[0]) && cols[0].some(isPicture)) {
+  // A row of pictures without any names is a gallery, not a list of people.
+  const named = cols.some((c) => textLen(c) > 0);
+  if (named && (cols.length >= 2 ? cols.every(personCol) : personCol(cols[0]) && cols[0].some(isPicture))) {
     const items = cols
       .map((col) => ({
         image: col.find((b) => b.type === 'image') as ImageBlock | undefined,
@@ -152,11 +156,11 @@ export function composePage(page: Page, title: string): { hero?: Section; groups
 
 /** First real picture on a page, used as the thumbnail of links pointing to it. */
 export function pageThumbnail(page: Page): ImageBlock | undefined {
-  return ownThumbnail(page) ?? childrenOf(page.path).map(ownThumbnail).find(Boolean);
+  return ownThumbnail(page);
 }
 
 // Scanned requirement sheets make poor thumbnails; keep roughly square pictures.
-const thumbFriendly = (b: ImageBlock) => !b.width || !b.height || (b.width / b.height > 0.6 && b.width / b.height < 1.7);
+const thumbFriendly = (b: ImageBlock) => !b.width || !b.height || (b.width / b.height > 0.6 && b.width / b.height < 1.45);
 
 function ownThumbnail(page: Page): ImageBlock | undefined {
   const [first, ...rest] = page.sections;
@@ -166,4 +170,59 @@ function ownThumbnail(page: Page): ImageBlock | undefined {
       for (const c of r)
         for (const b of c.blocks) if (b.type === 'image') return thumbFriendly(b) ? b : undefined;
   return undefined;
+}
+
+/** Pictures elsewhere on the site that link to a page (a patrol's emblem on the
+ * unit page, a unit's logo on the home page). Used to give pages that have no
+ * picture of their own an emblem. */
+const emblems = new Map<string, ImageBlock>();
+for (const p of pagesForEmblems())
+  for (const s of p.sections)
+    for (const r of s.rows)
+      for (const c of r) {
+        const img = c.blocks.find((b) => b.type === 'image') as ImageBlock | undefined;
+        if (!img) continue;
+        const targets = [img.href, ...c.blocks.filter((b) => b.type === 'button').map((b) => (b as ButtonBlock).href)];
+        for (const t of targets) {
+          if (!t || /^(https?:)?\/\//.test(t)) continue;
+          const key = decodeURI(t.split('#')[0]);
+          if (key !== p.path && !emblems.has(key)) emblems.set(key, img);
+        }
+      }
+export const emblemFor = (path: string) => emblems.get(path);
+
+/** People on other pages whose caption mentions this page's title — e.g. the
+ * patrol leader "عريف طليعة الأسد" listed on the Scouts page. */
+export function peopleMentioning(page: Page, title: string): PersonItem[] {
+  const parent = page.path.split('/').slice(0, -1).join('/') || '/';
+  const unitHome = getPage(parent.replace(/\/home$/, ''));
+  if (!unitHome) return [];
+  const { groups } = composePage(unitHome, unitHome.title);
+  const out: PersonItem[] = [];
+  for (const g of groups)
+    if (g.kind === 'people')
+      for (const item of g.items) if (plain(item.html).includes(title)) out.push(item);
+  return out;
+}
+
+/** Year milestones written as list items ("عام 1933 (التأسيس): …"). */
+export interface Milestone { year: string; title: string; text: string }
+export function milestones(html: string): Milestone[] {
+  const out: Milestone[] = [];
+  for (const m of html.matchAll(/<li[^>]*>(.*?)<\/li>/gs)) {
+    const t = plain(m[1]).replace(/\s+/g, ' ');
+    const mm = t.match(/^(?:عام\s*)?(\d{4})\s*\(([^)]+)\)\s*:\s*(.+)$/);
+    if (mm) out.push({ year: mm[1], title: mm[2].trim(), text: mm[3].trim() });
+  }
+  return out;
+}
+
+/** Pages with no content of their own and no sub-pages (labelled "coming soon" in link lists). */
+const emptyCache = new Map<string, boolean>();
+export function isEmptyPage(path: string): boolean {
+  if (!emptyCache.has(path)) {
+    const page = getPage(path);
+    emptyCache.set(path, !!page && childrenOf(path).length === 0 && composePage(page, page.title).groups.length === 0);
+  }
+  return emptyCache.get(path)!;
 }

@@ -1,0 +1,120 @@
+---
+// The group home page: the movement's timeline, who we are, the four units,
+// the organisation chart and the store — built from the Google Sites home content.
+import type { Group } from '../lib/compose';
+import { milestones } from '../lib/compose';
+import { sites, UNITS } from '../lib/data';
+import Content from './Content.astro';
+import Patch from './Patch.astro';
+import Icon from './Icon.astro';
+
+interface Props { groups: Group[] }
+const { groups } = Astro.props;
+
+const plain = (h: string) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+const unitKeyOf = (g: Group) =>
+  g.kind === 'media' ? UNITS.find((u) => g.image.href && decodeURI(g.image.href) === sites[u.key].base)?.key : undefined;
+
+const medias = groups.filter((g): g is Extract<Group, { kind: 'media' }> => g.kind === 'media');
+const movement = medias.find((g) => milestones(g.html).length >= 3);
+const about = medias.find((g) => g !== movement && !unitKeyOf(g));
+const unitGroups = medias.filter((g) => unitKeyOf(g));
+
+const steps = movement ? milestones(movement.html) : [];
+steps.push({ year: '1952', title: 'تأسيس المجموعة الحادية عشر', text: 'على يد القائد جاك العيسي، تحت اسم "مجموعة الحبل بلا دنس".' });
+const movementIntro = movement ? plain(movement.html).match(/تعتبر حركة[^.]+\./)?.[0] : undefined;
+
+// "مرحلة البراعم: خطواتنا الأولى نحو الاستكشاف" → the part after the colon.
+const tagline = (g: Group) => {
+  if (g.kind !== 'media') return '';
+  const lines = [...g.html.matchAll(/<(?:p|h\d)[^>]*>(.*?)<\/(?:p|h\d)>/gs)].map((m) => plain(m[1])).filter(Boolean);
+  const line = lines.find((l) => l.includes(':')) ?? lines[1] ?? '';
+  return line.split(':').slice(1).join(':').replace(/["”]+$/, '').trim() || line;
+};
+
+// Organisation chart: the embed and the PDF link that follow its heading.
+const chartIndex = groups.findIndex((g) => g.kind === 'block');
+const chart = chartIndex >= 0 ? groups[chartIndex] : undefined;
+const pdf = groups.find((g) => g.kind === 'links' && g.items.some((i) => /drive\.google\.com\/uc/.test(i.href)));
+const pdfHref = pdf && pdf.kind === 'links' ? pdf.items[0].href : undefined;
+
+// Store: the picture, text and link at the end of the page.
+const storeLink = groups.find((g) => g.kind === 'links' && g.items.some((i) => /store\.sgwen\.org/.test(i.href)));
+const storeTextGroup = groups.slice(chartIndex + 1).find((g) => g.kind === 'prose' && /متجر/.test(g.html));
+const storeImage = groups.slice(chartIndex + 1).find((g) => g.kind === 'gallery');
+---
+<section class="home-band home-band--white" aria-labelledby="movement-title">
+  <div class="wrap">
+    <h2 class="band-title" id="movement-title">أكثر من تسعة عقود من الكشافة</h2>
+    {movementIntro && <p class="band-lead">{movementIntro}</p>}
+    <ol class="timeline" role="list">
+      {steps.map((s, i) => (
+        <li class:list={['timeline__step', { 'timeline__step--ours': i === steps.length - 1 }]}>
+          <span class="timeline__year">{s.year}</span>
+          <strong class="timeline__title">{s.title}</strong>
+          <p class="timeline__text">{s.text}</p>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+
+{about && (
+  <section class="home-band" aria-label="من نحن">
+    <div class="wrap"><Content groups={[about]} /></div>
+  </section>
+)}
+
+<section class="home-band home-band--white" aria-labelledby="units-title">
+  <div class="wrap">
+    <h2 class="band-title" id="units-title">أربع مراحل، من الطفولة إلى الشباب</h2>
+    <ul class="unit-cards" role="list">
+      {unitGroups.map((g) => {
+        const key = unitKeyOf(g)!;
+        const u = UNITS.find((x) => x.key === key)!;
+        return (
+          <li data-site={key}>
+            <a class="unit-card" href={sites[key].base}>
+              <span class="unit-card__top">
+                <Patch logo={sites[key].logo} size={72} />
+              </span>
+              <span class="unit-card__body">
+                <strong class="unit-card__name">{u.name}</strong>
+                <span class="unit-card__ages">{u.ages}</span>
+                <span class="unit-card__tag">{tagline(g)}</span>
+                <span class="unit-card__go">ادخل إلى صفحة الوحدة <Icon name="arrow-next" size={16} /></span>
+              </span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+</section>
+
+{chart && (
+  <section class="home-band" aria-labelledby="chart-title">
+    <div class="wrap">
+      <div class="band-head">
+        <h2 class="band-title" id="chart-title">الهيكل التنظيمي للمجموعة</h2>
+        {pdfHref && <a class="btn btn--ghost" href={pdfHref} target="_blank" rel="noopener"><Icon name="download" size={18} /> تحميل بصيغة PDF</a>}
+      </div>
+      <Content groups={[chart]} />
+    </div>
+  </section>
+)}
+
+{storeLink && storeLink.kind === 'links' && (
+  <section class="store-band" aria-labelledby="store-title">
+    <div class="wrap store-band__inner">
+      {storeImage && storeImage.kind === 'gallery' && (
+        <img class="store-band__img" src={storeImage.images[0].src} alt="" width={storeImage.images[0].width} height={storeImage.images[0].height} loading="lazy" />
+      )}
+      <div>
+        <h2 id="store-title">متجر وادي النيل الكشفي</h2>
+        {storeTextGroup && storeTextGroup.kind === 'prose' && <p>{plain(storeTextGroup.html).split('. ')[0]}.</p>}
+        <a class="btn btn--accent" href={storeLink.items[0].href} target="_blank" rel="noopener">اطلب الزي والشارات من المتجر <Icon name="external" size={16} /></a>
+      </div>
+    </div>
+  </section>
+)}

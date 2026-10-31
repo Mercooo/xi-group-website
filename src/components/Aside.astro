@@ -1,0 +1,38 @@
+---
+// Side panel for pages inside a series (knots, badges, ceremonies…): the other
+// pages of the same section, and the headings of the current page.
+import type { Page } from '../lib/data';
+import { displayLabel } from '../lib/data';
+
+interface Props {
+  parent?: Page;
+  parentLabel?: string;
+  siblings: Page[];
+  current: string;
+  toc: { id: string; text: string }[];
+}
+const { parent, parentLabel, siblings, current, toc } = Astro.props;
+---
+<aside class="aside">
+  {toc.length > 0 && (
+    <nav class="aside__box" aria-labelledby="toc-title">
+      <h2 id="toc-title" class="aside__title">في هذه الصفحة</h2>
+      <ol class="aside__list">
+        {toc.map((t) => <li><a href={`#${t.id}`}>{t.text}</a></li>)}
+      </ol>
+    </nav>
+  )}
+  {siblings.length > 0 && parent && (
+    <details class="aside__box aside__series" open>
+      <summary>
+        <span class="aside__title">{parentLabel ?? displayLabel(parent.title)}</span>
+        <span class="aside__count">{siblings.length} صفحة</span>
+      </summary>
+      <ul class="aside__list" role="list">
+        {siblings.map((s) => (
+          <li><a href={s.path} aria-current={s.path === current ? 'page' : undefined}>{displayLabel(s.title)}</a></li>
+        ))}
+      </ul>
+    </details>
+  )}
+</aside>

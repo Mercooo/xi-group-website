@@ -1,6 +1,6 @@
 ---
 import type { Group, LinkItem } from '../lib/compose';
-import { pageThumbnail } from '../lib/compose';
+import { pageThumbnail, isEmptyPage } from '../lib/compose';
 import { getPage, displayLabel, sites, UNITS } from '../lib/data';
 import BlockView from './BlockView.astro';
 import Icon from './Icon.astro';
@@ -20,6 +20,9 @@ const thumb = (item: LinkItem) => {
 };
 // Lists where most links carry their own picture (patrols, sixes, units) become picture tiles.
 const isTiles = (items: LinkItem[]) => items.filter((i) => i.image).length >= Math.max(2, items.length / 2);
+// Leader lists get a person silhouette for missing photos; other lists (fire types, tent parts…) a neutral frame.
+const isPersonText = (html: string) => /(^|>)\s*(ق\s*\/|قائد|مساعد|عريف|جوال|رائد|زعيم)|قائد|عريف/.test(html);
+const isDoc = (b: { width?: number; height?: number }) => !!b.width && !!b.height && b.width / b.height > 1.4;
 const imgStyle = (b: { crop?: { w: number; t: number; b: number; l: number } }) =>
   b.crop ? `width:${b.crop.w}%;margin:${b.crop.t}% 0 ${b.crop.b}% ${b.crop.l}%;max-width:none` : undefined;
 ---
@@ -38,16 +41,14 @@ const imgStyle = (b: { crop?: { w: number; t: number; b: number; l: number } }) 
 
   if (g.kind === 'people')
     return (
-      <ul class:list={['people', { 'people--compact': g.items.filter((i) => !i.image).length > g.items.length / 2 }]} role="list">
+      <ul class:list={['people', { 'people--compact': g.items.filter((i) => !i.image && isPersonText(i.html)).length > g.items.length / 2 }]} role="list">
         {g.items.map((p) => (
           <li class="person">
-            <div class="person__photo">
-              {p.image ? (
-                <img src={p.image.src} alt="" loading="lazy" decoding="async" />
-              ) : (
-                <span class="person__empty"><Icon name="person" size={44} /></span>
-              )}
-            </div>
+            {p.image ? (
+              <div class="person__photo"><img src={p.image.src} alt="" loading="lazy" decoding="async" /></div>
+            ) : isPersonText(p.html) ? (
+              <div class="person__photo"><span class="person__empty"><Icon name="person" size={44} /></span></div>
+            ) : null}
             <div class="person__text" set:html={p.html} />
           </li>
         ))}
@@ -64,7 +65,7 @@ const imgStyle = (b: { crop?: { w: number; t: number; b: number; l: number } }) 
             <li>
               <a class="link" href={item.href} {...linkAttrs(item.href)}>
                 {src && <span class="link__thumb"><img src={src} alt="" loading="lazy" decoding="async" /></span>}
-                <span class="link__label">{displayLabel(item.label)}</span>
+                <span class="link__label">{displayLabel(item.label)}{!item.external && isEmptyPage(decodeURI(item.href.split('#')[0])) && <small class="link__soon">قريباً</small>}</span>
                 <Icon name={item.external ? 'external' : 'arrow-next'} size={16} class="link__go" />
               </a>
             </li>
@@ -76,13 +77,14 @@ const imgStyle = (b: { crop?: { w: number; t: number; b: number; l: number } }) 
 
   if (g.kind === 'gallery')
     return (
-      <div class:list={['gallery', { 'gallery--single': g.images.length === 1 }]}>
+      <div class:list={['gallery', { 'gallery--single': g.images.length === 1, 'gallery--docs': g.images.every(isDoc) }]}>
         {g.images.map((img) => {
+          const cap = g.images.length === 1 && img.width && !img.crop ? `max-width:${img.width}px` : undefined;
           const pic = <img src={img.src} alt={img.alt} width={img.crop ? undefined : img.width} height={img.crop ? undefined : img.height} loading="lazy" decoding="async" style={imgStyle(img)} />;
           return img.href ? (
-            <a class="gallery__item" href={img.href} {...linkAttrs(img.href)}>{pic}</a>
+            <a class="gallery__item" style={cap} href={img.href} {...linkAttrs(img.href)}>{pic}</a>
           ) : (
-            <a class="gallery__item" href={img.src} target="_blank" rel="noopener" aria-label="عرض الصورة بالحجم الكامل">{pic}</a>
+            <a class="gallery__item" style={cap} href={img.src} data-zoom aria-label="تكبير الصورة">{pic}<span class="gallery__zoom"><Icon name="zoom" size={18} /></span></a>
           );
         })}
       </div>
@@ -90,5 +92,5 @@ const imgStyle = (b: { crop?: { w: number; t: number; b: number; l: number } }) 
 
   // Keep embeds at the width they had in their Google Sites column so their
   // proportions (e.g. the SoundCloud player height) still fit.
-  return <div class="block" style={`--span:${Math.max(g.span, 6)}`}><BlockView block={g.block} /></div>;
+  return <div class="block" style={`--span:${g.block.type === 'embed' ? 12 : Math.max(g.span, 6)}`}><BlockView block={g.block} /></div>;
 })}

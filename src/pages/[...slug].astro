@@ -1,12 +1,14 @@
 ---
 import Base from '../layouts/Base.astro';
 import Content from '../components/Content.astro';
+import Home from '../components/Home.astro';
+import Aside from '../components/Aside.astro';
 import Icon from '../components/Icon.astro';
 import Patch from '../components/Patch.astro';
-import { composePage, pageThumbnail, type Group } from '../lib/compose';
+import { composePage, pageThumbnail, emblemFor, peopleMentioning, type Group } from '../lib/compose';
 import {
   pages, sites, UNITS, GROUP_NAME, GROUP_SUBTITLE,
-  breadcrumbs, childrenOf, siblings, pageText, displayLabel, type Page,
+  breadcrumbs, childrenOf, parentOf, siblings, pageText, displayLabel, getPage, type Page,
 } from '../lib/data';
 
 export function getStaticPaths() {
@@ -26,26 +28,62 @@ const title = isHome ? (unit ? unit.name : GROUP_NAME) : displayLabel(page.title
 const label = (p: Page) => (p.path === sites[p.site].base ? (UNITS.find((u) => u.key === p.site)?.name ?? GROUP_NAME) : displayLabel(p.title));
 
 const { hero, groups } = composePage(page, page.title);
-const photo = hero?.bg ?? null;
+// A photo header only where the page has its own photo; sub-pages that reuse
+// their site's home photo get the lighter title band instead.
+const homeHero = composePage(getPage(site.base)!, '').hero?.bg;
+const photo = hero?.bg && (isHome || hero.bg !== homeHero) ? hero.bg : null;
 const crumbs = breadcrumbs(page);
+const parent = parentOf(page.path);
 
 // Child pages the content doesn't already link to (Google Sites relied on its menu for these).
 const linked = new Set<string>();
-const collect = (gs: Group[]) => {
-  for (const g of gs) {
-    if (g.kind === 'links') g.items.forEach((i) => linked.add(decodeURI(i.href)));
-    if (g.kind === 'gallery') g.images.forEach((i) => i.href && linked.add(decodeURI(i.href)));
-    if (g.kind === 'prose' || g.kind === 'media') for (const m of g.html.matchAll(/href="([^"]+)"/g)) linked.add(decodeURI(m[1]));
-  }
-};
-collect(groups);
+for (const g of groups) {
+  if (g.kind === 'links') g.items.forEach((i) => linked.add(decodeURI(i.href)));
+  if (g.kind === 'gallery') g.images.forEach((i) => i.href && linked.add(decodeURI(i.href)));
+  if (g.kind === 'prose' || g.kind === 'media') for (const m of g.html.matchAll(/href="([^"]+)"/g)) linked.add(decodeURI(m[1]));
+}
 const kids = isHome ? [] : childrenOf(page.path).filter((k) => !linked.has(k.path));
-const { prev, next } = siblings(page);
+
+// Unit home: the unit's description from the group home page becomes its introduction.
+let intro: Group | undefined;
+if (isHome && unit) {
+  const home = getPage('/')!;
+  intro = composePage(home, home.title).groups.find(
+    (g) => g.kind === 'media' && g.image.href && decodeURI(g.image.href) === site.base,
+  );
+}
+const unitSections = isHome && unit ? site.nav.filter((i) => i.href !== site.base) : [];
+
+// Pages inside a series (knots, badges, ceremonies…) list their siblings beside the content.
+const seriesParent = parent && parent.path !== site.base && parent.path !== '/' ? parent : undefined;
+const series = !isHome && childrenOf(page.path).length === 0 && seriesParent
+  ? childrenOf(seriesParent.path).filter((p) => p.site === page.site && p.path.split('/').slice(0, -1).join('/') === page.path.split('/').slice(0, -1).join('/'))
+  : [];
+const showSeries = series.length >= 3;
+
+// Table of contents for long pages.
+const toc: { id: string; text: string }[] = [];
+for (const g of groups)
+  if (g.kind === 'prose' || g.kind === 'media')
+    for (const m of g.html.matchAll(/<h[23][^>]*id="([^"]+)"[^>]*>(.*?)<\/h[23]>/gs)) {
+      const text = m[2].replace(/<[^>]+>/g, '').replace(/[:：]\s*$/, '').trim();
+      if (text) toc.push({ id: m[1], text });
+    }
+const showToc = toc.length >= 3;
+const hasAside = showSeries || showToc;
+
+// Badge pages: the scanned requirement sheet is the content.
+const isBadge = /\/الشارات\/[^/]+\/[^/]+$/.test(page.path);
+// Pages with nothing of their own (patrols, sixes, knots still to be written).
+const emblem = groups.length === 0 ? emblemFor(page.path) : undefined;
+const mentions = groups.length === 0 ? peopleMentioning(page, page.title) : [];
+const isEvents = page.path.startsWith('/our-events');
 const empty = groups.length === 0 && kids.length === 0;
 
+const { prev, next } = siblings(page);
 const text = pageText(page);
-const description = (text || `${title} — ${GROUP_NAME}`).slice(0, 160);
-const ogImage = photo ?? pageThumbnail(page)?.src;
+const description = (text || `${title}، ${unit?.name ?? GROUP_NAME}`).slice(0, 160);
+const ogImage = photo ?? pageThumbnail(page)?.src ?? emblem?.src;
 ---
 <Base title={title} description={description} siteKey={page.site} image={ogImage}>
   {isGroupHome ? (
@@ -70,51 +108,122 @@ const ogImage = photo ?? pageThumbnail(page)?.src;
       <div class="wrap hero__content">
         {crumbs.length > 0 && (
           <nav class="crumbs" aria-label="مسار التنقل">
-            <ol>
-              {crumbs.map((c) => <li><a href={c.path}>{label(c)}</a></li>)}
-            </ol>
+            <ol>{crumbs.map((c) => <li><a href={c.path}>{label(c)}</a></li>)}</ol>
           </nav>
         )}
-        <h1 class="hero__title">{title}</h1>
-        {isHome && unit && <p class="hero__sub">الفئة العمرية: {unit.ages}</p>}
+        <div class="hero__row">
+          <div>
+            <h1 class="hero__title">{title}</h1>
+            {isHome && unit && <p class="hero__sub">الفئة العمرية: {unit.ages}</p>}
+            {isBadge && parent && <p class="hero__sub">من {label(parent)}</p>}
+          </div>
+        </div>
       </div>
     </section>
   )}
 
-  <div class="page">
-    <div class="wrap flow">
-      <Content groups={groups} />
-
-      {kids.length > 0 && (
-        <section class="section-nav" aria-labelledby="in-section">
-          <h2 id="in-section">في هذا القسم</h2>
-          <Content groups={[{ kind: 'links', items: kids.map((k) => ({ label: label(k), href: k.path, external: false })) }]} />
+  {isGroupHome ? (
+    <Home groups={groups} />
+  ) : (
+    <div class="page">
+      {intro && intro.kind === 'media' && (
+        <section class="unit-intro">
+          <div class="wrap unit-intro__grid">
+            <div class="prose measure" set:html={intro.html.replace(/<a [^>]*>[^<]*<\/a>/g, '').replace(/<p[^>]*>\s*<\/p>/g, '')} />
+            {unitSections.length > 0 && (
+              <nav class="unit-intro__nav" aria-label="أقسام الوحدة">
+                <h2 class="aside__title">أقسام {unit!.short}</h2>
+                <ul role="list">
+                  {unitSections.map((s) => (
+                    <li>
+                      <a href={s.href} {...(s.external ? { target: '_blank', rel: 'noopener' } : {})}>
+                        <span>{displayLabel(s.label)}</span>
+                        <Icon name={s.external ? 'external' : 'arrow-next'} size={16} />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            )}
+          </div>
         </section>
       )}
 
-      {empty && (
-        <div class="empty">
-          <p>لم يُضف محتوى لهذه الصفحة بعد.</p>
-          {crumbs.length > 0 && <a class="btn" href={crumbs[crumbs.length - 1].path}>العودة إلى {label(crumbs[crumbs.length - 1])}</a>}
+      <div class:list={['wrap', { 'page-grid': hasAside }]}>
+        <div class="flow">
+          {isBadge && groups.every((g) => g.kind === 'gallery') && groups.length > 0 && (
+            <h2 class="flow-title">متطلبات الشارة <span>اضغط على الصورة لتكبيرها</span></h2>
+          )}
+
+          <Content groups={groups} />
+
+          {kids.length > 0 && (
+            <section class="section-nav" aria-labelledby="in-section">
+              <h2 id="in-section" class="flow-title">في هذا القسم</h2>
+              <Content groups={[{ kind: 'links', items: kids.map((k) => ({ label: label(k), href: k.path, external: false })) }]} />
+            </section>
+          )}
+
+          {empty && (emblem || mentions.length > 0) && (
+            <div class="emblem-card">
+              {emblem && <img src={emblem.src} alt="" loading="lazy" />}
+              {mentions.length > 0 && (
+                <div>
+                  <h2 class="flow-title">{/طليعة/.test(page.title) ? 'عريف الطليعة' : 'القائد'}</h2>
+                  <Content groups={[{ kind: 'people', items: mentions }]} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {empty && (
+            <div class:list={['empty', { 'empty--quiet': emblem || mentions.length > 0 }]}>
+              {isEvents ? (
+                <>
+                  <Icon name="calendar" size={28} />
+                  <p>لا توجد فعاليات منشورة هنا حالياً. نعلن عن المعسكرات والرحلات والاحتفالات أولاً على صفحاتنا.</p>
+                  <p class="btn-wrap">
+                    <a class="btn" href="https://www.facebook.com/XI.SGWEN" target="_blank" rel="noopener"><Icon name="facebook" size={18} /> فيسبوك</a>
+                    <a class="btn btn--ghost" href="https://www.instagram.com/sgwen_11thgroup/" target="_blank" rel="noopener"><Icon name="instagram" size={18} /> إنستجرام</a>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p>{emblem || mentions.length ? 'لم تُضف تفاصيل أخرى لهذه الصفحة بعد.' : 'لم يُضف شرح لهذه الصفحة بعد.'}{showSeries ? ' تصفّح باقي صفحات القسم من القائمة.' : ''}</p>
+                  {parent && <a class="btn btn--ghost" href={parent.path}>العودة إلى {label(parent)}</a>}
+                </>
+              )}
+            </div>
+          )}
         </div>
+
+        {hasAside && (
+          <Aside
+            parent={showSeries ? seriesParent : undefined}
+            parentLabel={seriesParent ? label(seriesParent) : undefined}
+            siblings={showSeries ? series : []}
+            current={page.path}
+            toc={showToc ? toc : []}
+          />
+        )}
+      </div>
+
+      {(prev || next) && (
+        <nav class="wrap pager" aria-label="الصفحات المجاورة">
+          {prev ? (
+            <a class="pager__link" href={prev.path} rel="prev">
+              <Icon name="arrow-prev" />
+              <span><small>السابق</small>{label(prev)}</span>
+            </a>
+          ) : <span />}
+          {next && (
+            <a class="pager__link pager__link--next" href={next.path} rel="next">
+              <span><small>التالي</small>{label(next)}</span>
+              <Icon name="arrow-next" />
+            </a>
+          )}
+        </nav>
       )}
     </div>
-
-    {(prev || next) && (
-      <nav class="wrap pager" aria-label="الصفحات المجاورة">
-        {prev ? (
-          <a class="pager__link" href={prev.path} rel="prev">
-            <Icon name="arrow-prev" />
-            <span><small>السابق</small>{label(prev)}</span>
-          </a>
-        ) : <span />}
-        {next && (
-          <a class="pager__link pager__link--next" href={next.path} rel="next">
-            <span><small>التالي</small>{label(next)}</span>
-            <Icon name="arrow-next" />
-          </a>
-        )}
-      </nav>
-    )}
-  </div>
+  )}
 </Base>

@@ -80,6 +80,41 @@ const ogImage = ogSource ? new URL(ogSource, Astro.site).toString() : null;
         else img.addEventListener('error', () => markBroken(img), { once: true });
       });
 
+      // Image viewer: pictures open full screen on the page; arrows move between them.
+      const zoomables = [...document.querySelectorAll<HTMLAnchorElement>('[data-zoom]')];
+      if (zoomables.length) {
+        const dlg = document.createElement('dialog');
+        dlg.className = 'lightbox';
+        dlg.setAttribute('aria-label', 'عرض الصورة');
+        dlg.innerHTML =
+          '<img alt="" />' +
+          '<button class="lightbox__close" type="button" aria-label="إغلاق">×</button>' +
+          (zoomables.length > 1
+            ? '<button class="lightbox__nav lightbox__nav--prev" type="button" aria-label="الصورة السابقة">›</button><button class="lightbox__nav lightbox__nav--next" type="button" aria-label="الصورة التالية">‹</button><span class="lightbox__count"></span>'
+            : '');
+        document.body.append(dlg);
+        const img = dlg.querySelector('img')!;
+        const count = dlg.querySelector<HTMLElement>('.lightbox__count');
+        let at = 0;
+        const show = (i: number) => {
+          at = (i + zoomables.length) % zoomables.length;
+          img.src = zoomables[at].href;
+          if (count) count.textContent = `${at + 1} / ${zoomables.length}`;
+        };
+        zoomables.forEach((a, i) => a.addEventListener('click', (e) => { e.preventDefault(); show(i); dlg.showModal(); }));
+        dlg.querySelector('.lightbox__close')!.addEventListener('click', () => dlg.close());
+        dlg.querySelector('.lightbox__nav--next')?.addEventListener('click', () => show(at + 1));
+        dlg.querySelector('.lightbox__nav--prev')?.addEventListener('click', () => show(at - 1));
+        dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+        dlg.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowLeft') show(at + 1);
+          if (e.key === 'ArrowRight') show(at - 1);
+        });
+      }
+
+      // Long series lists start folded on small screens.
+      if (matchMedia('(max-width: 1000px)').matches) document.querySelectorAll('.aside__series').forEach((d) => d.removeAttribute('open'));
+
       // Image carousels
       document.querySelectorAll<HTMLElement>('[data-carousel]').forEach((root) => {
         const track = root.querySelector<HTMLElement>('.carousel__track')!;

@@ -8,7 +8,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/5ef74377db16ba4b.webp",
+    "bg": "/images/01d35b970c28fb0b.webp",
     "rows": []
    },
    {
@@ -149,7 +149,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/489d850e3e2cf944.webp",
+         "src": "/images/41df67476fb29279.webp",
          "alt": "",
          "href": "/cubs",
          "external": false,
@@ -184,7 +184,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/e335fd90ea17841a.webp",
+         "src": "/images/007c7da64894aa28.webp",
          "alt": "",
          "href": "/scouts",
          "external": false,
@@ -219,7 +219,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/19d3e821446afccf.webp",
+         "src": "/images/09a0baff32d2883e.webp",
          "alt": "",
          "href": "/rovers",
          "external": false,
@@ -339,7 +339,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/b825e082fb36905f.webp",
+    "bg": "/images/02068415e35a7feb.webp",
     "rows": []
    },
    {
@@ -634,7 +634,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/37353996570cef2c.webp",
+    "bg": "/images/023f00934cc79950.webp",
     "rows": []
    },
    {
@@ -958,7 +958,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/f404f8cc3af97e69.webp",
+         "src": "/images/5e97ae5b4528ab37.webp",
          "alt": "",
          "crop": {
           "w": 100.0,
@@ -966,8 +966,8 @@
           "b": -2.0651e-06,
           "l": 0.0
          },
-         "width": 1199,
-         "height": 1042
+         "width": 1200,
+         "height": 1046
         },
         {
          "type": "button",
@@ -982,7 +982,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/bc34d938f79db8de.webp",
+         "src": "/images/5e97ae5b4528ab37.webp",
          "alt": "",
          "crop": {
           "w": 100.000002414,
@@ -990,8 +990,8 @@
           "b": -0.0,
           "l": -1.207e-06
          },
-         "width": 800,
-         "height": 686
+         "width": 1200,
+         "height": 1046
         },
         {
          "type": "button",
@@ -1056,10 +1056,10 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/a11038599c26b1b5.webp",
+         "src": "/images/cccd6255c30d58fd.webp",
          "alt": "",
-         "width": 387,
-         "height": 334
+         "width": 422,
+         "height": 361
         },
         {
          "type": "button",
@@ -1074,7 +1074,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/0f50a2fac2d163c2.webp",
+         "src": "/images/5e97ae5b4528ab37.webp",
          "alt": "",
          "crop": {
           "w": 100.0,
@@ -1082,8 +1082,8 @@
           "b": -1.7867e-06,
           "l": 0.0
          },
-         "width": 1024,
-         "height": 878
+         "width": 1200,
+         "height": 1046
         },
         {
          "type": "button",
@@ -1107,7 +1107,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/7726fd634eba773d.webp",
+    "bg": "/images/23ba97094c35d95c.webp",
     "rows": []
    },
    {
@@ -1444,7 +1444,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/b699a63abdc7e404.webp",
+    "bg": "/images/08f3e0da533b8c7f.webp",
     "rows": []
    },
    {
@@ -1523,7 +1523,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/ffb8bdce7be68910.webp",
+         "src": "/images/cf82191d808acaca.webp",
          "alt": "",
          "width": 1280,
          "height": 1280
@@ -1721,7 +1721,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/5ef74377db16ba4b.webp",
+    "bg": "/images/01d35b970c28fb0b.webp",
     "rows": [
      [
       {
@@ -1785,7 +1785,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/650b4c71923477b8.webp",
+    "bg": "/images/01d35b970c28fb0b.webp",
     "rows": [
      [
       {
@@ -2090,7 +2090,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/307d62581f87db5a.webp",
+    "bg": "/images/01d35b970c28fb0b.webp",
     "rows": [
      [
       {
@@ -2829,7 +2829,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/0263dac50dd54772.webp",
+    "bg": "/images/01d35b970c28fb0b.webp",
     "rows": [
      [
       {
@@ -3194,7 +3194,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/3609dd57dd39960c.webp",
+         "src": "/images/0285e06bf2c7d9ce.webp",
          "alt": "",
          "href": "/buds",
          "external": false,
@@ -3283,7 +3283,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/08e763183109d5dc.webp",
+    "bg": "/images/01d35b970c28fb0b.webp",
     "rows": [
      [
       {
@@ -3724,7 +3724,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/4463b0f597a41474.webp",
+    "bg": "/images/01d35b970c28fb0b.webp",
     "rows": [
      [
       {
@@ -6913,7 +6913,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/1ca81ccfa3e2a15c.webp",
+    "bg": "/images/01d35b970c28fb0b.webp",
     "rows": [
      [
       {
@@ -7001,7 +7001,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/5ac448bc80dfb0c7.webp",
+    "bg": "/images/02068415e35a7feb.webp",
     "rows": [
      [
       {
@@ -7519,7 +7519,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/406335f9a7517ce5.webp",
+         "src": "/images/306ac8b879fd9e08.webp",
          "alt": "",
          "width": 554,
          "height": 1024
@@ -7674,7 +7674,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/7133e5761df2c37a.webp",
+    "bg": "/images/02068415e35a7feb.webp",
     "rows": [
      [
       {
@@ -7865,7 +7865,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/c8595b4f0f034eb7.webp",
+    "bg": "/images/02068415e35a7feb.webp",
     "rows": [
      [
       {
@@ -8764,7 +8764,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/2537c4f9df073e74.webp",
+    "bg": "/images/023f00934cc79950.webp",
     "rows": [
      [
       {
@@ -9446,7 +9446,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/8a451235c875951b.webp",
+    "bg": "/images/023f00934cc79950.webp",
     "rows": [
      [
       {
@@ -9632,7 +9632,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/12c79728fe71d556.webp",
+    "bg": "/images/023f00934cc79950.webp",
     "rows": [
      [
       {
@@ -12267,7 +12267,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/ca81eba2dfd717ce.webp",
+    "bg": "/images/23ba97094c35d95c.webp",
     "rows": [
      [
       {
@@ -12541,7 +12541,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/ffe4a7a4c056518c.webp",
+         "src": "/images/306ac8b879fd9e08.webp",
          "alt": "",
          "width": 554,
          "height": 1024
@@ -12611,7 +12611,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/e2ab1e0057d1c6eb.webp",
+    "bg": "/images/23ba97094c35d95c.webp",
     "rows": [
      [
       {
@@ -31258,10 +31258,10 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/54bac10cafa15cef.webp",
+         "src": "/images/82655e6d0094cf2f.webp",
          "alt": "",
          "width": 681,
-         "height": 754
+         "height": 758
         }
        ]
       },
@@ -32701,7 +32701,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/9bc59746a47ab01d.webp",
+    "bg": "/images/23ba97094c35d95c.webp",
     "rows": [
      [
       {
@@ -33285,7 +33285,7 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/5bcc3fda46cfe57e.webp",
+         "src": "/images/306ac8b879fd9e08.webp",
          "alt": "",
          "width": 554,
          "height": 1024
@@ -33355,7 +33355,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/e682727c70d63097.webp",
+    "bg": "/images/08f3e0da533b8c7f.webp",
     "rows": [
      [
       {
@@ -33553,7 +33553,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/581082fb4ea89d23.webp",
+    "bg": "/images/08f3e0da533b8c7f.webp",
     "rows": [
      [
       {
@@ -40415,7 +40415,7 @@
   "sections": [
    {
     "style": "header",
-    "bg": "/images/33314bf2c06375cd.webp",
+    "bg": "/images/08f3e0da533b8c7f.webp",
     "rows": [
      [
       {

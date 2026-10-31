@@ -25,10 +25,10 @@ export const sites = sitesJson as unknown as Record<SiteKey, Site>;
 
 /** Arabic display names and colours for each unit, in age order. */
 export const UNITS: { key: Exclude<SiteKey, 'group'>; name: string; short: string; ages: string }[] = [
-  { key: 'buds', name: 'وحدة البراعم', short: 'البراعم', ages: '٣ – ٦ سنوات' },
-  { key: 'cubs', name: 'زمرة الأشبال', short: 'الأشبال', ages: '٦ – ١٠٫٥ سنوات' },
-  { key: 'scouts', name: 'فرقة الكشافين', short: 'الكشافين', ages: '١٠٫٥ – ١٦ سنة' },
-  { key: 'rovers', name: 'عشيرة الجوالة', short: 'الجوالة', ages: '١٦ سنة فأكثر' },
+  { key: 'buds', name: 'وحدة البراعم', short: 'البراعم', ages: '3 – 6 سنوات' },
+  { key: 'cubs', name: 'زمرة الأشبال', short: 'الأشبال', ages: '6 – 10.5 سنوات' },
+  { key: 'scouts', name: 'فرقة الكشافين', short: 'الكشافين', ages: '10.5 – 16 سنة' },
+  { key: 'rovers', name: 'عشيرة الجوالة', short: 'الجوالة', ages: '16 سنة فأكثر' },
 ];
 
 export const GROUP_NAME = 'المجموعة الحادية عشر';
@@ -88,7 +88,9 @@ export function breadcrumbs(page: Page): Page[] {
 export function siblings(page: Page): { prev?: Page; next?: Page } {
   const parent = parentOf(page.path);
   if (!parent || page.path === sites[page.site].base) return {};
-  const list = childrenOf(parent.path).filter((p) => p.site === page.site && p.path !== sites[p.site].base);
+  // Step only between pages of the same folder (patrols with patrols, not with the unit's sections).
+  const dir = (path: string) => path.split('/').slice(0, -1).join('/');
+  const list = childrenOf(parent.path).filter((p) => p.site === page.site && p.path !== sites[p.site].base && dir(p.path) === dir(page.path));
   const i = list.findIndex((p) => p.path === page.path);
   return { prev: list[i - 1], next: list[i + 1] };
 }
