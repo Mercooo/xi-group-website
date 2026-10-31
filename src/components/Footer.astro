@@ -1,69 +1,66 @@
 ---
-import { sites, UNITS, GROUP_NAME, GROUP_SUBTITLE } from '../lib/data';
+import { sites, UNITS, GROUP_NAME } from '../lib/data';
 import Icon from './Icon.astro';
+import Patch from './Patch.astro';
 
 interface Props { pageUrl: string; title: string }
 const { pageUrl, title } = Astro.props;
 
 const SOCIAL = [
-  { name: 'Facebook', icon: 'facebook', href: 'https://www.facebook.com/XI.SGWEN' },
-  { name: 'Instagram', icon: 'instagram', href: 'https://www.instagram.com/sgwen_11thgroup/' },
-  { name: 'TikTok', icon: 'tiktok', href: 'https://www.tiktok.com/@sgwen11thgroup' },
+  { name: 'فيسبوك', icon: 'facebook', href: 'https://www.facebook.com/XI.SGWEN' },
+  { name: 'إنستجرام', icon: 'instagram', href: 'https://www.instagram.com/sgwen_11thgroup/' },
+  { name: 'تيك توك', icon: 'tiktok', href: 'https://www.tiktok.com/@sgwen11thgroup' },
 ];
 const u = encodeURIComponent(pageUrl);
 const t = encodeURIComponent(title);
 const SHARE = [
-  { name: 'مشاركة على فيسبوك', icon: 'facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${u}` },
-  { name: 'مشاركة على واتساب', icon: 'whatsapp', href: `https://api.whatsapp.com/send?text=${t}%20${u}` },
-  { name: 'مشاركة على تيليجرام', icon: 'telegram', href: `https://t.me/share/url?url=${u}&text=${t}` },
+  { name: 'واتساب', icon: 'whatsapp', href: `https://api.whatsapp.com/send?text=${t}%20${u}` },
+  { name: 'فيسبوك', icon: 'facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${u}` },
+  { name: 'تيليجرام', icon: 'telegram', href: `https://t.me/share/url?url=${u}&text=${t}` },
 ];
 const year = new Date().getFullYear();
 ---
 <footer class="site-footer">
-  <div class="container footer__grid">
+  <div class="wrap footer__grid">
     <div class="footer__about">
-      <a class="brand brand--footer" href="/">
-        {sites.group.logo && <img src={sites.group.logo} alt="" width="48" height="48" loading="lazy" />}
-        <span class="brand__text"><strong>{GROUP_NAME}</strong><small>{GROUP_SUBTITLE}</small></span>
+      <a class="brand" href="/">
+        {sites.group.logo && <img class="brand__logo" src={sites.group.logo} alt="" width="44" height="44" loading="lazy" />}
+        <span class="brand__name">{GROUP_NAME}</span>
       </a>
-      <p>عراقة التاريخ… وإرادة لا تلين. مجموعة كشفية تأسست عام 1952 وتمارس أنشطتها في رحاب كنيسة العائلة المقدسة.</p>
+      <p>مجموعة كشفية من حركة كشافة ومرشدات وادي النيل، تأسست عام 1952 وتمارس أنشطتها في كنيسة العائلة المقدسة بالقاهرة.</p>
+      <a class="footer__store" href="https://store.sgwen.org/" target="_blank" rel="noopener"><Icon name="store" size={18} /> متجر وادي النيل الكشفي</a>
     </div>
 
-    <div>
+    <nav aria-label="الوحدات">
       <h2 class="footer__title">الوحدات</h2>
-      <ul class="footer__units">
+      <ul class="footer__units" role="list">
         {UNITS.map((unit) => (
           <li data-site={unit.key}>
             <a href={sites[unit.key].base}>
-              {sites[unit.key].logo && <img src={sites[unit.key].logo} alt="" width="36" height="36" loading="lazy" />}
+              <Patch logo={sites[unit.key].logo} size={38} />
               <span><strong>{unit.name}</strong><small>{unit.ages}</small></span>
             </a>
           </li>
         ))}
       </ul>
-    </div>
+    </nav>
 
     <div>
-      <h2 class="footer__title">تواصل معنا</h2>
-      <ul class="social">
+      <h2 class="footer__title">تابعونا</h2>
+      <ul class="social" role="list">
         {SOCIAL.map((s) => (
           <li><a href={s.href} target="_blank" rel="noopener" aria-label={s.name}><Icon name={s.icon} /></a></li>
         ))}
       </ul>
       <h2 class="footer__title">شارك هذه الصفحة</h2>
-      <ul class="social">
+      <ul class="social" role="list">
         {SHARE.map((s) => (
-          <li><a href={s.href} target="_blank" rel="noopener" aria-label={s.name}><Icon name={s.icon} /></a></li>
+          <li><a href={s.href} target="_blank" rel="noopener" aria-label={`مشاركة عبر ${s.name}`}><Icon name={s.icon} /></a></li>
         ))}
       </ul>
-      <p class="footer__store">
-        <a href="https://store.sgwen.org/" target="_blank" rel="noopener"><Icon name="store" size={18} /> متجر وادي النيل الكشفي</a>
-      </p>
     </div>
   </div>
   <div class="footer__bottom">
-    <div class="container">
-      <p dir="ltr">© {year} XI Group. All rights reserved to the Eleventh Group of SGWEN.</p>
-    </div>
+    <p class="wrap">© {year} المجموعة الحادية عشر، كشافة ومرشدات وادي النيل</p>
   </div>
 </footer>

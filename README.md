@@ -41,6 +41,13 @@ Built with [Astro](https://astro.build); there is no server code.
 
 To change a page, edit its entry in `pages.json` (search for the page's path).
 
+Pages are not drawn on Google's 12-column grid. `src/lib/compose.ts` reads what
+each row contains and picks a layout for it: leader cards (photo + name), link
+lists or picture tiles, image beside text, galleries and running text. The
+hand-made "back to…" buttons from Google Sites are dropped because every page
+has breadcrumbs. Each unit is themed with its own colour (see the tokens at the
+top of `src/styles/global.css`).
+
 ## Re-import from Google Sites
 
 If someone keeps editing the Google Sites, pull the changes again:

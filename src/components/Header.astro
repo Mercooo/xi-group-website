@@ -1,6 +1,7 @@
 ---
 import { sites, UNITS, GROUP_NAME, displayLabel, type NavItem, type SiteKey } from '../lib/data';
 import Icon from './Icon.astro';
+import Patch from './Patch.astro';
 
 interface Props { siteKey: SiteKey; currentPath: string }
 const { siteKey, currentPath } = Astro.props;
@@ -8,35 +9,45 @@ const group = sites.group;
 const unit = siteKey === 'group' ? null : sites[siteKey];
 const unitInfo = UNITS.find((u) => u.key === siteKey);
 
-const isActive = (item: NavItem) =>
-  !item.external && (item.href === currentPath || (item.href !== '/' && item.href !== unit?.base && currentPath.startsWith(item.href + '/')));
+// Long sub-lists (e.g. 26 songs) are reached through their index page instead of a dropdown.
+const MAX_DROPDOWN = 9;
+const showChildren = (item: NavItem) => !!item.children?.length && item.children.length <= MAX_DROPDOWN;
+const isActive = (item: NavItem, base: string) =>
+  !item.external && (item.href === currentPath || (item.href !== base && currentPath.startsWith(item.href + '/')));
 const linkAttrs = (item: NavItem) => (item.external ? { target: '_blank', rel: 'noopener' } : {});
+const unitOf = (href: string) => UNITS.find((u) => sites[u.key].base === href);
 ---
 <header class="site-header">
-  <div class="topbar">
-    <div class="container topbar__inner">
-      <a class="brand" href="/">
-        {group.logo && <img src={group.logo} alt="" width="40" height="40" />}
-        <span class="brand__text">
-          <strong>{GROUP_NAME}</strong>
-          <small>XI Group · SGWEN</small>
-        </span>
+  <div class="bar">
+    <div class="wrap bar__inner">
+      <a class="brand" href="/" aria-label={`${GROUP_NAME} — الصفحة الرئيسية`}>
+        {group.logo && <img class="brand__logo" src={group.logo} alt="" width="40" height="40" />}
+        <span class="brand__name">{GROUP_NAME}</span>
       </a>
 
-      <nav class="mainnav" aria-label="القائمة الرئيسية">
+      <nav class="nav" aria-label="القائمة الرئيسية">
         <ul>
           {group.nav.map((item) => (
-            <li class:list={{ 'has-sub': item.children?.length }}>
-              <a href={item.href} {...linkAttrs(item)} aria-current={isActive(item) || (item.href === '/' && currentPath === '/') ? 'page' : undefined}>
+            <li class:list={{ 'has-menu': showChildren(item) }}>
+              <a href={item.href} {...linkAttrs(item)} aria-current={isActive(item, '/') || (item.href === '/' && currentPath === '/') ? 'page' : undefined}>
                 {displayLabel(item.label)}
-                {item.external && <Icon name="external" size={14} />}
-                {item.children?.length && <Icon name="chevron" size={16} class="chev" />}
+                {item.external && <Icon name="external" size={13} />}
+                {showChildren(item) && <Icon name="chevron" size={15} class="chev" />}
               </a>
-              {item.children?.length && (
-                <ul class="dropdown">
-                  {item.children.map((c) => (
-                    <li><a href={c.href} {...linkAttrs(c)}>{displayLabel(c.label)}</a></li>
-                  ))}
+              {showChildren(item) && (
+                <ul class="menu">
+                  {item.children!.map((c) => {
+                    const u = unitOf(c.href);
+                    return (
+                      <li data-site={u?.key}>
+                        <a href={c.href} {...linkAttrs(c)}>
+                          {u && <span class="dot" />}
+                          {u ? u.name : displayLabel(c.label)}
+                          {u && <small>{u.ages}</small>}
+                        </a>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </li>
@@ -44,7 +55,7 @@ const linkAttrs = (item: NavItem) => (item.external ? { target: '_blank', rel: '
         </ul>
       </nav>
 
-      <div class="topbar__actions">
+      <div class="bar__tools">
         <a class="icon-btn" href="/search" aria-label="بحث في الموقع"><Icon name="search" /></a>
         <button class="icon-btn menu-btn" type="button" aria-label="فتح القائمة" aria-controls="drawer" aria-expanded="false" data-menu-open>
           <Icon name="menu" />
@@ -55,24 +66,23 @@ const linkAttrs = (item: NavItem) => (item.external ? { target: '_blank', rel: '
 
   {unit && (
     <div class="unitbar">
-      <div class="container unitbar__inner">
+      <div class="wrap unitbar__inner">
         <a class="unitbar__brand" href={unit.base}>
-          {unit.logo && <img src={unit.logo} alt="" width="32" height="32" />}
+          <Patch logo={unit.logo} size={34} />
           <span>{unitInfo?.name}</span>
         </a>
-        <nav class="unitnav" aria-label={`قائمة ${unitInfo?.name}`}>
+        <nav class="unitnav" aria-label={`أقسام ${unitInfo?.name}`}>
           <ul>
-            {unit.nav.map((item) => (
-              <li class:list={{ 'has-sub': item.children?.length }}>
-                <a href={item.href} {...linkAttrs(item)} aria-current={isActive(item) || (item.href === unit.base && currentPath === unit.base) ? 'page' : undefined}>
+            {unit.nav.filter((i) => i.href !== unit.base).map((item) => (
+              <li class:list={{ 'has-menu': showChildren(item) }}>
+                <a href={item.href} {...linkAttrs(item)} aria-current={isActive(item, unit.base) ? 'page' : undefined}>
                   {displayLabel(item.label)}
-                  {item.external && <Icon name="external" size={14} />}
-                  {item.children?.length && <Icon name="chevron" size={16} class="chev" />}
+                  {showChildren(item) && <Icon name="chevron" size={15} class="chev" />}
                 </a>
-                {item.children?.length && (
-                  <ul class="dropdown">
-                    {item.children.map((c) => (
-                      <li><a href={c.href} {...linkAttrs(c)}>{displayLabel(c.label)}{c.external && <Icon name="external" size={14} />}</a></li>
+                {showChildren(item) && (
+                  <ul class="menu">
+                    {item.children!.map((c) => (
+                      <li><a href={c.href} {...linkAttrs(c)}>{displayLabel(c.label)}{c.external && <Icon name="external" size={13} />}</a></li>
                     ))}
                   </ul>
                 )}
@@ -94,7 +104,7 @@ const linkAttrs = (item: NavItem) => (item.external ? { target: '_blank', rel: '
       <button class="icon-btn" type="button" aria-label="إغلاق القائمة" data-menu-close><Icon name="close" /></button>
     </div>
     <form class="drawer__search" action="/search" role="search">
-      <input type="search" name="q" placeholder="ابحث في الموقع…" aria-label="بحث" />
+      <input type="search" name="q" placeholder="ابحث في الموقع" aria-label="بحث في الموقع" />
     </form>
     {(['group', ...UNITS.map((u) => u.key)] as SiteKey[]).map((key) => {
       const s = sites[key];
@@ -113,7 +123,7 @@ const linkAttrs = (item: NavItem) => (item.external ? { target: '_blank', rel: '
                 </details>
               ) : (
                 <a href={it.href} {...linkAttrs(it)} aria-current={it.href === currentPath ? 'page' : undefined}>
-                  {displayLabel(it.label)}{it.external && <Icon name="external" size={14} />}
+                  {displayLabel(it.label)}{it.external && <Icon name="external" size={13} />}
                 </a>
               )}
             </li>
@@ -123,14 +133,14 @@ const linkAttrs = (item: NavItem) => (item.external ? { target: '_blank', rel: '
       return (
         <details class="drawer__site" data-site={key} open={key === siteKey ? true : undefined}>
           <summary>
-            {s.logo && <img src={s.logo} alt="" width="28" height="28" loading="lazy" />}
+            {key === 'group' ? (s.logo && <img src={s.logo} alt="" width="30" height="30" loading="lazy" />) : <Patch logo={s.logo} size={30} />}
             <span>{label}</span>
             <Icon name="chevron" size={18} class="chev" />
           </summary>
           {key === siteKey ? renderTree(s.nav) : (
             <ul>
               {s.nav.map((it) => (
-                <li><a href={it.href} {...linkAttrs(it)}>{displayLabel(it.label)}{it.external && <Icon name="external" size={14} />}</a></li>
+                <li><a href={it.href} {...linkAttrs(it)}>{displayLabel(it.label)}{it.external && <Icon name="external" size={13} />}</a></li>
               ))}
             </ul>
           )}

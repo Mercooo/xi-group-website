@@ -1,5 +1,6 @@
 ---
 import { displayLabel, type Block } from '../lib/data';
+import fs from 'node:fs';
 import Icon from './Icon.astro';
 
 interface Props { block: Block }
@@ -11,6 +12,8 @@ const socialIcon = (name: string, href: string) => {
   if (n.includes('t.me')) return 'telegram';
   return 'link';
 };
+// SoundCloud players have a fixed height; size their frame to it instead of a ratio.
+const isAudio = b.type === 'embed' && /soundcloud\.com/.test(fs.readFileSync(`public${b.src}`, 'utf8'));
 const ext = (href?: string) => !!href && /^(https?:)?\/\//.test(href);
 ---
 {b.type === 'text' && <div class="prose" set:html={b.html} />}
@@ -47,8 +50,8 @@ const ext = (href?: string) => !!href && /^(https?:)?\/\//.test(href);
 {b.type === 'divider' && <hr class="divider" />}
 
 {b.type === 'embed' && (
-  <div class="ratio" style={`--ratio:${b.ratio}%`}>
-    <iframe src={b.src} title="محتوى مضمن" loading="lazy" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin" allow="autoplay; encrypted-media; fullscreen"></iframe>
+  <div class:list={['ratio', { 'ratio--audio': isAudio }]} style={`--ratio:${b.ratio}%`}>
+    <iframe src={b.src} title={isAudio ? 'مشغل الأغنية' : 'محتوى مضمن'} loading="lazy" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin" allow="autoplay; encrypted-media; fullscreen"></iframe>
   </div>
 )}
 

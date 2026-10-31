@@ -1,0 +1,10 @@
+---
+// The embroidered-patch badge: a unit's logo stitched onto a coloured patch.
+interface Props { logo?: string | null; size?: number; class?: string; label?: string }
+const { logo, size = 56, class: cls, label } = Astro.props;
+---
+<span class:list={['patch', cls]} style={`--size:${size}px`} aria-hidden={label ? undefined : 'true'} aria-label={label}>
+  <span class="patch__inner">
+    {logo ? <img src={logo} alt="" width={size} height={size} loading="lazy" decoding="async" /> : <slot />}
+  </span>
+</span>

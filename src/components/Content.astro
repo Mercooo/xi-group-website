@@ -1,0 +1,94 @@
+---
+import type { Group, LinkItem } from '../lib/compose';
+import { pageThumbnail } from '../lib/compose';
+import { getPage, displayLabel, sites, UNITS } from '../lib/data';
+import BlockView from './BlockView.astro';
+import Icon from './Icon.astro';
+
+interface Props { groups: Group[] }
+const { groups } = Astro.props;
+
+// Image + text sections that introduce a unit (home page) take that unit's colour.
+const unitOf = (href?: string) => UNITS.find((u) => href && decodeURI(href) === sites[u.key].base)?.key;
+const ext = (href: string) => /^(https?:)?\/\//.test(href);
+const linkAttrs = (href: string) => (ext(href) ? { target: '_blank', rel: 'noopener' } : {});
+const thumb = (item: LinkItem) => {
+  if (item.image) return item.image.src;
+  if (item.external) return undefined;
+  const target = getPage(decodeURI(item.href.split('#')[0]));
+  return target ? pageThumbnail(target)?.src : undefined;
+};
+// Lists where most links carry their own picture (patrols, sixes, units) become picture tiles.
+const isTiles = (items: LinkItem[]) => items.filter((i) => i.image).length >= Math.max(2, items.length / 2);
+const imgStyle = (b: { crop?: { w: number; t: number; b: number; l: number } }) =>
+  b.crop ? `width:${b.crop.w}%;margin:${b.crop.t}% 0 ${b.crop.b}% ${b.crop.l}%;max-width:none` : undefined;
+---
+{groups.map((g) => {
+  if (g.kind === 'prose') return <div class="prose measure" set:html={g.html} />;
+
+  if (g.kind === 'media')
+    return (
+      <div class="media" data-site={unitOf(g.image.href)}>
+        <figure class="media__img">
+          <img src={g.image.src} alt={g.image.alt} width={g.image.width} height={g.image.height} loading="lazy" decoding="async" />
+        </figure>
+        <div class="prose" set:html={g.html} />
+      </div>
+    );
+
+  if (g.kind === 'people')
+    return (
+      <ul class:list={['people', { 'people--compact': g.items.filter((i) => !i.image).length > g.items.length / 2 }]} role="list">
+        {g.items.map((p) => (
+          <li class="person">
+            <div class="person__photo">
+              {p.image ? (
+                <img src={p.image.src} alt="" loading="lazy" decoding="async" />
+              ) : (
+                <span class="person__empty"><Icon name="person" size={44} /></span>
+              )}
+            </div>
+            <div class="person__text" set:html={p.html} />
+          </li>
+        ))}
+      </ul>
+    );
+
+  if (g.kind === 'links') {
+    const tiles = isTiles(g.items);
+    return (
+      <ul class:list={['links', { 'links--tiles': tiles }]} role="list">
+        {g.items.map((item) => {
+          const src = thumb(item);
+          return (
+            <li>
+              <a class="link" href={item.href} {...linkAttrs(item.href)}>
+                {src && <span class="link__thumb"><img src={src} alt="" loading="lazy" decoding="async" /></span>}
+                <span class="link__label">{displayLabel(item.label)}</span>
+                <Icon name={item.external ? 'external' : 'arrow-next'} size={16} class="link__go" />
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+
+  if (g.kind === 'gallery')
+    return (
+      <div class:list={['gallery', { 'gallery--single': g.images.length === 1 }]}>
+        {g.images.map((img) => {
+          const pic = <img src={img.src} alt={img.alt} width={img.crop ? undefined : img.width} height={img.crop ? undefined : img.height} loading="lazy" decoding="async" style={imgStyle(img)} />;
+          return img.href ? (
+            <a class="gallery__item" href={img.href} {...linkAttrs(img.href)}>{pic}</a>
+          ) : (
+            <a class="gallery__item" href={img.src} target="_blank" rel="noopener" aria-label="عرض الصورة بالحجم الكامل">{pic}</a>
+          );
+        })}
+      </div>
+    );
+
+  // Keep embeds at the width they had in their Google Sites column so their
+  // proportions (e.g. the SoundCloud player height) still fit.
+  return <div class="block" style={`--span:${Math.max(g.span, 6)}`}><BlockView block={g.block} /></div>;
+})}

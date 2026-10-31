@@ -1,7 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
-import SectionView from '../components/SectionView.astro';
+import Content from '../components/Content.astro';
 import Icon from '../components/Icon.astro';
+import Patch from '../components/Patch.astro';
+import { composePage, pageThumbnail, type Group } from '../lib/compose';
 import {
   pages, sites, UNITS, GROUP_NAME, GROUP_SUBTITLE,
   breadcrumbs, childrenOf, siblings, pageText, displayLabel, type Page,
@@ -19,103 +21,100 @@ const { page } = Astro.props;
 const site = sites[page.site];
 const unit = UNITS.find((u) => u.key === page.site);
 const isHome = page.path === site.base;
+const isGroupHome = page.path === '/';
 const title = isHome ? (unit ? unit.name : GROUP_NAME) : displayLabel(page.title);
+const label = (p: Page) => (p.path === sites[p.site].base ? (UNITS.find((u) => u.key === p.site)?.name ?? GROUP_NAME) : displayLabel(p.title));
 
-const [first, ...rest] = page.sections;
-const hasHero = first?.style === 'header';
-const body = hasHero ? rest : page.sections;
-const heroEmpty = hasHero && first.rows.length === 0;
-
+const { hero, groups } = composePage(page, page.title);
+const photo = hero?.bg ?? null;
 const crumbs = breadcrumbs(page);
+
 // Child pages the content doesn't already link to (Google Sites relied on its menu for these).
 const linked = new Set<string>();
-for (const s of page.sections)
-  for (const r of s.rows)
-    for (const c of r)
-      for (const b of c.blocks) {
-        if (b.type === 'button' || (b.type === 'image' && b.href)) linked.add(b.href!);
-        if (b.type === 'text') for (const m of b.html.matchAll(/href="([^"]+)"/g)) linked.add(m[1]);
-      }
+const collect = (gs: Group[]) => {
+  for (const g of gs) {
+    if (g.kind === 'links') g.items.forEach((i) => linked.add(decodeURI(i.href)));
+    if (g.kind === 'gallery') g.images.forEach((i) => i.href && linked.add(decodeURI(i.href)));
+    if (g.kind === 'prose' || g.kind === 'media') for (const m of g.html.matchAll(/href="([^"]+)"/g)) linked.add(decodeURI(m[1]));
+  }
+};
+collect(groups);
 const kids = isHome ? [] : childrenOf(page.path).filter((k) => !linked.has(k.path));
 const { prev, next } = siblings(page);
+const empty = groups.length === 0 && kids.length === 0;
+
 const text = pageText(page);
-const description = (page.description && page.description !== page.title ? page.description + ' — ' : '') + text.slice(0, 150);
-const label = (p: Page) => (p.path === sites[p.site].base ? (UNITS.find((u) => u.key === p.site)?.name ?? GROUP_NAME) : displayLabel(p.title));
+const description = (text || `${title} — ${GROUP_NAME}`).slice(0, 160);
+const ogImage = photo ?? pageThumbnail(page)?.src;
 ---
-<Base title={title} description={description.trim()} siteKey={page.site} image={first?.bg}>
-  {hasHero ? (
-    <div class:list={['hero', { 'hero--home': page.path === '/', 'hero--empty': heroEmpty }]}>
-      <SectionView section={first} first />
-      {heroEmpty && (
-        <div class="hero__overlay">
-          <div class="container">
-            {page.path === '/' ? (
-              <>
-                <p class="hero__eyebrow">كشافة و مرشدات وادي النيل · منذ 1952</p>
-                <h1 class="hero__title">{GROUP_NAME}</h1>
-                <p class="hero__sub">{GROUP_SUBTITLE}</p>
-                <ul class="hero__units">
-                  {UNITS.map((u) => (
-                    <li data-site={u.key}><a href={sites[u.key].base}>{u.short}</a></li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <h1 class="hero__title">{title}</h1>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  ) : (
-    <div class="titleband">
-      <div class="container"><h1>{title}</h1></div>
-    </div>
-  )}
-
-  {crumbs.length > 0 && (
-    <nav class="crumbs container" aria-label="مسار التنقل">
-      <ol>
-        {crumbs.map((c) => <li><a href={c.path}>{label(c)}</a></li>)}
-        <li aria-current="page">{title}</li>
-      </ol>
-    </nav>
-  )}
-
-  <div class="page-body">
-    {body.map((s) => <SectionView section={s} />)}
-  </div>
-
-  {kids.length > 0 && (
-    <section class="subpages">
-      <div class="container">
-        <h2>صفحات في هذا القسم</h2>
-        <ul class="cards">
-          {kids.map((k) => (
-            <li>
-              <a class="card" href={k.path}>
-                <span>{label(k)}</span>
-                <Icon name="arrow-next" size={18} />
+<Base title={title} description={description} siteKey={page.site} image={ogImage}>
+  {isGroupHome ? (
+    <section class="hero hero--home" style={photo ? `--photo:url('${photo}')` : undefined}>
+      <div class="wrap hero__content">
+        <h1 class="hero__title">{GROUP_NAME}</h1>
+        <p class="hero__sub">{GROUP_SUBTITLE}، منذ عام 1952</p>
+        <ul class="hero__units" role="list">
+          {UNITS.map((u) => (
+            <li data-site={u.key}>
+              <a href={sites[u.key].base}>
+                <Patch logo={sites[u.key].logo} size={40} />
+                <span><strong>{u.short}</strong><small>{u.ages}</small></span>
               </a>
             </li>
           ))}
         </ul>
       </div>
     </section>
+  ) : (
+    <section class:list={['hero', photo ? 'hero--photo' : 'hero--plain']} style={photo ? `--photo:url('${photo}')` : undefined}>
+      <div class="wrap hero__content">
+        {crumbs.length > 0 && (
+          <nav class="crumbs" aria-label="مسار التنقل">
+            <ol>
+              {crumbs.map((c) => <li><a href={c.path}>{label(c)}</a></li>)}
+            </ol>
+          </nav>
+        )}
+        <h1 class="hero__title">{title}</h1>
+        {isHome && unit && <p class="hero__sub">الفئة العمرية: {unit.ages}</p>}
+      </div>
+    </section>
   )}
 
-  {(prev || next) && (
-    <nav class="pager container" aria-label="الصفحات المجاورة">
-      {prev ? (
-        <a class="pager__link" href={prev.path} rel="prev">
-          <Icon name="arrow-prev" /><span><small>السابق</small>{label(prev)}</span>
-        </a>
-      ) : <span />}
-      {next && (
-        <a class="pager__link pager__link--next" href={next.path} rel="next">
-          <span><small>التالي</small>{label(next)}</span><Icon name="arrow-next" />
-        </a>
+  <div class="page">
+    <div class="wrap flow">
+      <Content groups={groups} />
+
+      {kids.length > 0 && (
+        <section class="section-nav" aria-labelledby="in-section">
+          <h2 id="in-section">في هذا القسم</h2>
+          <Content groups={[{ kind: 'links', items: kids.map((k) => ({ label: label(k), href: k.path, external: false })) }]} />
+        </section>
       )}
-    </nav>
-  )}
+
+      {empty && (
+        <div class="empty">
+          <p>لم يُضف محتوى لهذه الصفحة بعد.</p>
+          {crumbs.length > 0 && <a class="btn" href={crumbs[crumbs.length - 1].path}>العودة إلى {label(crumbs[crumbs.length - 1])}</a>}
+        </div>
+      )}
+    </div>
+
+    {(prev || next) && (
+      <nav class="wrap pager" aria-label="الصفحات المجاورة">
+        {prev ? (
+          <a class="pager__link" href={prev.path} rel="prev">
+            <Icon name="arrow-prev" />
+            <span><small>السابق</small>{label(prev)}</span>
+          </a>
+        ) : <span />}
+        {next && (
+          <a class="pager__link pager__link--next" href={next.path} rel="next">
+            <span><small>التالي</small>{label(next)}</span>
+            <Icon name="arrow-next" />
+          </a>
+        )}
+      </nav>
+    )}
+  </div>
 </Base>

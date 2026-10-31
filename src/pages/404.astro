@@ -3,9 +3,9 @@ import Base from '../layouts/Base.astro';
 import { sites, UNITS } from '../lib/data';
 ---
 <Base title="الصفحة غير موجودة" noindex>
-  <div class="titleband"><div class="container"><h1>الصفحة غير موجودة</h1></div></div>
-  <div class="container notfound">
-    <p>عذراً، لم نجد الصفحة التي تبحث عنها. ربما تم نقلها أثناء انتقال الموقع من Google Sites.</p>
+  <div class="titleband"><div class="wrap"><h1>الصفحة غير موجودة</h1></div></div>
+  <div class="wrap notfound">
+    <p>لا توجد صفحة بهذا العنوان. ربما تغيّر عنوانها عند نقل الموقع من Google Sites، ابحث عنها أو ابدأ من الصفحة الرئيسية.</p>
     <p class="btn-wrap"><a class="btn" href="/">العودة إلى الصفحة الرئيسية</a> <a class="btn btn--ghost" href="/search">البحث في الموقع</a></p>
     <ul class="cards">
       {UNITS.map((u) => <li data-site={u.key}><a class="card" href={sites[u.key].base}><span>{u.name}</span></a></li>)}

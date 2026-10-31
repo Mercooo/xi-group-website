@@ -32,7 +32,7 @@ export const UNITS: { key: Exclude<SiteKey, 'group'>; name: string; short: strin
 ];
 
 export const GROUP_NAME = 'المجموعة الحادية عشر';
-export const GROUP_SUBTITLE = 'كشافة و مرشدات وادي النيل — القاهرة';
+export const GROUP_SUBTITLE = 'كشافة ومرشدات وادي النيل في القاهرة';
 
 const byPath = new Map(pages.map((p) => [p.path, p]));
 export const getPage = (path: string) => byPath.get(path);
@@ -110,6 +110,17 @@ export function pageText(page: Page): string {
     .trim();
 }
 
+/** Arabic names for the few labels the Google Sites had in English. */
+const LABELS: Record<string, string> = {
+  Home: 'الرئيسية',
+  'Our Events': 'فعالياتنا',
+  'Upcoming Events': 'الفعاليات القادمة',
+  'Latest Events': 'أحدث الفعاليات',
+  'XI Archive': 'أرشيف المجموعة',
+  'Download as PDF': 'تحميل بصيغة PDF',
+  'Wadi El Nil Scout Store': 'متجر وادي النيل الكشفي',
+};
+
 export function displayLabel(label: string) {
-  return label === 'Home' ? 'الرئيسية' : label;
+  return LABELS[label.trim()] ?? label;
 }
