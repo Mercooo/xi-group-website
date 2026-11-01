@@ -11,7 +11,9 @@
     "import": "python3 scripts/import_google_sites.py"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.3.0",
     "@astrojs/sitemap": "3.7.4",
+    "@astrojs/vercel": "11.0.17",
     "@fontsource/ibm-plex-sans-arabic": "5.2.8",
     "@fontsource/reem-kufi": "5.2.8",
     "astro": "7.3.8"

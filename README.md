@@ -22,6 +22,39 @@ ignores hamza/ta-marbuta spelling differences), breadcrumbs, previous/next links
 between sibling pages, a mobile menu with the whole page tree, a sitemap,
 share links, and a 404 page.
 
+## Site assistant (chatbot)
+
+Every page has an **اسأل المجموعة** button (and a ✦ button in the header) that
+opens a chat assistant. It answers questions about scouting and the group in
+Arabic or English using only this site's content, and cites the pages it used.
+
+How it works:
+
+- `src/lib/rag.ts` splits all pages into ~430 passages and ranks them with BM25
+  over lightly stemmed Arabic (hamza, ta marbuta and alef maqsura folded, the
+  article and one-letter prefixes stripped). Page titles count extra.
+- `src/pages/api/chat.ts` is the only server code (a Vercel Function). It gives
+  Claude a `search_site` tool over that index plus a map of every page. Claude
+  writes its own Arabic search queries (so English questions work), may search
+  several times, and gets results back as `search_result` blocks with citations
+  on. The answer streams to the browser as newline-delimited JSON.
+- `src/components/Chat.astro` is the chat panel: streamed answers, the searches
+  it ran, numbered citation chips, source cards linking to the pages, suggested
+  questions, copy / retry, full screen on phones, RTL and LTR text. The
+  conversation survives page navigation (sessionStorage).
+
+Settings (Vercel → Project → Settings → Environment Variables):
+
+| Variable | Required | Default | Notes |
+| --- | --- | --- | --- |
+| `ANTHROPIC_API_KEY` | yes | — | From console.anthropic.com. Without it the panel says the assistant is not enabled. |
+| `CHAT_MODEL` | no | `claude-opus-5-5` | e.g. `claude-sonnet-5-5` for lower cost. |
+| `CHAT_EFFORT` | no | `low` | `low`, `medium` or `high`: how hard the model thinks before answering. |
+
+The API caches the system prompt and site map, keeps the last 16 messages,
+caps questions at 2000 characters and allows 20 questions per visitor IP per
+10 minutes.
+
 ## Develop
 
 ```sh
@@ -30,7 +63,9 @@ npm run dev      # http://localhost:4321
 npm run build    # static output in dist/
 ```
 
-Built with [Astro](https://astro.build); there is no server code.
+Built with [Astro](https://astro.build). Pages are static; the only server code is
+the chat endpoint (`/api/chat`). To try the assistant locally, put
+`ANTHROPIC_API_KEY=...` in a `.env` file before `npm run dev`.
 
 ## Where the content lives
 

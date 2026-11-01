@@ -1,0 +1,535 @@
+---
+// The site assistant: a floating launcher and a chat panel on every page.
+// Answers come from /api/chat (Claude + search over the site's own pages).
+import { sites } from '../lib/data';
+const logo = sites.group.logo;
+---
+<button class="xc-launch" type="button" data-chat-open aria-haspopup="dialog" aria-controls="xc-panel">
+  <span class="xc-launch__glow" aria-hidden="true"></span>
+  <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z" fill="currentColor"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" fill="currentColor" opacity=".7"/></svg>
+  <span class="xc-launch__label">اسأل المجموعة</span>
+</button>
+
+<div class="xc-panel" id="xc-panel" role="dialog" aria-modal="false" aria-labelledby="xc-title" hidden>
+  <header class="xc-head">
+    <div class="xc-head__brand">
+      <span class="xc-avatar">{logo ? <img src={logo} alt="" width="36" height="36" /> : null}</span>
+      <div>
+        <h2 id="xc-title">مساعد المجموعة الحادية عشر</h2>
+        <p><span class="xc-live" aria-hidden="true"></span>يجيب من محتوى الموقع · عربي و English</p>
+      </div>
+    </div>
+    <div class="xc-head__tools">
+      <button type="button" class="xc-icon" data-chat-new aria-label="محادثة جديدة" title="محادثة جديدة">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <button type="button" class="xc-icon xc-only-wide" data-chat-expand aria-label="تكبير" title="تكبير">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 15v5h-5M4 4l6 6M20 20l-6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button type="button" class="xc-icon" data-chat-close aria-label="إغلاق" title="إغلاق">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="xc-body" data-chat-scroll>
+    <section class="xc-welcome" data-chat-welcome>
+      <div class="xc-welcome__mark" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z" fill="currentColor"/></svg>
+      </div>
+      <h3>أهلاً بك! كيف أقدر أساعدك؟</h3>
+      <p>اسألني عن الكشافة وعن المجموعة الحادية عشر ووحداتها: الوعد والقانون، المراسم، الشارات، العقد والربطات، الأغاني، وتاريخ المجموعة. أبحث في كل صفحات الموقع وأذكر لك المصدر.</p>
+      <ul class="xc-suggest" aria-label="أسئلة مقترحة">
+        <li><button type="button" data-q="ما هو نص وعد الأشبال؟">ما هو نص وعد الأشبال؟</button></li>
+        <li><button type="button" data-q="متى وكيف تأسست حركة كشافة ومرشدات وادي النيل؟">متى تأسست حركة وادي النيل؟</button></li>
+        <li><button type="button" data-q="ما هي خطوات مراسم رفع العلم؟">خطوات مراسم رفع العلم</button></li>
+        <li><button type="button" data-q="ما الفرق بين البراعم والأشبال والكشافين والجوالة من حيث السن والنظام؟">الفرق بين الوحدات الأربع</button></li>
+        <li><button type="button" data-q="ما هي شارات البراعم وما المطلوب في كل شارة؟">شارات البراعم</button></li>
+        <li><button type="button" data-q="What happens in the Rover charter ceremony?" dir="ltr">What is the Rover charter ceremony?</button></li>
+      </ul>
+    </section>
+    <ol class="xc-log" data-chat-log aria-live="polite" aria-relevant="additions"></ol>
+  </div>
+
+  <form class="xc-form" data-chat-form>
+    <div class="xc-input">
+      <label for="xc-q" class="visually-hidden">اكتب سؤالك</label>
+      <textarea id="xc-q" rows="1" maxlength="2000" dir="auto" placeholder="اكتب سؤالك… Ask in Arabic or English" enterkeyhint="send"></textarea>
+      <button type="submit" class="xc-send" data-chat-send aria-label="إرسال">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button type="button" class="xc-stop" data-chat-stop aria-label="إيقاف" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor"/></svg>
+      </button>
+    </div>
+    <p class="xc-note">الإجابات مبنية على صفحات الموقع وقد تخطئ أحياناً؛ راجع المصادر المرفقة.</p>
+  </form>
+</div>
+
+<style is:global>
+  /* Elements below set their own display; keep the hidden attribute working. */
+  .xc-panel[hidden], .xc-panel [hidden], .search__ask[hidden] { display: none !important; }
+  .xc-launch {
+    position: fixed; inset-inline-end: 20px; bottom: 20px; z-index: 60;
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 12px 20px 12px 18px; border: 0; border-radius: 999px; cursor: pointer;
+    font: 700 1rem/1 var(--font); color: #fff;
+    background: linear-gradient(135deg, #1f3a2c, var(--ink) 60%);
+    box-shadow: 0 10px 30px rgb(22 36 29 / 0.35), inset 0 0 0 1.5px rgb(255 255 255 / 0.12), 0 0 0 3px color-mix(in srgb, var(--unit) 55%, transparent);
+    transition: transform 0.2s cubic-bezier(.2,.8,.2,1), box-shadow 0.2s, opacity 0.2s;
+  }
+  .xc-launch svg { color: var(--unit); flex-shrink: 0; }
+  .xc-launch:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgb(22 36 29 / 0.42), inset 0 0 0 1.5px rgb(255 255 255 / 0.18), 0 0 0 4px color-mix(in srgb, var(--unit) 70%, transparent); }
+  .xc-launch__glow { position: absolute; inset: -6px; border-radius: inherit; background: radial-gradient(closest-side, color-mix(in srgb, var(--unit) 45%, transparent), transparent); opacity: 0; animation: xc-pulse 3.2s ease-in-out 1.2s 3; pointer-events: none; }
+  .xc-launch.is-hidden { opacity: 0; pointer-events: none; transform: translateY(8px) scale(0.96); }
+  @keyframes xc-pulse { 0%, 100% { opacity: 0; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.08); } }
+
+  .xc-panel {
+    --xc-w: 430px;
+    position: fixed; inset-inline-end: 20px; bottom: 20px; z-index: 70;
+    width: min(var(--xc-w), calc(100vw - 40px)); height: min(700px, calc(100dvh - 40px));
+    display: flex; flex-direction: column; overflow: hidden;
+    background: var(--surface); color: var(--text);
+    border-radius: 24px; border: 1px solid rgb(22 36 29 / 0.08);
+    box-shadow: 0 30px 80px rgb(22 36 29 / 0.28), 0 4px 14px rgb(22 36 29 / 0.12);
+    transform-origin: bottom left;
+    opacity: 0; transform: translateY(14px) scale(0.98);
+    transition: opacity 0.22s ease, transform 0.26s cubic-bezier(.2,.8,.2,1), width 0.25s ease, height 0.25s ease;
+  }
+  [dir='ltr'] .xc-panel { transform-origin: bottom right; }
+  .xc-panel.is-open { opacity: 1; transform: none; }
+  .xc-panel.is-wide { --xc-w: 760px; height: min(860px, calc(100dvh - 40px)); }
+
+  .xc-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 14px 14px 10px; color: #fff;
+    background:
+      radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--unit) 38%, transparent), transparent 60%),
+      linear-gradient(160deg, #22402f, var(--ink));
+  }
+  .xc-head__brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .xc-head h2 { color: #fff; font: 700 1.02rem/1.35 var(--display); }
+  .xc-head p { margin: 2px 0 0; font-size: 0.78rem; line-height: 1.4; color: rgb(255 255 255 / 0.72); display: flex; align-items: center; gap: 6px; }
+  .xc-live { width: 7px; height: 7px; border-radius: 50%; background: #5fd68a; box-shadow: 0 0 0 3px rgb(95 214 138 / 0.22); }
+  .xc-avatar { width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #fff; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--unit); overflow: hidden; }
+  .xc-avatar img { width: 86%; height: 86%; object-fit: contain; }
+  .xc-head__tools { display: flex; gap: 2px; }
+  .xc-icon { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: rgb(255 255 255 / 0.85); cursor: pointer; transition: background 0.15s; }
+  .xc-icon:hover { background: rgb(255 255 255 / 0.12); color: #fff; }
+
+  .xc-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 18px 18px 8px; scroll-behavior: smooth; background: linear-gradient(var(--surface), var(--paper)); }
+  .xc-welcome { text-align: center; padding: 10px 6px 4px; animation: xc-in 0.4s ease both; }
+  .xc-welcome__mark { width: 58px; height: 58px; margin: 4px auto 12px; border-radius: 18px; display: grid; place-items: center; color: var(--unit-ink); background: var(--unit-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unit) 30%, transparent); }
+  .xc-welcome h3 { font: 700 1.2rem/1.5 var(--display); }
+  .xc-welcome p { margin: 6px auto 16px; max-width: 34ch; color: var(--muted); font-size: 0.92rem; line-height: 1.8; }
+  .xc-suggest { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: start; }
+  .xc-suggest button {
+    width: 100%; height: 100%; padding: 10px 12px; border-radius: 14px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--surface); color: var(--text);
+    font: 600 0.86rem/1.55 var(--font); text-align: inherit;
+    transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+  }
+  .xc-suggest button:hover { border-color: var(--unit); transform: translateY(-1px); box-shadow: 0 6px 16px rgb(22 36 29 / 0.08); }
+
+  .xc-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px; }
+  .xc-msg { animation: xc-in 0.28s ease both; }
+  .xc-msg--user { align-self: flex-start; max-width: 85%; }
+  .xc-msg--user .xc-bubble { background: var(--ink); color: #fff; padding: 10px 15px; border-radius: 18px 18px 6px 18px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; font-size: 0.97rem; }
+  [dir='rtl'] .xc-msg--user .xc-bubble { border-radius: 18px 18px 18px 6px; }
+  .xc-msg--bot { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; }
+  .xc-msg--bot .xc-mini { width: 30px; height: 30px; border-radius: 10px; background: var(--unit-soft); color: var(--unit-ink); display: grid; place-items: center; }
+  .xc-answer { min-width: 0; font-size: 0.97rem; line-height: 1.85; overflow-wrap: anywhere; }
+  .xc-answer > :first-child { margin-top: 0; }
+  .xc-answer p, .xc-answer ul, .xc-answer ol, .xc-answer blockquote { margin: 0 0 0.7em; }
+  .xc-answer ul, .xc-answer ol { padding-inline-start: 1.3em; }
+  .xc-answer li { margin: 0.2em 0; }
+  .xc-answer li::marker { color: var(--unit-ink); }
+  .xc-answer h3, .xc-answer h4 { font-size: 1rem; margin: 0.9em 0 0.35em; color: var(--ink); }
+  .xc-answer strong { color: var(--ink); }
+  .xc-answer blockquote { padding: 6px 12px; border-inline-start: 3px solid var(--unit); background: var(--unit-soft); border-radius: 0 10px 10px 0; }
+  [dir='rtl'] .xc-answer blockquote { border-radius: 10px 0 0 10px; }
+  .xc-answer code { font-size: 0.88em; background: var(--paper); padding: 1px 5px; border-radius: 5px; }
+  .xc-answer a { font-weight: 600; }
+  .xc-cite { display: inline-flex; gap: 3px; vertical-align: 0.15em; margin-inline: 3px; }
+  .xc-cite a { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 6px; font: 700 0.68rem/1 var(--font); text-decoration: none; color: var(--unit-ink); background: var(--unit-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unit) 35%, transparent); transition: background 0.15s; }
+  .xc-cite a:hover { background: var(--unit); color: #fff; }
+  .xc-cursor::after { content: ''; display: inline-block; width: 7px; height: 1.05em; margin-inline-start: 3px; vertical-align: -0.15em; border-radius: 2px; background: var(--unit); animation: xc-blink 1s steps(2) infinite; }
+
+  .xc-steps { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 10px; }
+  .xc-step { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; color: var(--muted); background: var(--paper); border: 1px solid var(--line); }
+  .xc-step svg { flex-shrink: 0; }
+  .xc-step.is-active { color: var(--ink); border-color: color-mix(in srgb, var(--unit) 50%, var(--line)); background: linear-gradient(90deg, var(--unit-soft), var(--surface), var(--unit-soft)); background-size: 200% 100%; animation: xc-shimmer 1.4s linear infinite; }
+  .xc-thinking { display: inline-flex; gap: 4px; padding: 8px 2px; }
+  .xc-thinking i { width: 7px; height: 7px; border-radius: 50%; background: var(--unit); animation: xc-dot 1.2s ease-in-out infinite; }
+  .xc-thinking i:nth-child(2) { animation-delay: 0.15s; }
+  .xc-thinking i:nth-child(3) { animation-delay: 0.3s; }
+
+  .xc-sources { margin-top: 10px; }
+  .xc-sources h4 { font-size: 0.76rem; font-weight: 700; color: var(--muted); margin: 0 0 6px; letter-spacing: 0.02em; }
+  .xc-sources ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .xc-src { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); text-decoration: none; transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; }
+  .xc-src:hover { color: var(--text); border-color: var(--unit); box-shadow: 0 6px 16px rgb(22 36 29 / 0.08); transform: translateY(-1px); }
+  .xc-src__n { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font: 700 0.72rem/1 var(--font); color: #fff; background: var(--unit); }
+  .xc-src__t { min-width: 0; line-height: 1.4; }
+  .xc-src__t strong { display: block; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+  .xc-src__t small { display: block; font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .xc-src svg { color: var(--muted); }
+  .xc-src.is-hit { border-color: var(--unit); box-shadow: 0 0 0 3px color-mix(in srgb, var(--unit) 25%, transparent); }
+
+  .xc-actions { display: flex; gap: 4px; margin-top: 6px; opacity: 0; transition: opacity 0.15s; }
+  .xc-msg--bot:hover .xc-actions, .xc-msg--bot:focus-within .xc-actions, .xc-msg--bot:last-child .xc-actions { opacity: 1; }
+  .xc-act { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: 600 0.76rem/1 var(--font); cursor: pointer; }
+  .xc-act:hover { background: var(--paper); color: var(--ink); }
+  .xc-error { padding: 10px 12px; border-radius: 12px; background: #fdeeee; color: #8a1f1d; font-size: 0.9rem; }
+
+  .xc-form { padding: 10px 14px 12px; background: var(--paper); border-top: 1px solid var(--line); }
+  .xc-input { position: relative; display: flex; align-items: flex-end; gap: 8px; padding: 6px; border-radius: 18px; background: var(--surface); border: 1.5px solid var(--line); transition: border-color 0.15s, box-shadow 0.15s; }
+  .xc-input:focus-within { border-color: var(--unit); box-shadow: 0 0 0 4px color-mix(in srgb, var(--unit) 18%, transparent); }
+  .xc-input textarea { flex: 1; min-height: 40px; max-height: 160px; resize: none; border: 0; outline: 0; background: transparent; padding: 8px 8px; font: 400 0.98rem/1.6 var(--font); color: var(--text); }
+  .xc-send, .xc-stop { flex-shrink: 0; display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 13px; cursor: pointer; color: #fff; background: var(--ink); transition: background 0.15s, transform 0.1s, opacity 0.15s; }
+  [dir='ltr'] .xc-send svg { transform: scaleX(-1); }
+  .xc-send:hover, .xc-stop:hover { background: var(--ink-2); }
+  .xc-send:active { transform: scale(0.94); }
+  .xc-send:disabled { opacity: 0.35; cursor: default; }
+  .xc-stop { background: var(--unit-ink); }
+  .xc-note { margin: 7px 4px 0; font-size: 0.7rem; line-height: 1.5; color: var(--muted); text-align: center; }
+
+  @keyframes xc-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes xc-blink { 50% { opacity: 0; } }
+  @keyframes xc-dot { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+  @keyframes xc-shimmer { to { background-position: -200% 0; } }
+
+  @media (max-width: 640px) {
+    .xc-launch { inset-inline-end: 14px; bottom: 14px; padding: 13px 16px; }
+    .xc-panel, .xc-panel.is-wide { inset: 0; width: 100%; height: 100dvh; border-radius: 0; border: 0; }
+    .xc-only-wide { display: none; }
+    .xc-suggest { grid-template-columns: 1fr; }
+    .xc-input textarea { font-size: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .xc-launch, .xc-panel, .xc-msg, .xc-welcome { transition: none; animation: none; }
+    .xc-launch__glow, .xc-step.is-active, .xc-cursor::after, .xc-thinking i { animation: none; }
+    .xc-body { scroll-behavior: auto; }
+  }
+</style>
+
+<script>
+  type Source = { n: number; title: string; trail: string; unit: string; site: string; path: string };
+  type Turn = { role: 'user' | 'assistant'; content: string; sources?: Source[]; error?: string };
+
+  const STORE = 'xi-chat-v1';
+  const $ = <T extends Element>(sel: string) => document.querySelector(sel) as T;
+  const panel = $<HTMLDivElement>('#xc-panel');
+  const launcher = $<HTMLButtonElement>('.xc-launch');
+  const scroller = $<HTMLDivElement>('[data-chat-scroll]');
+  const log = $<HTMLOListElement>('[data-chat-log]');
+  const welcome = $<HTMLElement>('[data-chat-welcome]');
+  const form = $<HTMLFormElement>('[data-chat-form]');
+  const input = $<HTMLTextAreaElement>('#xc-q');
+  const sendBtn = $<HTMLButtonElement>('[data-chat-send]');
+  const stopBtn = $<HTMLButtonElement>('[data-chat-stop]');
+
+  const ICON_BOT = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z" fill="currentColor"/></svg>';
+  const ICON_SEARCH = '<svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+  const ICON_CHECK = '<svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_GO = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  const ERRORS: Record<string, string> = {
+    not_configured: 'المساعد غير مفعّل حالياً. يرجى المحاولة لاحقاً.',
+    rate_limited: 'أرسلت أسئلة كثيرة في وقت قصير. انتظر قليلاً ثم حاول مرة أخرى.',
+    busy: 'الخدمة مشغولة الآن. حاول مرة أخرى بعد لحظات.',
+    refusal: 'لا أستطيع المساعدة في هذا الطلب. جرّب سؤالاً عن الكشافة أو المجموعة.',
+    network: 'تعذّر الاتصال. تحقّق من الإنترنت ثم أعد المحاولة.',
+    failed: 'حدث خطأ غير متوقع. أعد المحاولة.',
+  };
+
+  // ------------------------------------------------------------ state
+  let turns: Turn[] = [];
+  let open = false;
+  let wide = false;
+  let controller: AbortController | null = null;
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(STORE) || 'null');
+    if (saved && Array.isArray(saved.turns)) { turns = saved.turns; open = !!saved.open; wide = !!saved.wide; }
+  } catch {}
+  const save = () => { try { sessionStorage.setItem(STORE, JSON.stringify({ turns: turns.slice(-30), open, wide })); } catch {} };
+
+  // ------------------------------------------------------------ markdown (small and safe)
+  const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+  const safeHref = (u: string) => (/^(\/|https?:\/\/|#)/.test(u) ? u : null);
+
+  function inline(s: string, sources: Source[]): string {
+    let out = esc(s);
+    out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+    out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    out = out.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
+    out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, text, href) => {
+      const h = safeHref(href.replace(/&amp;/g, '&'));
+      if (!h) return text;
+      const ext = /^https?:/.test(h) && !h.startsWith(location.origin);
+      let url = h;
+      try { url = encodeURI(decodeURI(h)); } catch {}
+      return `<a href="${esc(url)}"${ext ? ' target="_blank" rel="noopener"' : ''}>${text}</a>`;
+    });
+    // Citation markers inserted by the stream: ⟦1,2⟧
+    out = out.replace(/⟦([\d,]+)⟧/g, (m, list: string) => {
+      const chips = list.split(',').map((n) => {
+        const s = sources.find((x) => x.n === +n);
+        return s ? `<a href="${esc(encodeURI(s.path))}" data-src="${n}" title="${esc(s.trail)}">${n}</a>` : '';
+      }).join('');
+      return chips ? `<span class="xc-cite">${chips}</span>` : '';
+    });
+    return out;
+  }
+
+  function markdown(src: string, sources: Source[]): string {
+    const lines = src.replace(/\r/g, '').split('\n');
+    const html: string[] = [];
+    let list: 'ul' | 'ol' | null = null;
+    let para: string[] = [];
+    const flushPara = () => { if (para.length) { html.push(`<p dir="auto">${para.map((l) => inline(l, sources)).join('<br>')}</p>`); para = []; } };
+    const closeList = () => { if (list) { html.push(`</${list}>`); list = null; } };
+    for (const raw of lines) {
+      const line = raw.trimEnd();
+      let m: RegExpMatchArray | null;
+      if (!line.trim()) { flushPara(); closeList(); continue; }
+      if ((m = line.match(/^#{1,6}\s+(.*)$/))) { flushPara(); closeList(); html.push(`<h3 dir="auto">${inline(m[1], sources)}</h3>`); continue; }
+      if ((m = line.match(/^\s*[-*•]\s+(.*)$/))) { flushPara(); if (list !== 'ul') { closeList(); html.push('<ul dir="auto">'); list = 'ul'; } html.push(`<li>${inline(m[1], sources)}</li>`); continue; }
+      if ((m = line.match(/^\s*(\d+)[.)]\s+(.*)$/))) { flushPara(); if (list !== 'ol') { closeList(); html.push(`<ol dir="auto" start="${m[1]}">`); list = 'ol'; } html.push(`<li>${inline(m[2], sources)}</li>`); continue; }
+      if ((m = line.match(/^>\s?(.*)$/))) { flushPara(); closeList(); html.push(`<blockquote dir="auto">${inline(m[1], sources)}</blockquote>`); continue; }
+      if (/^(-{3,}|\*{3,})$/.test(line.trim())) { flushPara(); closeList(); continue; }
+      if (list) closeList();
+      para.push(line);
+    }
+    flushPara(); closeList();
+    return html.join('');
+  }
+
+  // ------------------------------------------------------------ rendering
+  function sourcesHtml(sources: Source[]): string {
+    if (!sources?.length) return '';
+    return `<div class="xc-sources"><h4>المصادر من الموقع</h4><ol>${sources.map((s) =>
+      `<li><a class="xc-src" href="${esc(encodeURI(s.path))}" data-site="${esc(s.site)}" data-n="${s.n}"><span class="xc-src__n">${s.n}</span><span class="xc-src__t"><strong>${esc(s.title)}</strong><small>${esc(s.trail.includes('›') ? s.trail : s.unit)}</small></span>${ICON_GO}</a></li>`).join('')}</ol></div>`;
+  }
+
+  function userNode(text: string) {
+    const li = document.createElement('li');
+    li.className = 'xc-msg xc-msg--user';
+    li.innerHTML = `<div class="xc-bubble" dir="auto">${esc(text)}</div>`;
+    return li;
+  }
+
+  function botNode() {
+    const li = document.createElement('li');
+    li.className = 'xc-msg xc-msg--bot';
+    li.innerHTML = `<span class="xc-mini">${ICON_BOT}</span><div><div class="xc-steps" hidden></div><div class="xc-answer"></div><div class="xc-src-slot"></div><div class="xc-actions" hidden></div></div>`;
+    return li;
+  }
+
+  function fillBot(li: HTMLElement, turn: Turn, streaming = false) {
+    const answer = li.querySelector('.xc-answer')!;
+    if (turn.error && !turn.content) answer.innerHTML = `<div class="xc-error">${esc(ERRORS[turn.error] ?? ERRORS.failed)}</div>`;
+    else answer.innerHTML = markdown(turn.content, turn.sources ?? []) + (turn.error ? `<div class="xc-error">${esc(ERRORS[turn.error] ?? ERRORS.failed)}</div>` : '');
+    answer.classList.toggle('xc-cursor', streaming && !!turn.content);
+    if (streaming && !turn.content) answer.innerHTML = '<span class="xc-thinking" aria-label="يكتب"><i></i><i></i><i></i></span>';
+    li.querySelector('.xc-src-slot')!.innerHTML = streaming ? '' : sourcesHtml(turn.sources ?? []);
+    const actions = li.querySelector<HTMLElement>('.xc-actions')!;
+    actions.hidden = streaming || (!turn.content && !turn.error);
+    if (!actions.hidden) actions.innerHTML =
+      (turn.content ? `<button type="button" class="xc-act" data-act="copy"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2" fill="none" stroke="currentColor" stroke-width="2"/></svg>نسخ</button>` : '') +
+      `<button type="button" class="xc-act" data-act="retry"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0113.7-5.6L20 9M20 4v5h-5M20 12a8 8 0 01-13.7 5.6L4 15M4 20v-5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>إعادة</button>`;
+  }
+
+  function renderAll() {
+    log.innerHTML = '';
+    welcome.hidden = turns.length > 0;
+    for (const t of turns) {
+      if (t.role === 'user') log.append(userNode(t.content));
+      else { const li = botNode(); fillBot(li, t); log.append(li); }
+    }
+  }
+
+  const nearBottom = () => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 120;
+  const toBottom = (force = false) => { if (force || nearBottom()) scroller.scrollTop = scroller.scrollHeight; };
+
+  // ------------------------------------------------------------ open / close
+  const phone = matchMedia('(max-width: 640px)');
+  function setOpen(v: boolean, focus = true) {
+    open = v;
+    // Full-screen on phones: keep the page behind from scrolling.
+    document.documentElement.style.overflow = v && phone.matches ? 'hidden' : '';
+    if (v) {
+      panel.hidden = false;
+      requestAnimationFrame(() => panel.classList.add('is-open'));
+      launcher.classList.add('is-hidden');
+      launcher.setAttribute('aria-expanded', 'true');
+      if (focus) setTimeout(() => input.focus(), 60);
+      toBottom(true);
+    } else {
+      panel.classList.remove('is-open');
+      launcher.classList.remove('is-hidden');
+      launcher.setAttribute('aria-expanded', 'false');
+      setTimeout(() => { if (!open) panel.hidden = true; }, 220);
+      if (focus) launcher.focus();
+    }
+    save();
+  }
+  function setWide(v: boolean) { wide = v; panel.classList.toggle('is-wide', v); save(); }
+
+  // ------------------------------------------------------------ talking to the API
+  function busy(v: boolean) {
+    sendBtn.hidden = v; stopBtn.hidden = !v;
+    sendBtn.disabled = !input.value.trim();
+  }
+
+  async function ask(question: string) {
+    question = question.trim();
+    if (!question || controller) return;
+    turns.push({ role: 'user', content: question });
+    const turn: Turn = { role: 'assistant', content: '', sources: [] };
+    turns.push(turn);
+    welcome.hidden = true;
+    log.append(userNode(question));
+    const li = botNode();
+    log.append(li);
+    fillBot(li, turn, true);
+    toBottom(true);
+    save();
+    input.value = ''; grow();
+
+    const steps = li.querySelector<HTMLElement>('.xc-steps')!;
+    const addStep = (q: string) => {
+      steps.hidden = false;
+      steps.querySelectorAll('.is-active').forEach((el) => { el.classList.remove('is-active'); el.querySelector('svg')!.outerHTML = ICON_CHECK; });
+      const s = document.createElement('span');
+      s.className = 'xc-step is-active';
+      s.innerHTML = `${ICON_SEARCH}<span dir="auto">${esc(q)}</span>`;
+      steps.append(s);
+      toBottom();
+    };
+    const settleSteps = () => steps.querySelectorAll('.is-active').forEach((el) => { el.classList.remove('is-active'); el.querySelector('svg')!.outerHTML = ICON_CHECK; });
+
+    controller = new AbortController();
+    busy(true);
+    let raf = 0;
+    const paint = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; fillBot(li, turn, true); toBottom(); }); };
+
+    try {
+      const history = turns.slice(0, -1).filter((t) => t.content && !(t.role === 'assistant' && t.error && !t.content))
+        .map((t) => ({ role: t.role, content: t.content.replace(/⟦[\d,]+⟧/g, '') }));
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history, page: decodeURI(location.pathname) }),
+        signal: controller.signal,
+      });
+      if (!res.ok || !res.body) {
+        const j = await res.json().catch(() => ({}));
+        throw Object.assign(new Error('http'), { code: j.error === 'rate_limited' || j.error === 'not_configured' ? j.error : res.status === 429 ? 'rate_limited' : 'failed' });
+      }
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (!line) continue;
+          let ev: any;
+          try { ev = JSON.parse(line); } catch { continue; }
+          if (ev.t === 'search') addStep(ev.q);
+          else if (ev.t === 'text') { settleSteps(); turn.content += ev.d; paint(); }
+          else if (ev.t === 'sources') { turn.sources = ev.items; }
+          else if (ev.t === 'cite') {
+            // Attach the chips right after the cited words, before any trailing space or newline.
+            const ws = turn.content.match(/\s*$/)![0];
+            turn.content = turn.content.slice(0, turn.content.length - ws.length) + `⟦${ev.n.join(',')}⟧` + ws;
+            paint();
+          }
+          else if (ev.t === 'error') turn.error = ev.m;
+        }
+      }
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') turn.error = e?.code ?? 'network';
+    } finally {
+      cancelAnimationFrame(raf); raf = 0;
+      controller = null;
+      settleSteps();
+      if (!turn.content && !turn.error) turn.error = 'failed';
+      fillBot(li, turn, false);
+      busy(false);
+      save();
+      toBottom();
+    }
+  }
+
+  // ------------------------------------------------------------ events
+  function grow() {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+    sendBtn.disabled = !input.value.trim();
+  }
+  input.addEventListener('input', grow);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); form.requestSubmit(); }
+  });
+  form.addEventListener('submit', (e) => { e.preventDefault(); ask(input.value); });
+  stopBtn.addEventListener('click', () => controller?.abort());
+
+  document.querySelectorAll<HTMLElement>('[data-chat-open]').forEach((el) => el.addEventListener('click', (e) => { e.preventDefault(); setOpen(true); }));
+  panel.querySelector('[data-chat-close]')!.addEventListener('click', () => setOpen(false));
+  panel.querySelector('[data-chat-expand]')!.addEventListener('click', () => setWide(!wide));
+  panel.querySelector('[data-chat-new]')!.addEventListener('click', () => {
+    controller?.abort();
+    turns = []; save(); renderAll(); input.focus();
+  });
+  panel.querySelectorAll<HTMLButtonElement>('[data-q]').forEach((b) => b.addEventListener('click', () => ask(b.dataset.q!)));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open) setOpen(false); });
+
+  log.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement;
+    const act = target.closest<HTMLButtonElement>('[data-act]');
+    if (act) {
+      const li = act.closest('li')!;
+      const idx = [...log.children].indexOf(li);
+      const turn = turns[idx];
+      if (act.dataset.act === 'copy' && turn) {
+        const text = turn.content.replace(/⟦[\d,]+⟧/g, '');
+        await navigator.clipboard?.writeText(text).catch(() => {});
+        act.lastChild!.textContent = 'تم النسخ';
+        setTimeout(() => (act.lastChild!.textContent = 'نسخ'), 1500);
+      }
+      if (act.dataset.act === 'retry' && idx > 0) {
+        const q = turns[idx - 1]?.content;
+        turns.splice(idx - 1); renderAll();
+        if (q) ask(q);
+      }
+      return;
+    }
+    // A citation chip highlights its source card instead of leaving the page.
+    const chip = target.closest<HTMLAnchorElement>('.xc-cite a');
+    if (chip) {
+      const card = chip.closest('.xc-msg')?.querySelector<HTMLElement>(`.xc-src[data-n="${chip.dataset.src}"]`);
+      if (card) {
+        e.preventDefault();
+        card.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        card.classList.add('is-hit');
+        setTimeout(() => card.classList.remove('is-hit'), 1600);
+      }
+    }
+  });
+
+  // Other scripts (e.g. the search page) can open the assistant with a question.
+  (window as any).xiChat = { open: (q?: string) => { setOpen(true); if (q) ask(q); } };
+
+  // ------------------------------------------------------------ boot
+  renderAll();
+  setWide(wide);
+  grow();
+  if (open && !matchMedia('(max-width: 640px)').matches) setOpen(true, false);
+  else if (open) { open = false; save(); }
+</script>

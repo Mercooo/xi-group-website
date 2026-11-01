@@ -9,6 +9,10 @@ import Base from '../layouts/Base.astro';
       <input id="q" name="q" type="search" placeholder="مثال: الوعد، العقد، مراسم رفع العلم…" autocomplete="off" autofocus />
     </form>
     <p class="search__status" id="status" aria-live="polite"></p>
+    <button type="button" class="search__ask" id="ask" hidden>
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z" fill="currentColor"/></svg>
+      <span>اسأل المساعد: «<span id="ask-q"></span>»</span>
+    </button>
     <ol class="search__results" id="results"></ol>
   </div>
   <script>
@@ -48,6 +52,8 @@ import Base from '../layouts/Base.astro';
       q ? url.searchParams.set('q', q) : url.searchParams.delete('q');
       history.replaceState(null, '', url);
       results.innerHTML = '';
+      askBtn.hidden = q.length < 2;
+      askQ.textContent = q;
       if (q.length < 2) { status.textContent = q ? 'اكتب حرفين على الأقل.' : ''; return; }
       const terms = fold(q).split(/\s+/).filter(Boolean);
       const hits = data
@@ -64,6 +70,10 @@ import Base from '../layouts/Base.astro';
         .map(({ e }: any) => `<li data-site="${e.s}"><a href="${encodeURI(e.p)}"><span class="search__unit">${esc(e.u)}</span><strong>${esc(e.t)}</strong><span class="search__snip">${snippet(e, terms)}</span></a></li>`)
         .join('');
     }
+
+    const askBtn = document.getElementById('ask') as HTMLButtonElement;
+    const askQ = document.getElementById('ask-q')!;
+    askBtn.addEventListener('click', () => (window as any).xiChat?.open(input.value.trim()));
 
     let t: number;
     input.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(run, 150); });
