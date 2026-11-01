@@ -34,10 +34,13 @@ How it works:
   over lightly stemmed Arabic (hamza, ta marbuta and alef maqsura folded, the
   article and one-letter prefixes stripped). Page titles count extra.
 - `src/pages/api/chat.ts` is the only server code (a Vercel Function). It gives
-  Claude a `search_site` tool over that index plus a map of every page. Claude
-  writes its own Arabic search queries (so English questions work), may search
-  several times, and gets results back as `search_result` blocks with citations
-  on. The answer streams to the browser as newline-delimited JSON.
+  the model a `search_site` tool over that index plus a map of every page. The
+  model writes its own Arabic search queries (so English questions work), may
+  search several times, and cites the passages it used. The answer streams to
+  the browser as newline-delimited JSON.
+- Two model providers, in `src/lib/assistant/`: **Google Gemini** (free tier;
+  told to write `[n]` after each claim, which the server turns into citations)
+  and **Claude** (native citations through `search_result` blocks).
 - `src/components/Chat.astro` is the chat panel: streamed answers, the searches
   it ran, numbered citation chips, source cards linking to the pages, suggested
   questions, copy / retry, full screen on phones, RTL and LTR text. The
@@ -45,13 +48,21 @@ How it works:
 
 Settings (Vercel → Project → Settings → Environment Variables):
 
-| Variable | Required | Default | Notes |
-| --- | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | yes | — | From console.anthropic.com. Without it the panel says the assistant is not enabled. |
-| `CHAT_MODEL` | no | `claude-opus-5-5` | e.g. `claude-sonnet-5-5` for lower cost. |
-| `CHAT_EFFORT` | no | `low` | `low`, `medium` or `high`: how hard the model thinks before answering. |
+Set **one** API key. Gemini is used when its key is present.
 
-The API caches the system prompt and site map, keeps the last 16 messages,
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | — | Free key from [Google AI Studio](https://aistudio.google.com/apikey). Free tier has per-minute and per-day limits, and Google may use free-tier prompts to improve its products. |
+| `GEMINI_MODEL` | `gemini-3.8-flash` | Any Gemini model with function calling. |
+| `ANTHROPIC_API_KEY` | — | Paid key from console.anthropic.com, for Claude. |
+| `CHAT_MODEL` | `claude-opus-5-5` | Claude model, e.g. `claude-sonnet-5-5` for lower cost. |
+| `CHAT_EFFORT` | `low` | Claude only: `low`, `medium` or `high`. |
+| `CHAT_PROVIDER` | auto | `gemini` or `anthropic`, to choose when both keys are set. |
+
+Without a key the panel says the assistant is not enabled. Redeploy after
+changing a variable.
+
+The API keeps the last 16 messages (with Claude it also caches the prompt),
 caps questions at 2000 characters and allows 20 questions per visitor IP per
 10 minutes.
 

@@ -16,6 +16,7 @@
     "@astrojs/vercel": "11.0.17",
     "@fontsource/ibm-plex-sans-arabic": "5.2.8",
     "@fontsource/reem-kufi": "5.2.8",
+    "@google/genai": "2.29.1",
     "astro": "7.3.8"
   }
 }
