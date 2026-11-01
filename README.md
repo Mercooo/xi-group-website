@@ -22,6 +22,50 @@ ignores hamza/ta-marbuta spelling differences), breadcrumbs, previous/next links
 between sibling pages, a mobile menu with the whole page tree, a sitemap,
 share links, and a 404 page.
 
+## Site assistant (chatbot)
+
+Every page has an **اسأل المجموعة** button (and a ✦ button in the header) that
+opens a chat assistant. It answers questions about scouting and the group in
+Arabic or English using only this site's content, and cites the pages it used.
+
+How it works:
+
+- `src/lib/rag.ts` splits all pages into ~430 passages and ranks them with BM25
+  over lightly stemmed Arabic (hamza, ta marbuta and alef maqsura folded, the
+  article and one-letter prefixes stripped). Page titles count extra.
+- `src/pages/api/chat.ts` is the only server code (a Vercel Function). It gives
+  the model a `search_site` tool over that index plus a map of every page. The
+  model writes its own Arabic search queries (so English questions work), may
+  search several times, and cites the passages it used. The answer streams to
+  the browser as newline-delimited JSON.
+- Two model providers, in `src/lib/assistant/`: **Google Gemini** (free tier;
+  told to write `[n]` after each claim, which the server turns into citations)
+  and **Claude** (native citations through `search_result` blocks).
+- `src/components/Chat.astro` is the chat panel: streamed answers, the searches
+  it ran, numbered citation chips, source cards linking to the pages, suggested
+  questions, copy / retry, full screen on phones, RTL and LTR text. The
+  conversation survives page navigation (sessionStorage).
+
+Settings (Vercel → Project → Settings → Environment Variables):
+
+Set **one** API key. Gemini is used when its key is present.
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | — | Free key from [Google AI Studio](https://aistudio.google.com/apikey). Free tier has per-minute and per-day limits, and Google may use free-tier prompts to improve its products. |
+| `GEMINI_MODEL` | `gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash-lite` | Comma-separated Gemini models, tried in order: when one is overloaded or rate limited the next answers. |
+| `ANTHROPIC_API_KEY` | — | Paid key from console.anthropic.com, for Claude. |
+| `CHAT_MODEL` | `claude-opus-5-5` | Claude model, e.g. `claude-sonnet-5-5` for lower cost. |
+| `CHAT_EFFORT` | `low` | Claude only: `low`, `medium` or `high`. |
+| `CHAT_PROVIDER` | auto | `gemini` or `anthropic`, to choose when both keys are set. |
+
+Without a key the panel says the assistant is not enabled. Redeploy after
+changing a variable.
+
+The API keeps the last 16 messages (with Claude it also caches the prompt),
+caps questions at 2000 characters and allows 20 questions per visitor IP per
+10 minutes.
+
 ## Develop
 
 ```sh
@@ -30,7 +74,9 @@ npm run dev      # http://localhost:4321
 npm run build    # static output in dist/
 ```
 
-Built with [Astro](https://astro.build); there is no server code.
+Built with [Astro](https://astro.build). Pages are static; the only server code is
+the chat endpoint (`/api/chat`). To try the assistant locally, put
+`ANTHROPIC_API_KEY=...` in a `.env` file before `npm run dev`.
 
 ## Where the content lives
 
