@@ -53,7 +53,7 @@ Set **one** API key. Gemini is used when its key is present.
 | Variable | Default | Notes |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | — | Free key from [Google AI Studio](https://aistudio.google.com/apikey). Free tier has per-minute and per-day limits, and Google may use free-tier prompts to improve its products. |
-| `GEMINI_MODEL` | `gemini-3.8-flash` | Any Gemini model with function calling. |
+| `GEMINI_MODEL` | `gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash-lite` | Comma-separated Gemini models, tried in order: when one is overloaded or rate limited the next answers. |
 | `ANTHROPIC_API_KEY` | — | Paid key from console.anthropic.com, for Claude. |
 | `CHAT_MODEL` | `claude-opus-5-5` | Claude model, e.g. `claude-sonnet-5-5` for lower cost. |
 | `CHAT_EFFORT` | `low` | Claude only: `low`, `medium` or `high`. |

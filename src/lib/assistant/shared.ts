@@ -101,6 +101,8 @@ export const pageNote = (page?: string) => (page ? `<context>The visitor is read
  */
 export class BracketCitations {
   private pending = '';
+  /** The last citation sent, while no text has followed it: repeats right after it are dropped. */
+  private lastCite = '';
   constructor(private resolve: (n: number) => number | null, private send: (e: Event) => void) {}
   push(text: string) {
     this.pending += text;
@@ -121,10 +123,17 @@ export class BracketCitations {
     for (let m; (m = re.exec(s)); ) {
       const nums = m[1].split(/[,،]/).map((x) => this.resolve(+x.trim())).filter((x): x is number => x !== null);
       if (!nums.length) continue; // an unknown number: leave the text as written
-      if (m.index > last) this.send({ t: 'text', d: s.slice(last, m.index) });
-      this.send({ t: 'cite', n: [...new Set(nums)].sort((a, b) => a - b) });
+      this.text(s.slice(last, m.index));
+      const n = [...new Set(nums)].sort((a, b) => a - b);
+      if (n.join() !== this.lastCite) this.send({ t: 'cite', n });
+      this.lastCite = n.join();
       last = m.index + m[0].length;
     }
-    if (last < s.length) this.send({ t: 'text', d: s.slice(last) });
+    this.text(s.slice(last));
+  }
+  private text(d: string) {
+    if (!d) return;
+    if (d.trim()) this.lastCite = '';
+    this.send({ t: 'text', d });
   }
 }

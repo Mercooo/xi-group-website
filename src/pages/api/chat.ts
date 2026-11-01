@@ -14,7 +14,7 @@
  * too) and may search several times; answers cite the pages they came from.
  *
  * Provider (see src/lib/assistant/):
- *   GEMINI_API_KEY     Google Gemini, free tier available (default when set). GEMINI_MODEL, default gemini-3.8-flash.
+ *   GEMINI_API_KEY     Google Gemini, free tier available (default when set). GEMINI_MODEL: comma-separated models tried in order when one is busy (default gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash-lite).
  *   ANTHROPIC_API_KEY  Claude. CHAT_MODEL (default claude-opus-5-5), CHAT_EFFORT (low | medium | high, default low).
  *   CHAT_PROVIDER      gemini | anthropic, to choose when both keys are set.
  */
