@@ -8,8 +8,8 @@ import Content from './Content.astro';
 import Patch from './Patch.astro';
 import Icon from './Icon.astro';
 
-interface Props { groups: Group[] }
-const { groups } = Astro.props;
+interface Props { groups: Group[]; photos?: Record<string, string | null> }
+const { groups, photos = {} } = Astro.props;
 
 const plain = (h: string) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 const unitKeyOf = (g: Group) =>
@@ -40,13 +40,42 @@ const pdfHref = pdf && pdf.kind === 'links' ? pdf.items[0].href : undefined;
 
 // Store: the picture, text and link at the end of the page.
 const storeLink = groups.find((g) => g.kind === 'links' && g.items.some((i) => /store\.sgwen\.org/.test(i.href)));
-const storeTextGroup = groups.slice(chartIndex + 1).find((g) => g.kind === 'prose' && /متجر/.test(g.html));
 const storeImage = groups.slice(chartIndex + 1).find((g) => g.kind === 'gallery');
 ---
-<section class="home-band home-band--white" aria-labelledby="movement-title">
+<section class="home-units" aria-labelledby="units-title">
   <div class="wrap">
-    <h2 class="band-title" id="movement-title">أكثر من تسعة عقود من الكشافة</h2>
-    {movementIntro && <p class="band-lead">{movementIntro}</p>}
+    <h2 class="band-title" id="units-title">أربع مراحل، من الطفولة إلى الشباب</h2>
+    <ul class="unit-cards" role="list">
+      {unitGroups.map((g) => {
+        const key = unitKeyOf(g)!;
+        const u = UNITS.find((x) => x.key === key)!;
+        const ph = photos[key];
+        return (
+          <li data-site={key}>
+            <a class="unit-card" href={sites[key].base} style={ph ? `--photo:url('${ph}')` : undefined}>
+              <Patch logo={sites[key].logo} size={52} />
+              <span class="unit-card__text">
+                <strong class="unit-card__name">{u.name}</strong>
+                <span class="unit-card__ages">{u.ages}</span>
+                <span class="unit-card__tag">{tagline(g)}</span>
+              </span>
+              <span class="unit-card__go" aria-hidden="true"><Icon name="arrow-next" size={20} /></span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+</section>
+
+<section class="home-band" aria-labelledby="movement-title">
+  <div class="wrap">
+    <div class="band-head">
+      <div>
+        <h2 class="band-title" id="movement-title">أكثر من تسعة عقود من الكشافة</h2>
+        {movementIntro && <p class="band-lead">{movementIntro}</p>}
+      </div>
+    </div>
     <ol class="timeline" role="list">
       {steps.map((s, i) => (
         <li class:list={['timeline__step', { 'timeline__step--ours': i === steps.length - 1 }]}>
@@ -59,41 +88,27 @@ const storeImage = groups.slice(chartIndex + 1).find((g) => g.kind === 'gallery'
   </div>
 </section>
 
-{about && (
-  <section class="home-band" aria-label="من نحن">
-    <div class="wrap"><Content groups={[about]} /></div>
+{about && about.kind === 'media' && (
+  <section class="home-band home-band--white" aria-labelledby="about-title">
+    <div class="wrap about">
+      <figure class="about__img"><img src={about.image.src} alt="" width={about.image.width} height={about.image.height} loading="lazy" decoding="async" /></figure>
+      <div>
+        <h2 class="band-title" id="about-title">من نحن</h2>
+        <div class="more" data-more>
+          <div class="more__body prose" set:html={about.html.replace(/<h[2-6][^>]*>\s*من نحن[^<]*<\/h[2-6]>/, '').replace(/^\s*<p[^>]*>\s*<strong>\s*من نحن[^<]*<\/strong>\s*<\/p>/, '')} />
+          <button class="more__btn" type="button" hidden>اقرأ القصة كاملة</button>
+        </div>
+      </div>
+    </div>
   </section>
 )}
-
-<section class="home-band home-band--white" aria-labelledby="units-title">
-  <div class="wrap">
-    <h2 class="band-title" id="units-title">أربع مراحل، من الطفولة إلى الشباب</h2>
-    <ul class="unit-cards" role="list">
-      {unitGroups.map((g) => {
-        const key = unitKeyOf(g)!;
-        const u = UNITS.find((x) => x.key === key)!;
-        return (
-          <li data-site={key}>
-            <a class="unit-card" href={sites[key].base}>
-              <Patch logo={sites[key].logo} size={64} />
-              <strong class="unit-card__name">{u.name}</strong>
-              <span class="unit-card__ages">{u.ages}</span>
-              <span class="unit-card__tag">{tagline(g)}</span>
-              <span class="unit-card__go">ادخل إلى {u.name} <Icon name="arrow-next" size={16} /></span>
-            </a>
-          </li>
-        );
-      })}
-    </ul>
-  </div>
-</section>
 
 {chart && (
   <section class="home-band" aria-labelledby="chart-title">
     <div class="wrap">
       <div class="band-head">
         <h2 class="band-title" id="chart-title">الهيكل التنظيمي للمجموعة</h2>
-        {pdfHref && <a class="btn btn--ghost" href={pdfHref} target="_blank" rel="noopener"><Icon name="download" size={18} /> تحميل بصيغة PDF</a>}
+        {pdfHref && <a class="btn btn--ghost" href={pdfHref} target="_blank" rel="noopener"><Icon name="download" size={18} /> تحميل PDF</a>}
       </div>
       <Content groups={[chart]} />
     </div>
@@ -108,8 +123,8 @@ const storeImage = groups.slice(chartIndex + 1).find((g) => g.kind === 'gallery'
       )}
       <div>
         <h2 id="store-title">متجر وادي النيل الكشفي</h2>
-        {storeTextGroup && storeTextGroup.kind === 'prose' && <p>{plain(storeTextGroup.html).split('. ')[0]}.</p>}
-        <a class="btn btn--accent" href={storeLink.items[0].href} target="_blank" rel="noopener">اطلب الزي والشارات من المتجر <Icon name="external" size={16} /></a>
+        <p>الزي الرسمي والشارات والأدوات الكشفية في مكان واحد.</p>
+        <a class="btn" href={storeLink.items[0].href} target="_blank" rel="noopener">اطلب من المتجر <Icon name="external" size={16} /></a>
       </div>
     </div>
   </section>
