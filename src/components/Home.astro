@@ -75,15 +75,11 @@ const storeImage = groups.slice(chartIndex + 1).find((g) => g.kind === 'gallery'
         return (
           <li data-site={key}>
             <a class="unit-card" href={sites[key].base}>
-              <span class="unit-card__top">
-                <Patch logo={sites[key].logo} size={72} />
-              </span>
-              <span class="unit-card__body">
-                <strong class="unit-card__name">{u.name}</strong>
-                <span class="unit-card__ages">{u.ages}</span>
-                <span class="unit-card__tag">{tagline(g)}</span>
-                <span class="unit-card__go">ادخل إلى صفحة الوحدة <Icon name="arrow-next" size={16} /></span>
-              </span>
+              <Patch logo={sites[key].logo} size={64} />
+              <strong class="unit-card__name">{u.name}</strong>
+              <span class="unit-card__ages">{u.ages}</span>
+              <span class="unit-card__tag">{tagline(g)}</span>
+              <span class="unit-card__go">ادخل إلى {u.name} <Icon name="arrow-next" size={16} /></span>
             </a>
           </li>
         );

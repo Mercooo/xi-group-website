@@ -87,37 +87,49 @@ const ogImage = photo ?? pageThumbnail(page)?.src ?? emblem?.src;
 ---
 <Base title={title} description={description} siteKey={page.site} image={ogImage}>
   {isGroupHome ? (
-    <section class="hero hero--home" style={photo ? `--photo:url('${photo}')` : undefined}>
-      <div class="wrap hero__content">
-        <h1 class="hero__title">{GROUP_NAME}</h1>
-        <p class="hero__sub">{GROUP_SUBTITLE}، منذ عام 1952</p>
-        <ul class="hero__units" role="list">
-          {UNITS.map((u) => (
-            <li data-site={u.key}>
-              <a href={sites[u.key].base}>
-                <Patch logo={sites[u.key].logo} size={40} />
-                <span><strong>{u.short}</strong><small>{u.ages}</small></span>
-              </a>
-            </li>
-          ))}
-        </ul>
+    <section class="home-hero">
+      <div class="wrap home-hero__grid">
+        <div class="home-hero__text">
+          <h1 class="home-hero__title">{GROUP_NAME}</h1>
+          <p class="home-hero__sub">{GROUP_SUBTITLE}، منذ عام 1952</p>
+          <ol class="trail" aria-label="مراحل المجموعة حسب السن">
+            {UNITS.map((u) => (
+              <li data-site={u.key}>
+                <a href={sites[u.key].base}>
+                  <Patch logo={sites[u.key].logo} size={52} />
+                  <strong>{u.short}</strong>
+                  <small>{u.ages}</small>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </div>
+        {photo && (
+          <figure class="home-hero__photo">
+            <img src={photo} alt="أفراد المجموعة الحادية عشر في أحد أنشطتها" fetchpriority="high" decoding="async" />
+          </figure>
+        )}
       </div>
     </section>
   ) : (
-    <section class:list={['hero', photo ? 'hero--photo' : 'hero--plain']} style={photo ? `--photo:url('${photo}')` : undefined}>
-      <div class="wrap hero__content">
-        {crumbs.length > 0 && (
-          <nav class="crumbs" aria-label="مسار التنقل">
-            <ol>{crumbs.map((c) => <li><a href={c.path}>{label(c)}</a></li>)}</ol>
-          </nav>
-        )}
-        <div class="hero__row">
-          <div>
-            <h1 class="hero__title">{title}</h1>
-            {isHome && unit && <p class="hero__sub">الفئة العمرية: {unit.ages}</p>}
-            {isBadge && parent && <p class="hero__sub">من {label(parent)}</p>}
-          </div>
+    <section class:list={['phead', { 'phead--photo': photo, 'phead--unit': isHome && unit }]}>
+      <div class="wrap phead__grid">
+        <div class="phead__text">
+          {crumbs.length > 0 && (
+            <nav class="crumbs" aria-label="مسار التنقل">
+              <ol>{crumbs.map((c) => <li><a href={c.path}>{label(c)}</a></li>)}</ol>
+            </nav>
+          )}
+          {isHome && unit && <Patch logo={site.logo} size={84} class="phead__patch" />}
+          <h1 class="phead__title">{title}</h1>
+          {isHome && unit && <p class="phead__sub">الفئة العمرية: {unit.ages}</p>}
+          {isBadge && parent && <p class="phead__sub">من {label(parent)}</p>}
         </div>
+        {photo && (
+          <figure class="phead__photo">
+            <img src={photo} alt="" decoding="async" fetchpriority="high" />
+          </figure>
+        )}
       </div>
     </section>
   )}
