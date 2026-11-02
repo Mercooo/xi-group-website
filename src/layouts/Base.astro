@@ -1,8 +1,10 @@
 ---
-import '@fontsource/ibm-plex-sans-arabic/400.css';
-import '@fontsource/ibm-plex-sans-arabic/600.css';
-import '@fontsource/ibm-plex-sans-arabic/700.css';
-import '@fontsource/reem-kufi/700.css';
+import '@fontsource-variable/cairo/index.css';
+import '@fontsource/tajawal/arabic-400.css';
+import '@fontsource/tajawal/arabic-500.css';
+import '@fontsource/tajawal/arabic-700.css';
+import '@fontsource/tajawal/latin-400.css';
+import '@fontsource/tajawal/latin-700.css';
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
@@ -26,7 +28,7 @@ const ogImage = ogSource ? new URL(ogSource, Astro.site).toString() : null;
     {description && <meta name="description" content={description} />}
     <link rel="canonical" href={canonical} />
     {noindex && <meta name="robots" content="noindex" />}
-    <meta name="theme-color" content="#16241d" />
+    <meta name="theme-color" content="#0c2c3a" />
     {site.logo && <link rel="icon" href={site.logo} />}
     {site.logo && <link rel="apple-touch-icon" href={site.logo} />}
     <link rel="sitemap" href="/sitemap-index.xml" />
@@ -113,6 +115,22 @@ const ogImage = ogSource ? new URL(ogSource, Astro.site).toString() : null;
           if (e.key === 'ArrowRight') show(at - 1);
         });
       }
+
+      // Long passages start folded to a short preview with a "read more" button.
+      document.querySelectorAll<HTMLElement>('[data-more]').forEach((box) => {
+        const body = box.querySelector<HTMLElement>('.more__body')!;
+        const btn = box.querySelector<HTMLButtonElement>('.more__btn')!;
+        if (body.scrollHeight <= body.clientHeight + 48) { box.classList.add('is-open'); return; }
+        const label = btn.textContent;
+        btn.hidden = false;
+        btn.setAttribute('aria-expanded', 'false');
+        btn.addEventListener('click', () => {
+          const open = box.classList.toggle('is-open');
+          btn.setAttribute('aria-expanded', String(open));
+          btn.textContent = open ? 'عرض أقل' : label;
+          if (!open) box.scrollIntoView({ block: 'nearest' });
+        });
+      });
 
       // Long series lists start folded on small screens.
       if (matchMedia('(max-width: 1000px)').matches) document.querySelectorAll('.aside__series').forEach((d) => d.removeAttribute('open'));

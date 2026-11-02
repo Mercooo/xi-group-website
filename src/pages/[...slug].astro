@@ -31,6 +31,9 @@ const { hero, groups } = composePage(page, page.title);
 // A photo header only where the page has its own photo; sub-pages that reuse
 // their site's home photo get the lighter title band instead.
 const homeHero = composePage(getPage(site.base)!, '').hero?.bg;
+const unitPhotos = isGroupHome
+  ? Object.fromEntries(UNITS.map((u) => [u.key, composePage(getPage(sites[u.key].base)!, '').hero?.bg ?? null]))
+  : {};
 const photo = hero?.bg && (isHome || hero.bg !== homeHero) ? hero.bg : null;
 const crumbs = breadcrumbs(page);
 const parent = parentOf(page.path);
@@ -87,35 +90,31 @@ const ogImage = photo ?? pageThumbnail(page)?.src ?? emblem?.src;
 ---
 <Base title={title} description={description} siteKey={page.site} image={ogImage}>
   {isGroupHome ? (
-    <section class="hero hero--home" style={photo ? `--photo:url('${photo}')` : undefined}>
-      <div class="wrap hero__content">
-        <h1 class="hero__title">{GROUP_NAME}</h1>
-        <p class="hero__sub">{GROUP_SUBTITLE}، منذ عام 1952</p>
-        <ul class="hero__units" role="list">
-          {UNITS.map((u) => (
-            <li data-site={u.key}>
-              <a href={sites[u.key].base}>
-                <Patch logo={sites[u.key].logo} size={40} />
-                <span><strong>{u.short}</strong><small>{u.ages}</small></span>
-              </a>
-            </li>
-          ))}
-        </ul>
+    <section class="home-hero" style={photo ? `--photo:url('${photo}')` : undefined}>
+      <div class="wrap home-hero__content">
+        <p class="home-hero__since">منذ عام 1952</p>
+        <h1 class="home-hero__title">{GROUP_NAME}</h1>
+        <p class="home-hero__sub">{GROUP_SUBTITLE}. أربع مراحل تكبر مع أبنائنا من سن الثالثة حتى الشباب.</p>
+        <p class="btn-wrap">
+          <a class="btn btn--light" href="#units-title">اكتشف الوحدات</a>
+          <button class="btn btn--glass" type="button" data-chat-open><Icon name="sparkle" size={18} /> اسأل المساعد</button>
+        </p>
       </div>
     </section>
   ) : (
-    <section class:list={['hero', photo ? 'hero--photo' : 'hero--plain']} style={photo ? `--photo:url('${photo}')` : undefined}>
-      <div class="wrap hero__content">
+    <section class:list={['phead', { 'phead--photo': photo, 'phead--unit': isHome && unit }]} style={photo ? `--photo:url('${photo}')` : undefined}>
+      <div class="wrap phead__content">
         {crumbs.length > 0 && (
           <nav class="crumbs" aria-label="مسار التنقل">
             <ol>{crumbs.map((c) => <li><a href={c.path}>{label(c)}</a></li>)}</ol>
           </nav>
         )}
-        <div class="hero__row">
+        <div class="phead__row">
+          {isHome && unit && <Patch logo={site.logo} size={72} class="phead__patch" />}
           <div>
-            <h1 class="hero__title">{title}</h1>
-            {isHome && unit && <p class="hero__sub">الفئة العمرية: {unit.ages}</p>}
-            {isBadge && parent && <p class="hero__sub">من {label(parent)}</p>}
+            <h1 class="phead__title">{title}</h1>
+            {isHome && unit && <p class="phead__sub">الفئة العمرية: {unit.ages}</p>}
+            {isBadge && parent && <p class="phead__sub">من {label(parent)}</p>}
           </div>
         </div>
       </div>
@@ -123,28 +122,30 @@ const ogImage = photo ?? pageThumbnail(page)?.src ?? emblem?.src;
   )}
 
   {isGroupHome ? (
-    <Home groups={groups} />
+    <Home groups={groups} photos={unitPhotos} />
   ) : (
     <div class="page">
       {intro && intro.kind === 'media' && (
         <section class="unit-intro">
-          <div class="wrap unit-intro__grid">
-            <div class="prose measure" set:html={intro.html.replace(/<a [^>]*>[^<]*<\/a>/g, '').replace(/<p[^>]*>\s*<\/p>/g, '')} />
+          <div class="wrap">
             {unitSections.length > 0 && (
-              <nav class="unit-intro__nav" aria-label="أقسام الوحدة">
-                <h2 class="aside__title">أقسام {unit!.short}</h2>
+              <nav class="unit-tiles" aria-label={`أقسام ${unit!.short}`}>
                 <ul role="list">
                   {unitSections.map((s) => (
                     <li>
                       <a href={s.href} {...(s.external ? { target: '_blank', rel: 'noopener' } : {})}>
                         <span>{displayLabel(s.label)}</span>
-                        <Icon name={s.external ? 'external' : 'arrow-next'} size={16} />
+                        <Icon name={s.external ? 'external' : 'arrow-next'} size={18} />
                       </a>
                     </li>
                   ))}
                 </ul>
               </nav>
             )}
+            <div class="more" data-more>
+              <div class="more__body prose measure" set:html={intro.html.replace(/<a [^>]*>[^<]*<\/a>/g, '').replace(/<p[^>]*>\s*<\/p>/g, '')} />
+              <button class="more__btn" type="button" hidden>اقرأ المزيد</button>
+            </div>
           </div>
         </section>
       )}
