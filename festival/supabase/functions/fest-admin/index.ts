@@ -1,7 +1,7 @@
 // Organisers' board. Needs the admin passcode in the x-fest-key header. POST { action, ... }:
 //   stats | list { status?, q?, page? } | receipt { id } | set_status { id, status, note? }
 //   undo_checkin { id } | issue { name, phone, note? } | settings_get | settings_set { ...fields } | scans
-//   set_passcode { role: admin | gate, passcode }
+//   set_passcode { role: admin | gate, passcode } | delete { id }
 import { authorize, BUCKET, db, forgetPasscodes, getSettings, hashPasscode, json, newSalt, normPhone, CORS, PASS_ITERATIONS } from "../_shared/shared.ts";
 
 const PAGE = 50;
@@ -71,6 +71,16 @@ Deno.serve(async (req) => {
       if (error) return json({ error: error.code === "23505" ? "reference_used" : "server" }, error.code === "23505" ? 409 : 500);
       if (!data) return json({ error: "not_found" }, 404);
       return json({ ok: true, ...data });
+    }
+
+    case "delete": {
+      // Remove a booking (spam, test, duplicate) together with its screenshot.
+      const { data } = await db.from("fest_orders").select("id,receipt_path").eq("id", b.id).maybeSingle();
+      if (!data) return json({ error: "not_found" }, 404);
+      if (data.receipt_path) await db.storage.from(BUCKET).remove([data.receipt_path]);
+      await db.from("fest_scans").update({ order_id: null }).eq("order_id", data.id);
+      const { error } = await db.from("fest_orders").delete().eq("id", data.id);
+      return error ? json({ error: "server" }, 500) : json({ ok: true });
     }
 
     case "undo_checkin": {

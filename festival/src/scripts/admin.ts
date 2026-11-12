@@ -205,6 +205,15 @@ $('#d-undo').addEventListener('click', async () => {
   if (r.ok) { sheet.close(); loadStats(); loadOrders(); }
 });
 
+$('#d-delete').addEventListener('click', async () => {
+  if (!open || !confirm(`حذف طلب «${open.name}» نهائياً مع صورة الإيصال؟ لا يمكن التراجع.`)) return;
+  const r = await api({ action: 'delete', id: open.id });
+  if (!r.ok) return alert('تعذر الحذف.');
+  sheet.close();
+  loadStats();
+  loadOrders();
+});
+
 // ------------------------------------------------------------------ CSV
 $('#csv').addEventListener('click', async () => {
   const r = await api({ action: 'list', status: filter, q: $<HTMLInputElement>('#q').value, all: true });

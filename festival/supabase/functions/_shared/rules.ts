@@ -29,7 +29,7 @@ export type Match = "match" | "mismatch" | "uncertain" | "absent";
 
 const MASK = /[*•●∗✱xX#]/g;
 const westernDigits = (s: string) =>
-  s.replace(/[٠-٩]/g, (c) => String("٠١٢٣٤٥٦٧٨٩".indexOf(c))).replace(/[۰-۹]/g, (c) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(c)));
+  s.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660)).replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x06f0));
 
 /**
  * Compares a possibly masked value ("0100****663", "mar***@instapay") with a known one.
@@ -87,11 +87,11 @@ export function addressMatch(shown: string | null, r: Recipient): Match {
 export function normName(s: string) {
   return westernDigits(s)
     .toLowerCase()
-    .replace(/[ً-ْٰـ]/g, "") // harakat + tatweel
-    .replace(/[أإآٱ]/g, "ا")
-    .replace(/ة/g, "ه")
-    .replace(/ى/g, "ي")
-    .replace(/[•●∗✱]/g, "*")
+    .replace(/[\u064B-\u0652\u0670\u0640]/g, "") // harakat + tatweel
+    .replace(/[\u0623\u0625\u0622\u0671]/g, "\u0627")
+    .replace(/\u0629/g, "\u0647")
+    .replace(/\u0649/g, "\u064a")
+    .replace(/[\u2022\u25cf\u2217\u2731]/g, "*")
     .replace(/[^\p{L}\p{N}*\s]/gu, " ")
     .split(/\s+/)
     .filter(Boolean);

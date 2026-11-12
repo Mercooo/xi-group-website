@@ -5,7 +5,7 @@
 import { type Ocr, type Recipient, maskedCompare, normName } from "./rules.ts";
 
 const toWestern = (s: string) =>
-  s.replace(/[٠-٩]/g, (c) => String("٠١٢٣٤٥٦٧٨٩".indexOf(c))).replace(/[۰-۹]/g, (c) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/٫/g, ".").replace(/٬/g, ",");
+  s.replace(/[\u0660-\u0669]/g, (c) => String(c.charCodeAt(0) - 0x0660)).replace(/[\u06f0-\u06f9]/g, (c) => String(c.charCodeAt(0) - 0x06f0)).replace(/\u066b/g, ".").replace(/\u066c/g, ",");
 // Bidi marks Tesseract leaves around mixed Arabic/Latin runs.
 const clean = (s: string) => toWestern(s).replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "").replace(/[ \t]+/g, " ");
 
@@ -90,8 +90,8 @@ const normHandle = (s: string) => s.toLowerCase().replace(/\s+/g, "").replace(/@
 /** Masked digit runs such as 0100****663. Tesseract sometimes reads * as + or x and, in RTL lines, reverses the parts. */
 function digitTokens(line: string): string[] {
   const out: string[] = [];
-  for (const m of line.matchAll(/[0-9][0-9*+xX•#\s-]{6,20}[0-9]/g)) {
-    const t = m[0].replace(/[\s-]/g, "").replace(/[+xX•#]/g, "*");
+  for (const m of line.matchAll(/[0-9][0-9*+xX\u2022#\s-]{6,20}[0-9]/g)) {
+    const t = m[0].replace(/[\s-]/g, "").replace(/[+xX\u2022#]/g, "*");
     if (t.replace(/\*/g, "").length < 4) continue;
     out.push(t);
     const parts = t.match(/\d+|\*+/g) || [];
