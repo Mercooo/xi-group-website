@@ -55,5 +55,6 @@ Deno.serve(async (req) => {
     venue_name: s.venue_name,
     venue_detail: s.venue_detail,
     maps_url: s.maps_url,
+    contact_whatsapp: s.contact_whatsapp,
   });
 });

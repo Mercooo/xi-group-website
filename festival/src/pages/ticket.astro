@@ -29,6 +29,7 @@ import { SPONSORS_URL } from '../lib/site';
       <!-- verified -->
       <div data-view="verified" hidden>
         <div class="ticket__body">
+          <p class="approved" data-f="approved" hidden role="status"><Icon name="check-circle" size={20} /><span><T ar="تم قبول حجزك! هذه تذكرتك." en="Your booking was approved! Here is your ticket." /></span></p>
           <span class="chip chip--ok" id="tk-chip"><T ar="صالحة للدخول" en="Valid for entry" /></span>
           <div class="qr-frame" id="qr-frame">
             <canvas id="qr" width="260" height="260" role="img" aria-label="QR"></canvas>
@@ -47,13 +48,33 @@ import { SPONSORS_URL } from '../lib/site';
       </div>
 
       <!-- review -->
-      <div class="state" data-view="review" hidden>
-        <span class="state__icon" style="background:var(--warn-soft);color:var(--warn)"><Icon name="hourglass" size={32} /></span>
-        <h2><T ar="إيصالك قيد المراجعة" en="Your receipt is being reviewed" /></h2>
-        <p><T ar="لم نستطع تأكيد التحويل آلياً، فسيراجعه أحد المنظمين بنفسه. ستظهر تذكرتك هنا تلقائياً فور الموافقة، فاحفظ رابط هذه الصفحة." en="We couldn’t confirm the transfer automatically, so an organiser will check it. Your ticket will appear here as soon as it’s approved, so keep this page’s link." /></p>
-        <ul class="reasons reasons--warn" data-f="reasons"></ul>
+      <div class="state review" data-view="review" hidden>
+        <p class="review__banner" role="status">
+          <Icon name="hourglass" size={20} />
+          <span><T ar="حجزك قيد المراجعة ولم يُقبل بعد" en="Your booking is under review and not accepted yet" /></span>
+        </p>
+        <p class="review__fresh" data-f="fresh" hidden><T ar="تم استلام طلبك وصورة الإيصال بنجاح." en="We received your booking and your screenshot." /></p>
+        <ol class="track" aria-label="حالة الحجز">
+          <li class="is-done"><span class="track__dot"><Icon name="check" size={16} /></span><span><strong><T ar="استلمنا الإيصال" en="Receipt received" /></strong></span></li>
+          <li class="is-now"><span class="track__dot"><Icon name="hourglass" size={14} /></span><span><strong><T ar="مراجعة المنظمين" en="Organisers review it" /></strong><small><T ar="نحن هنا الآن" en="You are here" /></small></span></li>
+          <li><span class="track__dot">3</span><span><strong><T ar="تذكرتك برمز QR" en="Your QR ticket" /></strong><small><T ar="تظهر في هذه الصفحة بعد الموافقة" en="Appears on this page once approved" /></small></span></li>
+        </ol>
+        <div class="notice notice--warn review__note">
+          <Icon name="alert" size={18} />
+          <span><T ar="هذه ليست تذكرة دخول بعد. لا يمكنك الدخول بها حتى يوافق المنظمون على التحويل وتظهر لك تذكرة برمز QR." en="This is not an entry ticket yet. It won’t get you in until the organisers approve your transfer and a QR ticket appears here." /></span>
+        </div>
+        <div class="review__why" data-f="why" hidden>
+          <p class="review__why-title"><T ar="لماذا يحتاج إيصالك إلى مراجعة؟" en="Why does your receipt need a review?" /></p>
+          <ul class="reasons reasons--warn" data-f="reasons"></ul>
+        </div>
+        <p class="review__live"><span class="live-dot" aria-hidden="true"></span><span data-f="checked"></span></p>
         <p class="tk-code" data-f="code"></p>
-        <button class="btn btn--ghost btn--sm" type="button" data-copy-link><Icon name="link" size={16} /><T ar="نسخ رابط الصفحة" en="Copy page link" /></button>
+        <div class="review__actions">
+          <button class="btn btn--sm" type="button" data-notify hidden><Icon name="check-circle" size={16} /><T ar="نبّهني عند القبول" en="Alert me when approved" /></button>
+          <button class="btn btn--ghost btn--sm" type="button" data-copy-link><Icon name="link" size={16} /><T ar="نسخ رابط الصفحة" en="Copy page link" /></button>
+          <a class="btn btn--ghost btn--sm" data-contact href="https://www.facebook.com/XI.SGWEN" target="_blank" rel="noopener"><Icon name="whatsapp" size={16} /><T ar="تواصل مع المنظمين" en="Contact the organisers" /></a>
+        </div>
+        <p class="fine"><T ar="احفظ رابط هذه الصفحة: هو مكان تذكرتك. يمكنك أيضاً العودة إليها من «تذاكرك على هذا الجهاز» في صفحة الدعوة." en="Keep this page’s link: it is where your ticket will be. You can also come back from “Your tickets on this device” on the invitation page." /></p>
       </div>
 
       <!-- rejected -->

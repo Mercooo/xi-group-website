@@ -30,6 +30,7 @@ export interface Ticket {
   venue_name: string | null;
   venue_detail: string | null;
   maps_url: string | null;
+  contact_whatsapp?: string | null;
 }
 
 export async function getConfig(): Promise<PublicConfig | null> {
@@ -67,14 +68,17 @@ export async function staff<T = any>(fn: 'fest-gate' | 'fest-admin', key: string
 }
 
 const KEY = 'xi74-tickets';
-export function rememberTicket(code: string, name: string) {
+export type SavedStatus = 'verified' | 'review' | 'rejected';
+export function rememberTicket(code: string, name: string, status?: SavedStatus) {
   try {
-    const list = savedTickets().filter((t) => t.code !== code);
-    list.unshift({ code, name, at: Date.now() });
+    const all = savedTickets();
+    const prev = all.find((t) => t.code === code);
+    const list = all.filter((t) => t.code !== code);
+    list.unshift({ code, name, at: prev?.at ?? Date.now(), status: status ?? prev?.status });
     localStorage.setItem(KEY, JSON.stringify(list.slice(0, 12)));
   } catch {}
 }
-export function savedTickets(): { code: string; name: string; at: number }[] {
+export function savedTickets(): { code: string; name: string; at: number; status?: SavedStatus }[] {
   try {
     return JSON.parse(localStorage.getItem(KEY) || '[]');
   } catch {

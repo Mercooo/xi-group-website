@@ -11,6 +11,16 @@ const code = (location.pathname.match(/\/t\/([A-Za-z0-9]{8,16})/)?.[1] || new UR
 const ticketUrl = `${location.origin}/t/${code}`;
 let current: Ticket | null = null;
 let poll = 0;
+// Opened right after booking (/t/CODE?new=1): say the booking was received.
+const fresh = new URLSearchParams(location.search).has('new');
+if (fresh) {
+  const u = new URL(location.href);
+  u.searchParams.delete('new');
+  history.replaceState(null, '', u.pathname + u.search);
+}
+// Reasons that only mean "no automatic check ran"; the guest doesn't need to see them.
+const GENERIC = new Set(['auto_check_unavailable', 'auto_check_failed', 'auto_check_declined', 'image_too_large_for_auto_check', 'recipient_not_configured', 'unknown_receipt_type']);
+const baseTitle = document.title;
 
 function view(name: string) {
   document.querySelectorAll<HTMLElement>('[data-view]').forEach((v) => (v.hidden = v.dataset.view !== name));
@@ -44,21 +54,18 @@ async function render(tk: Ticket) {
       el.append(d);
     }
   }
-  document.querySelectorAll<HTMLElement>('[data-f="reasons"]').forEach((ul) => {
-    ul.textContent = '';
-    const uniq = [...new Set(tk.reasons.map((r) => reasonText(r, lang())))];
-    for (const r of uniq) {
-      const li = document.createElement('li');
-      li.textContent = r;
-      ul.append(li);
-    }
-    ul.hidden = !uniq.length;
-  });
+  fillReasons(tk.reasons);
 
+  const prevStatus = lastStatus;
+  lastStatus = tk.status;
   clearTimeout(poll);
   if (tk.status === 'verified') {
     view('verified');
-    rememberTicket(tk.code, tk.name);
+    rememberTicket(tk.code, tk.name, 'verified');
+    document.title = baseTitle;
+    const justApproved = prevStatus === 'review';
+    (document.querySelector('[data-f="approved"]') as HTMLElement).hidden = !justApproved;
+    if (justApproved) announce(t('تم قبول حجزك! تذكرتك جاهزة.', 'Your booking was approved! Your ticket is ready.'));
     await QRCode.toCanvas($<HTMLCanvasElement>('#qr'), ticketUrl, { width: 520, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#0d1611', light: '#ffffff' } });
     const used = !!tk.checked_in_at;
     $('#qr-frame').classList.toggle('is-used', used);
@@ -71,11 +78,72 @@ async function render(tk: Ticket) {
     if (!used) poll = window.setTimeout(load, 60_000); // reflect the gate check-in
   } else if (tk.status === 'review') {
     view('review');
-    rememberTicket(tk.code, tk.name);
+    rememberTicket(tk.code, tk.name, 'review');
+    document.title = t('قيد المراجعة · ', 'Under review · ') + baseTitle;
+    (document.querySelector('[data-f="fresh"]') as HTMLElement).hidden = !fresh;
+    const specific = tk.reasons.filter((r) => !GENERIC.has(r));
+    (document.querySelector('[data-f="why"]') as HTMLElement).hidden = !specific.length;
+    fillReasons(specific);
+    fill('checked', t(`آخر تحديث ${formatTime(new Date().toISOString())} · تتحدث هذه الصفحة تلقائياً`, `Last checked ${formatTime(new Date().toISOString())} · this page updates by itself`));
+    setupContact(tk);
+    setupNotify();
     poll = window.setTimeout(load, 20_000);
   } else {
     view('rejected');
+    rememberTicket(tk.code, tk.name, 'rejected');
+    document.title = baseTitle;
+    if (prevStatus === 'review') announce(t('للأسف لم يُقبل الإيصال. افتح الصفحة لمعرفة السبب.', 'Sorry, the receipt was not accepted. Open the page to see why.'));
   }
+}
+
+let lastStatus: Ticket['status'] | null = null;
+
+function fillReasons(codes: string[]) {
+  document.querySelectorAll<HTMLElement>('[data-f="reasons"]').forEach((ul) => {
+    ul.textContent = '';
+    const uniq = [...new Set(codes.map((r) => reasonText(r, lang())))];
+    for (const r of uniq) {
+      const li = document.createElement('li');
+      li.textContent = r;
+      ul.append(li);
+    }
+    ul.hidden = !uniq.length;
+  });
+}
+
+function setupContact(tk: Ticket) {
+  const a = document.querySelector<HTMLAnchorElement>('[data-contact]');
+  if (!a) return;
+  const msg = t(`مرحباً، حجزي لعيد الـ74 ما زال قيد المراجعة. رمز الحجز: ${tk.code}`, `Hello, my booking for the 74th anniversary is still under review. Booking code: ${tk.code}`);
+  a.href = tk.contact_whatsapp ? `https://wa.me/${tk.contact_whatsapp}?text=${encodeURIComponent(msg)}` : 'https://m.me/XI.SGWEN';
+}
+
+/** "Alert me when approved": a browser notification while this page stays open (even in a background tab). */
+function setupNotify() {
+  const b = document.querySelector<HTMLButtonElement>('[data-notify]');
+  if (!b || !('Notification' in window) || Notification.permission === 'denied') return;
+  b.hidden = false;
+  if (Notification.permission === 'granted') {
+    b.disabled = true;
+    b.querySelectorAll('span').forEach((x) => x.remove());
+    const label = document.createElement('span');
+    label.textContent = t('سننبهك هنا فور القبول', 'We’ll alert you here once approved');
+    b.append(label);
+  }
+}
+document.querySelector('[data-notify]')?.addEventListener('click', async () => {
+  try { await Notification.requestPermission(); } catch {}
+  setupNotify();
+});
+
+function announce(text: string) {
+  toast(text);
+  try { navigator.vibrate?.([120, 60, 120]); } catch {}
+  try {
+    if ('Notification' in window && Notification.permission === 'granted' && document.visibilityState !== 'visible') {
+      new Notification(t('عيد الـ74 · المجموعة الحادية عشر', 'XI Group · 74th anniversary'), { body: text, icon: '/img/xi-logo.webp', tag: code });
+    }
+  } catch {}
 }
 
 async function load() {
@@ -181,5 +249,5 @@ $('#share').addEventListener('click', async () => {
 document.querySelector('[data-copy-link]')?.addEventListener('click', copyLink);
 document.querySelector('[data-retry]')?.addEventListener('click', () => { view('loading'); load(); });
 document.addEventListener('langchange', () => current && render(current));
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && current && current.status !== 'rejected') load(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && current && current.status !== 'rejected') { clearTimeout(poll); load(); } });
 load();

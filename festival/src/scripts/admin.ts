@@ -164,6 +164,7 @@ async function openOrder(o: any) {
   waLink.hidden = !wa;
   waLink.href = `https://wa.me/${wa}?text=${encodeURIComponent(`أهلاً ${o.name}، هذه تذكرتك لعيد الـ74 للمجموعة الحادية عشر: ${ticketUrl(o.code)}`)}`;
   $('#d-undo').hidden = !o.checked_in_at;
+  $('#d-told').hidden = true;
   document.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((b) => (b.disabled = b.dataset.set === o.status));
 
   const img = $<HTMLImageElement>('#d-img');
@@ -185,6 +186,15 @@ async function openOrder(o: any) {
   }
 }
 
+// Ready-made WhatsApp messages so the guest hears the decision without waiting on the page.
+const waTo = (phone: string) => (phone && phone !== '-' ? phone.replace(/^0/, '20') : '');
+function decisionMessage(o: any, status: string) {
+  const link = ticketUrl(o.code);
+  if (status === 'verified') return `أهلاً ${o.name}، تم قبول حجزك لعيد الـ74 للمجموعة الحادية عشر 🎉\nهذه تذكرتك برمز QR، قدّمها على البوابة:\n${link}`;
+  if (status === 'rejected') return `أهلاً ${o.name}، للأسف لم نتمكن من قبول إيصال التحويل لحجزك في عيد الـ74.\nالتفاصيل في صفحة الحجز:\n${link}\nإن كنت حوّلت المبلغ الصحيح، ردّ على هذه الرسالة بصورة أوضح للإيصال.`;
+  return '';
+}
+
 document.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((b) =>
   b.addEventListener('click', async () => {
     if (!open) return;
@@ -192,9 +202,22 @@ document.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((b) =>
     if (status === 'rejected' && !confirm('رفض هذا الطلب؟ لن تصبح التذكرة صالحة للدخول.')) return;
     b.disabled = true;
     const r = await api({ action: 'set_status', id: open.id, status, note: $<HTMLInputElement>('#d-note').value });
-    b.disabled = false;
-    if (!r.ok) return alert(r.data.error === 'reference_used' ? 'يوجد طلب آخر مؤكد بنفس رقم المرجع.' : 'تعذر الحفظ.');
-    sheet.close();
+    if (!r.ok) { b.disabled = false; return alert(r.data.error === 'reference_used' ? 'يوجد طلب آخر مؤكد بنفس رقم المرجع.' : 'تعذر الحفظ.'); }
+    open.status = status;
+    document.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((x) => (x.disabled = x.dataset.set === status));
+    // Tell the organiser the guest's page already updated, and offer to message them now.
+    const told = $('#d-told');
+    const msg = decisionMessage(open, status);
+    const to = waTo(open.phone);
+    told.hidden = !msg;
+    if (msg) {
+      $('#d-told-text').textContent = status === 'verified'
+        ? 'تم القبول. صفحة الضيف تعرض تذكرته الآن تلقائياً.'
+        : 'تم الرفض. صفحة الضيف تعرض السبب الآن تلقائياً.';
+      const wa = $<HTMLAnchorElement>('#d-told-wa');
+      wa.hidden = !to;
+      wa.href = `https://wa.me/${to}?text=${encodeURIComponent(msg)}`;
+    }
     loadStats();
     loadOrders();
   }),

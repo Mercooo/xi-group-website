@@ -1,6 +1,6 @@
 // Invitation page: live event details, the InstaPay box and the booking form.
 import { API, SPONSORS_URL } from '../lib/site';
-import { getConfig, rememberTicket, savedTickets, type PublicConfig } from './api';
+import { getConfig, getTicket, rememberTicket, savedTickets, type PublicConfig } from './api';
 import { formatDate, formatTime, lang, t } from './lang';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
@@ -82,6 +82,12 @@ function startCountdown() {
   timer = window.setInterval(tick, 1000);
 }
 
+const STATUS_LABEL: Record<string, [string, string]> = {
+  verified: ['تذكرة جاهزة', 'Ticket ready'],
+  review: ['قيد المراجعة', 'Under review'],
+  rejected: ['لم يُقبل', 'Not accepted'],
+};
+
 function renderMine() {
   const list = savedTickets();
   const box = $('#mine');
@@ -90,14 +96,33 @@ function renderMine() {
   for (const tk of list) {
     const a = document.createElement('a');
     a.href = `/t/${tk.code}`;
+    const left = document.createElement('span');
     const n = document.createElement('span');
     n.textContent = tk.name;
+    left.append(n);
+    if (tk.status && STATUS_LABEL[tk.status]) {
+      const pill = document.createElement('span');
+      pill.className = `mine__status mine__status--${tk.status}`;
+      pill.textContent = t(...STATUS_LABEL[tk.status]);
+      left.append(pill);
+    }
     const c = document.createElement('span');
     c.className = 'mono';
     c.textContent = tk.code.slice(0, 4) + '…';
-    a.append(n, c);
+    a.append(left, c);
     box.append(a);
   }
+}
+
+/** Refresh the saved tickets' status so the list shows whether each is approved yet. */
+async function refreshMine() {
+  const list = savedTickets().slice(0, 6);
+  if (!list.length) return;
+  await Promise.all(list.map(async (tk) => {
+    const { ticket } = await getTicket(tk.code);
+    if (ticket) rememberTicket(tk.code, tk.name, ticket.status);
+  }));
+  renderMine();
 }
 
 // ------------------------------------------------------------------- copy
@@ -250,8 +275,8 @@ form.addEventListener('submit', async (e) => {
     const r = await fetch(`${API}/fest-buy`, { method: 'POST', body: fd });
     const j = await r.json().catch(() => ({ error: 'save_failed' }));
     if (!r.ok || !j.code) throw new Error(j.error || 'save_failed');
-    rememberTicket(j.code, String(fd.get('name')));
-    location.href = `/t/${j.code}`;
+    rememberTicket(j.code, String(fd.get('name')), j.status);
+    location.href = `/t/${j.code}?new=1`;
   } catch (err) {
     checking(false);
     btn.disabled = false;
@@ -264,9 +289,10 @@ form.addEventListener('submit', async (e) => {
 function syncOptions() {
   document.querySelectorAll<HTMLOptionElement>('option[data-ar]').forEach((o) => (o.textContent = lang() === 'en' ? o.dataset.en! : o.dataset.ar!));
 }
-document.addEventListener('langchange', () => { syncOptions(); renderConfig(); if (!$('#form-error').hidden) formError(null); });
+document.addEventListener('langchange', () => { syncOptions(); renderConfig(); renderMine(); if (!$('#form-error').hidden) formError(null); });
 syncOptions();
 renderMine();
+refreshMine();
 
 // The sponsors link works even before the config arrives.
 $<HTMLAnchorElement>('#sponsors-link').href ||= SPONSORS_URL;

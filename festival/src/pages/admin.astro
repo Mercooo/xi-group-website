@@ -214,6 +214,10 @@ import Icon from '../components/Icon.astro';
           <dl class="dl" id="d-info"></dl>
           <div id="d-reasons"></div>
           <div class="field"><label for="d-note">ملاحظة المنظمين</label><input class="input" id="d-note" maxlength="300" /></div>
+          <div class="notice notice--ok" id="d-told" hidden>
+            <Icon name="check-circle" size={18} />
+            <span><span id="d-told-text"></span> <a class="btn btn--sm btn--ok" id="d-told-wa" target="_blank" rel="noopener" style="margin-top:8px"><Icon name="whatsapp" size={16} />أبلغه بواتساب</a></span>
+          </div>
           <div class="actions">
             <button class="btn btn--ok btn--sm" type="button" data-set="verified"><Icon name="check" size={16} />تأكيد التذكرة</button>
             <button class="btn btn--bad btn--sm" type="button" data-set="rejected"><Icon name="close" size={16} />رفض</button>

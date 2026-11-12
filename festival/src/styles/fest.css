@@ -390,3 +390,36 @@ html[dir='rtl'] .input[dir='ltr'] { text-align: right; }
 .login { min-height: 100svh; display: grid; place-items: center; padding: 24px; }
 .login .card { width: min(100%, 400px); }
 .login .brand { color: var(--ink); justify-content: center; margin-bottom: 8px; }
+
+/* ------------------------------------------------- review (not accepted yet) */
+.review { gap: 16px; padding-top: 24px; }
+.state .review__banner { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px 16px; border-radius: 14px; background: var(--warn); color: #fff; font-weight: 700; font-size: 1.0625rem; line-height: 1.5; }
+.review__banner svg { flex-shrink: 0; }
+.state .review__fresh { color: var(--ok); font-weight: 600; }
+.track { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 0; text-align: start; }
+.track li { position: relative; display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; padding-bottom: 16px; color: var(--muted); }
+.track li:last-child { padding-bottom: 0; }
+.track li:not(:last-child)::after { content: ''; position: absolute; inset-inline-start: 16px; top: 34px; bottom: 2px; width: 2px; background: var(--line); }
+.track li.is-done:not(:last-child)::after { background: var(--ok); }
+.track__dot { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--line); color: var(--muted); font-weight: 700; font-size: 0.875rem; }
+.track li.is-done .track__dot { background: var(--ok); color: #fff; }
+.track li.is-now .track__dot { background: var(--warn); color: #fff; box-shadow: 0 0 0 0 rgb(183 121 31 / 0.5); animation: pulse 1.8s ease-out infinite; }
+@keyframes pulse { 70% { box-shadow: 0 0 0 10px rgb(183 121 31 / 0); } 100% { box-shadow: 0 0 0 0 rgb(183 121 31 / 0); } }
+.track strong { display: block; color: var(--ink); line-height: 1.5; padding-top: 4px; }
+.track li:not(.is-done):not(.is-now) strong { color: var(--muted); }
+.track small { display: block; font-size: 0.8125rem; color: var(--muted); }
+.track li.is-now small { color: var(--warn); font-weight: 600; }
+.review__note { text-align: start; width: 100%; }
+.review__why { width: 100%; text-align: start; }
+.state .review__why-title { font-weight: 600; color: var(--ink); margin-bottom: 8px; font-size: 0.9375rem; }
+.state .review__live { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8125rem; color: var(--muted); }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: blink 2s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: 0.3; } }
+.review__actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.state .approved, .ticket__body .approved { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 14px; border-radius: 14px; background: var(--ok); color: #fff; font-weight: 700; animation: rise 0.4s ease both; }
+/* status pills in "your tickets on this device" */
+.mine__status { font-size: 0.75rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
+.mine__status--verified { background: var(--ok-soft); color: var(--ok); }
+.mine__status--review { background: var(--warn-soft); color: var(--warn); }
+.mine__status--rejected { background: var(--bad-soft); color: var(--bad); }
+.mine a > span:first-child { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
