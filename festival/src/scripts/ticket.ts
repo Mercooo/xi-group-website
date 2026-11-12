@@ -123,13 +123,13 @@ async function saveImage() {
   g.beginPath(); g.roundRect(60, 60, W - 120, 300, [44, 44, 0, 0]); g.fill();
   const colors = ['#f47b20', '#f2c230', '#4fae3a', '#c8322f'];
   colors.forEach((col, i) => { g.fillStyle = col; g.fillRect(60 + i * ((W - 120) / 4), 350, (W - 120) / 4, 12); });
-  g.fillStyle = '#c9a961'; g.font = '700 190px "Reem Kufi"'; g.textAlign = 'left'; g.direction = 'ltr';
+  g.fillStyle = '#c9a961'; g.font = '800 190px "Cairo Variable"'; g.textAlign = 'left'; g.direction = 'ltr';
   g.fillText('74', 110, 300);
   g.direction = ar ? 'rtl' : 'ltr';
   g.textAlign = 'right';
-  g.fillStyle = '#e8d7a8'; g.font = '600 38px "IBM Plex Sans Arabic"';
+  g.fillStyle = '#e8d7a8'; g.font = '600 38px "Tajawal"';
   g.fillText(t('المجموعة الحادية عشر', 'XI Group'), W - 110, 170);
-  g.fillStyle = '#ffffff'; g.font = '700 54px "Reem Kufi"';
+  g.fillStyle = '#ffffff'; g.font = '700 54px "Cairo Variable"';
   g.fillText(t('تذكرة عيد الـ74', '74th anniversary'), W - 110, 250);
   // QR
   const q = document.createElement('canvas');
@@ -137,16 +137,16 @@ async function saveImage() {
   g.fillStyle = '#ffffff'; g.beginPath(); g.roundRect((W - 700) / 2, 420, 700, 700, 32); g.fill();
   g.drawImage(q, (W - 640) / 2, 450, 640, 640);
   g.textAlign = 'center';
-  g.fillStyle = '#16241d'; g.font = '700 58px "Reem Kufi"';
+  g.fillStyle = '#16241d'; g.font = '700 58px "Cairo Variable"';
   g.fillText(current.name, W / 2, 1210, W - 200);
   g.fillStyle = '#5d685f'; g.font = '600 40px ui-monospace, Menlo, monospace'; g.direction = 'ltr';
   g.fillText(current.code.replace(/(.{4})/g, '$1 ').trim(), W / 2, 1275);
   g.direction = ar ? 'rtl' : 'ltr';
-  g.font = '400 36px "IBM Plex Sans Arabic"'; g.fillStyle = '#16241d';
+  g.font = '400 36px "Tajawal"'; g.fillStyle = '#16241d';
   const when = whenText(current);
   if (when) g.fillText(when, W / 2, 1360, W - 200);
   if (current.venue_name) g.fillText(current.venue_name, W / 2, 1415, W - 200);
-  g.fillStyle = '#75602c'; g.font = '400 30px "IBM Plex Sans Arabic"';
+  g.fillStyle = '#75602c'; g.font = '400 30px "Tajawal"';
   g.fillText(t('تُستخدم مرة واحدة على البوابة', 'Valid for one entry'), W / 2, 1475);
   c.toBlob((b) => {
     if (!b) return;
