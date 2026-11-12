@@ -173,6 +173,25 @@ import Icon from '../components/Icon.astro';
           <div class="notice notice--bad" id="settings-err" role="alert" hidden><Icon name="alert" size={18} /><span></span></div>
           <button class="btn" type="submit"><Icon name="check" size={18} />حفظ الإعدادات</button>
         </form>
+
+        <form class="panel form" id="pass-form" style="margin-top:20px">
+          <div>
+            <h2>كلمات السر</h2>
+            <p style="color:var(--muted)">كلمة سر المنظمين تفتح هذه اللوحة والبوابة معاً. كلمة سر البوابة تفتح شاشة المسح فقط، فأعطها لفريق البوابة. تُحفظ مشفّرة ولا يمكن لأحد قراءتها.</p>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="p-role">كلمة سر</label>
+              <select class="select" id="p-role"><option value="gate">البوابة</option><option value="admin">المنظمين</option></select>
+            </div>
+            <div class="field">
+              <label for="p-new">كلمة السر الجديدة <span class="hint">(8 أحرف على الأقل)</span></label>
+              <input class="input" id="p-new" type="text" minlength="8" maxlength="100" autocomplete="new-password" dir="ltr" required />
+            </div>
+          </div>
+          <div class="notice" id="pass-msg" role="status" hidden><Icon name="check-circle" size={18} /><span></span></div>
+          <button class="btn" type="submit"><Icon name="settings" size={18} />تغيير كلمة السر</button>
+        </form>
       </section>
 
       <!-- scans -->

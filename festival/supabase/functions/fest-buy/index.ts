@@ -1,12 +1,18 @@
 // Public endpoint: a guest buys a festival ticket.
 // multipart/form-data: name, phone, email?, affiliation?, lang, website (honeypot), receipt (image).
-// The InstaPay screenshot is stored privately, read by Claude (vision) and then judged by fixed
-// rules in ../_shared/rules.ts: 100 EGP, paid to the configured receiver, successful, unique
-// reference, sensible date. Clear passes get a ticket at once; anything uncertain goes to review.
+// The InstaPay screenshot is stored privately and read by the first reader available:
+//   1. Claude (vision)   when ANTHROPIC_API_KEY is set
+//   2. Gemini (vision)   when GEMINI_API_KEY is set (free tier)
+//   3. Tesseract OCR     always: the festival site's /api/ocr, free, no key, no AI
+// Whatever reads it, fixed rules in ../_shared/rules.ts decide: 100 EGP, paid to the configured
+// receiver, successful, unique reference, sensible date. Clear passes get a ticket at once;
+// anything uncertain goes to review. Plain OCR never rejects on its own.
 import Anthropic from "npm:@anthropic-ai/sdk";
+import { GoogleGenAI } from "npm:@google/genai@2.29.1";
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
 import { BUCKET, db, getSettings, ipHash, json, normPhone, sha256Hex, CORS } from "../_shared/shared.ts";
-import { judge, normReference, type Ocr } from "../_shared/rules.ts";
+import { judge, normReference, type Ocr, type Recipient } from "../_shared/rules.ts";
+import { parseReceiptText } from "../_shared/textparse.ts";
 
 const MAX_BYTES = 6 * 1024 * 1024; // stored
 const MAX_OCR_BYTES = 3_700_000; // the API takes images up to 5 MB once base64-encoded
@@ -64,13 +70,10 @@ const SCHEMA = {
   },
 };
 
-type ReadResult = { ok: true; ocr: Ocr; model: string } | { ok: false; reason: string; detail?: string };
+type ReadResult = { ok: true; ocr: Ocr; model: string; strict: boolean } | { ok: false; reason: string; detail?: string };
 
-async function readReceipt(bytes: Uint8Array, mediaType: string): Promise<ReadResult> {
-  const key = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!key) return { ok: false, reason: "auto_check_unavailable" };
+async function readWithClaude(key: string, bytes: Uint8Array, mediaType: string): Promise<ReadResult> {
   if (bytes.length > MAX_OCR_BYTES) return { ok: false, reason: "image_too_large_for_auto_check" };
-
   const client = new Anthropic({ apiKey: key, timeout: 90_000, maxRetries: 1 });
   const params = {
     model: MODEL,
@@ -105,11 +108,100 @@ async function readReceipt(bytes: Uint8Array, mediaType: string): Promise<ReadRe
     // deno-lint-ignore no-explicit-any
     const text = msg.content?.find((b: any) => b.type === "text")?.text;
     if (!text) return { ok: false, reason: "auto_check_failed", detail: "no_text" };
-    return { ok: true, ocr: JSON.parse(text) as Ocr, model: msg.model };
+    return { ok: true, ocr: JSON.parse(text) as Ocr, model: msg.model, strict: true };
   } catch (e) {
-    console.error("receipt read failed", e instanceof Error ? e.message : e);
+    console.error("claude read failed", e instanceof Error ? e.message : e);
     return { ok: false, reason: "auto_check_failed", detail: e instanceof Error ? e.message.slice(0, 200) : "error" };
   }
+}
+
+// Gemini's structured output takes an OpenAPI-style schema.
+const g = (type: string, extra: Record<string, unknown> = {}) => ({ type, ...extra });
+const GEMINI_SCHEMA = {
+  type: "OBJECT",
+  required: SCHEMA.required,
+  propertyOrdering: SCHEMA.required,
+  properties: {
+    kind: g("STRING", { enum: ["instapay", "bank_transfer", "wallet", "other", "not_a_receipt"] }),
+    legible: g("BOOLEAN"),
+    transfer_status: g("STRING", { enum: ["successful", "failed", "pending", "unclear"] }),
+    amount: g("NUMBER", { nullable: true }),
+    currency: g("STRING", { nullable: true }),
+    recipient_name: g("STRING", { nullable: true }),
+    recipient_address: g("STRING", { nullable: true }),
+    sender_name: g("STRING", { nullable: true }),
+    reference: g("STRING", { nullable: true }),
+    date_iso: g("STRING", { nullable: true }),
+    time: g("STRING", { nullable: true }),
+    looks_edited: g("BOOLEAN"),
+    notes: g("STRING", { nullable: true }),
+  },
+};
+// Free-tier models are sometimes busy; the next one is tried. GEMINI_MODEL overrides the list.
+const GEMINI_MODELS = (Deno.env.get("GEMINI_MODEL") || "gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash-lite").split(",").map((m) => m.trim()).filter(Boolean);
+
+async function readWithGemini(key: string, bytes: Uint8Array, mediaType: string): Promise<ReadResult> {
+  if (bytes.length > MAX_OCR_BYTES) return { ok: false, reason: "image_too_large_for_auto_check" };
+  const ai = new GoogleGenAI({ apiKey: key });
+  let last = "";
+  for (const model of GEMINI_MODELS) {
+    try {
+      const res = await ai.models.generateContent({
+        model,
+        contents: [{ role: "user", parts: [{ inlineData: { mimeType: mediaType, data: encodeBase64(bytes) } }, { text: "Transcribe this payment screenshot." }] }],
+        // deno-lint-ignore no-explicit-any
+        config: { systemInstruction: SYSTEM, responseMimeType: "application/json", responseSchema: GEMINI_SCHEMA as any, temperature: 0 },
+      });
+      const text = res.text;
+      if (!text) { last = "no_text"; continue; }
+      return { ok: true, ocr: JSON.parse(text) as Ocr, model, strict: true };
+    } catch (e) {
+      // deno-lint-ignore no-explicit-any
+      const status = (e as any)?.status;
+      last = `${model}: ${e instanceof Error ? e.message.slice(0, 160) : "error"}`;
+      if (status === 429 || status === 503 || status === 500 || status === 404) continue; // busy or unavailable: next model
+      break;
+    }
+  }
+  console.error("gemini read failed", last);
+  return { ok: false, reason: "auto_check_failed", detail: last };
+}
+
+// Free OCR on the festival site (Vercel). Text only; parseReceiptText turns it into fields.
+const OCR_URL = Deno.env.get("FEST_OCR_URL") || "https://xi-festival-74.vercel.app/api/ocr";
+const OCR_MAX_BYTES = 4_400_000;
+
+async function readWithOcr(bytes: Uint8Array, mediaType: string, recipient: Recipient): Promise<ReadResult> {
+  if (bytes.length > OCR_MAX_BYTES) return { ok: false, reason: "image_too_large_for_auto_check" };
+  try {
+    const r = await fetch(OCR_URL, { method: "POST", headers: { "content-type": mediaType }, body: bytes, signal: AbortSignal.timeout(55_000) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || typeof j.text !== "string") return { ok: false, reason: "auto_check_failed", detail: `ocr ${r.status} ${j.error ?? ""}`.trim() };
+    const ocr = parseReceiptText(j.text, recipient);
+    return { ok: true, ocr: { ...ocr, notes: `OCR confidence ${Math.round(j.confidence ?? 0)}%\n${j.text.slice(0, 1500)}` }, model: "tesseract", strict: false };
+  } catch (e) {
+    console.error("ocr read failed", e instanceof Error ? e.message : e);
+    return { ok: false, reason: "auto_check_failed", detail: "ocr unreachable" };
+  }
+}
+
+/** The best reader available; an AI that fails falls back to the next one. */
+async function readReceipt(bytes: Uint8Array, mediaType: string, recipient: Recipient): Promise<ReadResult> {
+  const claude = Deno.env.get("ANTHROPIC_API_KEY");
+  const gemini = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_API_KEY");
+  let first: ReadResult | null = null;
+  if (claude) {
+    const r = await readWithClaude(claude, bytes, mediaType);
+    if (r.ok) return r;
+    first ??= r;
+  }
+  if (gemini) {
+    const r = await readWithGemini(gemini, bytes, mediaType);
+    if (r.ok) return r;
+    first ??= r;
+  }
+  const r = await readWithOcr(bytes, mediaType, recipient);
+  return r.ok ? r : first ?? r;
 }
 
 Deno.serve(async (req) => {
@@ -173,16 +265,13 @@ Deno.serve(async (req) => {
   const { error: upErr } = await db.storage.from(BUCKET).upload(receipt_path, bytes, { contentType: kind.type, upsert: false });
   if (upErr) return json({ error: "save_failed" }, 500);
 
-  const read = await readReceipt(bytes, kind.type);
+  const recipient = { handles: settings.recipient_handles, names: settings.recipient_names, phones: settings.recipient_phones };
+  const read = await readReceipt(bytes, kind.type, recipient);
   let status: "verified" | "review" | "rejected" = "review";
   let reasons: string[] = [];
   let reference: string | null = null;
   if (read.ok) {
-    const v = judge(read.ocr, {
-      price: settings.price_egp,
-      recipient: { handles: settings.recipient_handles, names: settings.recipient_names, phones: settings.recipient_phones },
-      salesStart: settings.sales_start,
-    });
+    const v = judge(read.ocr, { price: settings.price_egp, recipient, salesStart: settings.sales_start, strict: read.strict });
     status = v.status;
     reasons = v.reasons;
     reference = normReference(read.ocr.reference);

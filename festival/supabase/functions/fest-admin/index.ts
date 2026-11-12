@@ -1,7 +1,8 @@
 // Organisers' board. Needs the admin passcode in the x-fest-key header. POST { action, ... }:
 //   stats | list { status?, q?, page? } | receipt { id } | set_status { id, status, note? }
 //   undo_checkin { id } | issue { name, phone, note? } | settings_get | settings_set { ...fields } | scans
-import { authorize, BUCKET, db, getSettings, json, normPhone, CORS } from "../_shared/shared.ts";
+//   set_passcode { role: admin | gate, passcode }
+import { authorize, BUCKET, db, forgetPasscodes, getSettings, hashPasscode, json, newSalt, normPhone, CORS, PASS_ITERATIONS } from "../_shared/shared.ts";
 
 const PAGE = 50;
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -127,6 +128,20 @@ Deno.serve(async (req) => {
       if (b.pay_handle !== undefined) patch.pay_handle = String(b.pay_handle || "").trim().slice(0, 80) || null;
       const { error } = await db.from("fest_settings").update(patch).eq("id", 1);
       return error ? json({ error: "server" }, 500) : json(await getSettings());
+    }
+
+    case "set_passcode": {
+      // Change the admin or gate passcode. Stored only as a salted hash.
+      const role = b.role === "gate" ? "gate" : b.role === "admin" ? "admin" : null;
+      const pass = String(b.passcode || "").trim();
+      if (!role) return json({ error: "bad_role" }, 400);
+      if (pass.length < 8 || pass.length > 100) return json({ error: "weak_passcode" }, 400);
+      const salt = newSalt();
+      const hash = await hashPasscode(pass, salt);
+      const { error } = await db.from("fest_keys").upsert({ role, salt, hash, iterations: PASS_ITERATIONS, updated_at: new Date().toISOString() });
+      if (error) return json({ error: "server" }, 500);
+      forgetPasscodes();
+      return json({ ok: true, role });
     }
 
     case "scans": {

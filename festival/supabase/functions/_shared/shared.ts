@@ -46,23 +46,55 @@ function same(a: string, b: string) {
 
 export type Role = "admin" | "gate";
 
+const hex = (b: ArrayBuffer | Uint8Array) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
+const unhex = (h: string) => new Uint8Array(h.match(/../g)!.map((x) => parseInt(x, 16)));
+export const PASS_ITERATIONS = 60_000;
+
+/** PBKDF2-SHA256, 32 bytes, as hex. */
+export async function hashPasscode(pass: string, saltHex: string, iterations = PASS_ITERATIONS) {
+  const key = await crypto.subtle.importKey("raw", enc.encode(pass), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: unhex(saltHex), iterations }, key, 256);
+  return hex(bits);
+}
+export const newSalt = () => hex(crypto.getRandomValues(new Uint8Array(16)));
+
+// Passcodes that already matched in this isolate (by SHA-256 of the passcode), so each
+// request doesn't redo the slow hash. Cleared after five minutes or a passcode change.
+const verified = new Map<string, { role: Role; at: number }>();
+export const forgetPasscodes = () => verified.clear();
+
+/** Which role a passcode opens, checking the Edge Function secrets first, then the hashed passcodes table. */
+async function roleFor(key: string): Promise<Role | null> {
+  const admin = Deno.env.get("FEST_ADMIN_PASSCODE") || "";
+  const gate = Deno.env.get("FEST_GATE_PASSCODE") || "";
+  if (admin && same(key, admin)) return "admin";
+  if (gate && same(key, gate)) return "gate";
+  const id = await sha256Hex(key);
+  const hit = verified.get(id);
+  if (hit && Date.now() - hit.at < 300_000) return hit.role;
+  const { data } = await db.from("fest_keys").select("role,salt,hash,iterations");
+  for (const row of data ?? []) {
+    if (same(await hashPasscode(key, row.salt, row.iterations), row.hash)) {
+      verified.set(id, { role: row.role as Role, at: Date.now() });
+      return row.role as Role;
+    }
+  }
+  return null;
+}
+
 /**
  * Checks the x-fest-key passcode. The admin passcode also opens the gate.
  * Ten wrong attempts from one address in ten minutes locks that address out for a while.
  */
 export async function authorize(req: Request, need: Role): Promise<{ ok: true; role: Role } | { ok: false; res: Response }> {
-  const admin = Deno.env.get("FEST_ADMIN_PASSCODE") || "";
-  const gate = Deno.env.get("FEST_GATE_PASSCODE") || "";
-  if (need === "admin" ? !admin : !admin && !gate) return { ok: false, res: json({ error: "not_configured" }, 503) };
-
   const who = await ipHash(req);
   const since = new Date(Date.now() - 10 * 60_000).toISOString();
   const { count } = await db.from("fest_auth_fails").select("id", { count: "exact", head: true }).eq("ip_hash", who).gte("at", since);
   if ((count ?? 0) >= 10) return { ok: false, res: json({ error: "locked" }, 429) };
 
   const key = (req.headers.get("x-fest-key") || "").trim();
-  if (key && admin && same(key, admin)) return { ok: true, role: "admin" };
-  if (key && need === "gate" && gate && same(key, gate)) return { ok: true, role: "gate" };
+  const role = key && key.length <= 200 ? await roleFor(key) : null;
+  if (role === "admin" || (role === "gate" && need === "gate")) return { ok: true, role };
 
   await db.from("fest_auth_fails").insert({ ip_hash: who });
   return { ok: false, res: json({ error: "unauthorized" }, 401) };

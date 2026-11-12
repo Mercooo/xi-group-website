@@ -173,7 +173,15 @@ async function openOrder(o: any) {
   sheet.showModal();
   if (o.receipt_path) {
     const r = await api({ action: 'receipt', id: o.id });
-    if (r.ok && open === o) { img.src = r.data.url; img.hidden = false; }
+    if (r.ok && open === o) {
+      img.src = r.data.url;
+      img.hidden = false;
+      const engine = r.data.ocr?.model ? String(r.data.ocr.model) : r.data.ocr?.error ? 'لم يُقرأ آلياً' : '';
+      if (engine) {
+        dl.append(el('dt', '', 'قرأه'));
+        dl.append(el('dd', '', engine === 'tesseract' ? 'OCR مجاني (بدون ذكاء اصطناعي)' : engine));
+      }
+    }
   }
 }
 
@@ -291,6 +299,25 @@ form.addEventListener('submit', async (e) => {
   const t = el('div', 'toast', 'تم حفظ الإعدادات');
   document.body.append(t);
   setTimeout(() => t.remove(), 2000);
+});
+
+// --------------------------------------------------------------- passcodes
+$('#pass-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const role = $<HTMLSelectElement>('#p-role').value;
+  const input = $<HTMLInputElement>('#p-new');
+  const msg = $('#pass-msg');
+  const r = await api({ action: 'set_passcode', role, passcode: input.value });
+  msg.hidden = false;
+  if (!r.ok) {
+    msg.className = 'notice notice--bad';
+    msg.querySelector('span')!.textContent = r.data.error === 'weak_passcode' ? 'كلمة السر يجب أن تكون 8 أحرف على الأقل.' : 'تعذر الحفظ.';
+    return;
+  }
+  msg.className = 'notice notice--ok';
+  msg.querySelector('span')!.textContent = role === 'admin' ? 'تم تغيير كلمة سر المنظمين. استخدمها في المرة القادمة.' : 'تم تغيير كلمة سر البوابة. أعطها لفريق البوابة.';
+  input.value = '';
+  if (role === 'admin') { key = ''; sessionStorage.removeItem(S_KEY); }
 });
 
 // ------------------------------------------------------------------ scans

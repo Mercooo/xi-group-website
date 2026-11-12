@@ -158,7 +158,10 @@ export function normReference(s: string | null) {
  * The verdict for one screenshot. Hard failures (clearly wrong amount, wrong receiver,
  * failed transfer, not a receipt) reject; anything uncertain goes to a person.
  */
-export function judge(o: Ocr, opts: { price: number; recipient: Recipient; salesStart?: string | null; now?: Date }): { status: Status; reasons: string[] } {
+export function judge(
+  o: Ocr,
+  opts: { price: number; recipient: Recipient; salesStart?: string | null; now?: Date; strict?: boolean },
+): { status: Status; reasons: string[] } {
   const hard: string[] = [];
   const soft: string[] = [];
 
@@ -188,7 +191,8 @@ export function judge(o: Ocr, opts: { price: number; recipient: Recipient; sales
     if (opts.salesStart && o.date_iso! < opts.salesStart) (o.legible ? hard : soft).push("transfer_before_sales");
   }
 
-  if (hard.length) return { status: "rejected", reasons: [...hard, ...soft] };
+  // Plain OCR (strict: false) can misread, so it never rejects on its own: a person decides.
+  if (hard.length) return { status: opts.strict === false ? "review" : "rejected", reasons: [...hard, ...soft] };
   if (soft.length) return { status: "review", reasons: soft };
   return { status: "verified", reasons: [] };
 }
