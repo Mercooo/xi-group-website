@@ -36,17 +36,21 @@ Deno.serve(async (req) => {
   if (code.length < 8 || code.length > 16) return json({ error: "bad_code" }, 400);
   const { data } = await db
     .from("fest_orders")
-    .select("code,name,phone,status,reasons,created_at,checked_in_at,reviewed_at")
+    .select("code,name,phone,status,reasons,created_at,checked_in_at,reviewed_at,ocr")
     .eq("code", code)
     .maybeSingle();
   if (!data) return json({ error: "not_found" }, 404);
   const s = await getSettings();
+  // Free OCR can misread, so its guesses ("wrong amount"…) aren't shown to the guest while
+  // a person reviews; the organisers still see them. Decisions the organisers made are shown.
+  const ocrGuess = data.status === "review" && data.ocr?.model === "tesseract";
+  const reasons = data.status === "verified" || ocrGuess ? [] : data.reasons;
   return json({
     code: data.code,
     name: data.name,
     phone: data.phone.replace(/^(\d{3})\d+(\d{3})$/, "$1•••••$2"),
     status: data.status,
-    reasons: data.status === "verified" ? [] : data.reasons,
+    reasons,
     created_at: data.created_at,
     checked_in_at: data.checked_in_at,
     sponsors_url: s.sponsors_url,
