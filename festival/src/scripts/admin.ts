@@ -154,7 +154,7 @@ async function openOrder(o: any) {
   if (o.reasons?.length) {
     const ul = el('ul', 'reasons');
     for (const x of o.reasons) ul.append(el('li', '', reasonText(x, 'ar')));
-    if (o.status !== 'rejected') ul.style.setProperty('--bad-soft', 'var(--warn-soft)');
+    if (o.status !== 'rejected') ul.classList.add('reasons--warn');
     rs.append(ul);
   }
   $<HTMLInputElement>('#d-note').value = o.admin_note || '';

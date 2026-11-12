@@ -51,7 +51,7 @@ import { SPONSORS_URL } from '../lib/site';
         <span class="state__icon" style="background:var(--warn-soft);color:var(--warn)"><Icon name="hourglass" size={32} /></span>
         <h2><T ar="إيصالك قيد المراجعة" en="Your receipt is being reviewed" /></h2>
         <p><T ar="لم نستطع تأكيد التحويل آلياً، فسيراجعه أحد المنظمين بنفسه. ستظهر تذكرتك هنا تلقائياً فور الموافقة، فاحفظ رابط هذه الصفحة." en="We couldn’t confirm the transfer automatically, so an organiser will check it. Your ticket will appear here as soon as it’s approved, so keep this page’s link." /></p>
-        <ul class="reasons" data-f="reasons" style="--bad-soft:var(--warn-soft)"></ul>
+        <ul class="reasons reasons--warn" data-f="reasons"></ul>
         <p class="tk-code" data-f="code"></p>
         <button class="btn btn--ghost btn--sm" type="button" data-copy-link><Icon name="link" size={16} /><T ar="نسخ رابط الصفحة" en="Copy page link" /></button>
       </div>
