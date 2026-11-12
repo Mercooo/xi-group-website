@@ -1,0 +1,28 @@
+// Plain-language text for the reason codes the backend returns (see supabase/functions/_shared/rules.ts).
+export const REASONS: Record<string, { ar: string; en: string }> = {
+  auto_check_unavailable: { ar: 'سيراجع المنظمون الإيصال بأنفسهم.', en: 'An organiser will check the receipt by hand.' },
+  auto_check_failed: { ar: 'تعذرت القراءة الآلية للإيصال، وسيراجعه المنظمون.', en: 'The automatic check could not read it; an organiser will.' },
+  auto_check_declined: { ar: 'سيراجع المنظمون الإيصال بأنفسهم.', en: 'An organiser will check the receipt by hand.' },
+  image_too_large_for_auto_check: { ar: 'الصورة كبيرة جداً للقراءة الآلية، وسيراجعها المنظمون.', en: 'The image is too large to read automatically; an organiser will check it.' },
+  recipient_not_configured: { ar: 'سيراجع المنظمون الإيصال بأنفسهم.', en: 'An organiser will check the receipt by hand.' },
+  unclear_image: { ar: 'الصورة غير واضحة بما يكفي.', en: 'The screenshot is not clear enough.' },
+  possible_edit: { ar: 'الصورة تحتاج إلى مراجعة من المنظمين.', en: 'The screenshot needs a closer look.' },
+  transfer_pending: { ar: 'التحويل ما زال قيد التنفيذ.', en: 'The transfer is still processing.' },
+  status_unclear: { ar: 'لا يظهر في الصورة تأكيد نجاح التحويل.', en: 'The screenshot does not show the transfer succeeded.' },
+  transfer_failed: { ar: 'الإيصال يُظهر أن التحويل لم يتم.', en: 'The receipt shows the transfer failed.' },
+  amount_unreadable: { ar: 'تعذرت قراءة المبلغ.', en: 'The amount could not be read.' },
+  wrong_amount: { ar: 'المبلغ في الإيصال لا يساوي ثمن التذكرة.', en: 'The amount is not the ticket price.' },
+  currency_unclear: { ar: 'العملة غير واضحة.', en: 'The currency is unclear.' },
+  wrong_recipient: { ar: 'التحويل ليس إلى حساب المجموعة.', en: 'The transfer was not made to the group’s account.' },
+  recipient_address_differs: { ar: 'نحتاج إلى التأكد من حساب المستلم.', en: 'The receiving account needs checking.' },
+  recipient_unverified: { ar: 'لا يظهر حساب المستلم بوضوح.', en: 'The receiving account is not clearly shown.' },
+  reference_missing: { ar: 'لا يظهر الرقم المرجعي للتحويل.', en: 'The transfer reference is not shown.' },
+  reference_used: { ar: 'هذا التحويل استُخدم من قبل لتذكرة أخرى.', en: 'This transfer was already used for another ticket.' },
+  date_unreadable: { ar: 'تعذرت قراءة تاريخ التحويل.', en: 'The transfer date could not be read.' },
+  date_in_future: { ar: 'تاريخ التحويل غير منطقي.', en: 'The transfer date looks wrong.' },
+  transfer_before_sales: { ar: 'تاريخ التحويل قبل فتح الحجز.', en: 'The transfer is dated before ticket sales opened.' },
+  not_a_receipt: { ar: 'الصورة ليست إيصال تحويل.', en: 'The image is not a payment receipt.' },
+  unknown_receipt_type: { ar: 'نوع الإيصال غير معتاد، وسيراجعه المنظمون.', en: 'Unusual receipt; an organiser will check it.' },
+  issued_by_admin: { ar: 'تذكرة صادرة من المنظمين.', en: 'Issued by the organisers.' },
+};
+export const reasonText = (code: string, lang: 'ar' | 'en') => REASONS[code]?.[lang] ?? code;

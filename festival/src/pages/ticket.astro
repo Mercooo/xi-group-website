@@ -1,0 +1,102 @@
+---
+import Base from '../layouts/Base.astro';
+import T from '../components/T.astro';
+import Icon from '../components/Icon.astro';
+import { SPONSORS_URL } from '../lib/site';
+---
+<Base title="تذكرتي · عيد الـ74 للمجموعة الحادية عشر" noindex bodyClass="tk-page">
+  <div class="tk-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <a class="back-link" href="/"><Icon name="arrow-prev" size={16} /><T ar="صفحة الدعوة" en="Invitation" /></a>
+      <button class="lang-toggle" type="button" data-lang-toggle><span class="ar" lang="en">EN</span><span class="en">عربي</span></button>
+    </div>
+
+    <article class="ticket" id="ticket" aria-live="polite">
+      <header class="ticket__top">
+        <div>
+          <p><T ar="المجموعة الحادية عشر" en="XI Group" /></p>
+          <h1><T ar="تذكرة عيد الـ74" en="74th anniversary ticket" /></h1>
+        </div>
+        <span class="ticket__74" aria-hidden="true">74</span>
+      </header>
+
+      <!-- loading -->
+      <div class="state" data-view="loading">
+        <div class="spinner" style="border-color:var(--line);border-top-color:var(--gold)" aria-hidden="true"></div>
+        <p><T ar="جاري تحميل تذكرتك…" en="Loading your ticket…" /></p>
+      </div>
+
+      <!-- verified -->
+      <div data-view="verified" hidden>
+        <div class="ticket__body">
+          <span class="chip chip--ok" id="tk-chip"><T ar="صالحة للدخول" en="Valid for entry" /></span>
+          <div class="qr-frame" id="qr-frame">
+            <canvas id="qr" width="260" height="260" role="img" aria-label="QR"></canvas>
+            <div class="stamp" id="used-stamp" hidden><span><T ar="تم الدخول" en="Checked in" /></span></div>
+          </div>
+          <p class="tk-name" data-f="name"></p>
+          <p class="tk-code" data-f="code"></p>
+          <p class="fine"><T ar="قدّم رمز QR على البوابة. التذكرة تُستخدم مرة واحدة فقط، فلا تشاركها." en="Show this QR at the gate. It works once only, so don’t share it." /></p>
+        </div>
+        <div class="perf" aria-hidden="true"></div>
+        <ul class="tk-info" role="list">
+          <li><Icon name="calendar" size={18} /><span><small><T ar="الموعد" en="When" /></small><span data-f="when"><T ar="يُعلن قريباً" en="To be announced" /></span></span></li>
+          <li><Icon name="pin" size={18} /><span><small><T ar="المكان" en="Where" /></small><span data-f="where"><T ar="يُعلن قريباً" en="To be announced" /></span></span></li>
+          <li><Icon name="ticket" size={18} /><span><small><T ar="صاحب التذكرة" en="Ticket holder" /></small><span data-f="holder"></span></span></li>
+        </ul>
+      </div>
+
+      <!-- review -->
+      <div class="state" data-view="review" hidden>
+        <span class="state__icon" style="background:var(--warn-soft);color:var(--warn)"><Icon name="hourglass" size={32} /></span>
+        <h2><T ar="إيصالك قيد المراجعة" en="Your receipt is being reviewed" /></h2>
+        <p><T ar="لم نستطع تأكيد التحويل آلياً، فسيراجعه أحد المنظمين بنفسه. ستظهر تذكرتك هنا تلقائياً فور الموافقة، فاحفظ رابط هذه الصفحة." en="We couldn’t confirm the transfer automatically, so an organiser will check it. Your ticket will appear here as soon as it’s approved, so keep this page’s link." /></p>
+        <ul class="reasons" data-f="reasons" style="--bad-soft:var(--warn-soft)"></ul>
+        <p class="tk-code" data-f="code"></p>
+        <button class="btn btn--ghost btn--sm" type="button" data-copy-link><Icon name="link" size={16} /><T ar="نسخ رابط الصفحة" en="Copy page link" /></button>
+      </div>
+
+      <!-- rejected -->
+      <div class="state" data-view="rejected" hidden>
+        <span class="state__icon" style="background:var(--bad-soft);color:var(--bad)"><Icon name="x-circle" size={32} /></span>
+        <h2><T ar="لم نتمكن من قبول هذا الإيصال" en="We couldn’t accept this receipt" /></h2>
+        <ul class="reasons" data-f="reasons"></ul>
+        <p><T ar="إذا كنت حوّلت المبلغ الصحيح إلى حساب المجموعة، أعد المحاولة بصورة أوضح لشاشة نجاح التحويل، أو تواصل مع المنظمين ومعك الرقم التالي." en="If you sent the right amount to the group’s account, try again with a clearer screenshot of the success screen, or contact the organisers with the code below." /></p>
+        <p class="tk-code" data-f="code"></p>
+        <a class="btn btn--sm" href="/#ticket"><T ar="إعادة المحاولة" en="Try again" /></a>
+      </div>
+
+      <!-- not found -->
+      <div class="state" data-view="missing" hidden>
+        <span class="state__icon" style="background:var(--bad-soft);color:var(--bad)"><Icon name="alert" size={32} /></span>
+        <h2><T ar="لم نجد هذه التذكرة" en="Ticket not found" /></h2>
+        <p><T ar="تأكد من الرابط كاملاً، أو احجز تذكرة من صفحة الدعوة." en="Check the full link, or get a ticket from the invitation page." /></p>
+        <a class="btn btn--sm" href="/#ticket"><T ar="صفحة الحجز" en="Booking page" /></a>
+      </div>
+
+      <!-- network -->
+      <div class="state" data-view="offline" hidden>
+        <span class="state__icon" style="background:var(--warn-soft);color:var(--warn)"><Icon name="refresh" size={32} /></span>
+        <h2><T ar="تعذر الاتصال" en="Could not connect" /></h2>
+        <p><T ar="تأكد من اتصالك بالإنترنت ثم أعد المحاولة." en="Check your connection and try again." /></p>
+        <button class="btn btn--sm" type="button" data-retry><T ar="إعادة المحاولة" en="Retry" /></button>
+      </div>
+    </article>
+
+    <div class="tk-actions" id="tk-actions" hidden>
+      <button class="btn btn--gold" type="button" id="save-qr"><Icon name="download" size={18} /><T ar="حفظ صورة التذكرة" en="Save ticket image" /></button>
+      <button class="btn btn--light" type="button" id="share"><Icon name="share" size={18} /><T ar="مشاركة الرابط" en="Share link" /></button>
+      <a class="btn btn--ghost btn--wide" id="cal" href="#" download="xi-74.ics" hidden style="color:#fff"><Icon name="calendar" size={18} /><T ar="أضف إلى التقويم" en="Add to calendar" /></a>
+    </div>
+
+    <a class="offer-card" id="offers" href={SPONSORS_URL} hidden>
+      <Icon name="gift" size={30} />
+      <span><strong><T ar="عروض حصرية لحاملي التذاكر" en="Offers for ticket holders" /></strong><span><T ar="اكتشف عروض رعاة الاحتفال وشركائه" en="See what the festival’s sponsors are offering" /></span></span>
+      <Icon name="arrow-next" size={20} />
+    </a>
+  </div>
+
+  <script>
+    import '../scripts/ticket';
+  </script>
+</Base>

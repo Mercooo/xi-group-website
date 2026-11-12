@@ -1,0 +1,224 @@
+---
+import Base from '../layouts/Base.astro';
+import T from '../components/T.astro';
+import Icon from '../components/Icon.astro';
+import { UNITS, FOUNDED, YEARS, XI_SITE, SPONSORS_URL, FACEBOOK, INSTAGRAM } from '../lib/site';
+---
+<Base title="المجموعة الحادية عشر · 74 عاماً | احجز تذكرتك">
+  <header class="bar">
+    <div class="wrap bar__in">
+      <a class="brand" href="/">
+        <span class="brand__mark"><img src="/img/xi-logo.webp" alt="" width="32" height="32" /></span>
+        <span class="brand__name"><T ar="المجموعة الحادية عشر" en="XI Group" /><small><T ar="عيد الـ74" en="74th anniversary" /></small></span>
+      </a>
+      <div class="bar__actions">
+        <a class="btn btn--gold btn--sm" href="#ticket"><Icon name="ticket" size={18} /><T ar="احجز تذكرتك" en="Get a ticket" /></a>
+        <button class="lang-toggle" type="button" data-lang-toggle><span class="ar" lang="en">EN</span><span class="en">عربي</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero__photo" style="--photo:url('/img/archive.webp')"></div>
+      <div class="wrap hero__in">
+        <p class="hero__years num">{FOUNDED} — {FOUNDED + YEARS}</p>
+        <p class="big74" aria-hidden="true"><span>7</span><span>4</span></p>
+        <h1 id="hero-title"><T ar="أربعة وسبعون عاماً من الكشافة والمحبة" en="Seventy-four years of scouting and friendship" /></h1>
+        <p class="hero__lead">
+          <T ar="المجموعة الحادية عشر، كشافة ومرشدات وادي النيل في القاهرة، تدعوكم للاحتفال معنا بعيدها الـ74. قادة وأعضاء قدامى وعائلات وأصدقاء: ليلة واحدة تجمع أجيال المجموعة كلها." en="The XI Group of Wadi El Nil Scouts & Guides in Cairo invites you to celebrate its 74th anniversary with us. Leaders, alumni, families and friends: one evening for every generation of the group." />
+        </p>
+        <ul class="facts" role="list">
+          <li><Icon name="calendar" size={18} /><span id="fact-date"><T ar="الموعد يُعلن قريباً" en="Date to be announced" /></span></li>
+          <li><Icon name="pin" size={18} /><span id="fact-venue"><T ar="المكان يُعلن قريباً" en="Venue to be announced" /></span></li>
+          <li><Icon name="ticket" size={18} /><span><span class="num" data-price>100</span> <T ar="جنيه للتذكرة" en="EGP per ticket" /></span></li>
+        </ul>
+        <div class="countdown" id="countdown" hidden aria-live="off">
+          <div><b data-cd="d">0</b><small><T ar="يوم" en="days" /></small></div>
+          <div><b data-cd="h">0</b><small><T ar="ساعة" en="hours" /></small></div>
+          <div><b data-cd="m">0</b><small><T ar="دقيقة" en="min" /></small></div>
+          <div><b data-cd="s">0</b><small><T ar="ثانية" en="sec" /></small></div>
+        </div>
+        <div class="hero__cta">
+          <a class="btn btn--gold" href="#ticket"><Icon name="ticket" /><T ar="احجز تذكرتك الآن" en="Get your ticket" /></a>
+          <a class="btn btn--ghost" href="#story" style="color:#fff"><T ar="حكاية الـ74 عاماً" en="Our story" /></a>
+        </div>
+      </div>
+      <div class="bunting" aria-hidden="true"></div>
+    </section>
+
+    <section class="section" aria-labelledby="units-title">
+      <div class="wrap">
+        <div class="section__head">
+          <span class="eyebrow"><T ar="أربع مراحل، عائلة واحدة" en="Four sections, one family" /></span>
+          <h2 id="units-title"><T ar="من البراعم إلى الجوالة" en="From Buds to Rovers" /></h2>
+          <p><T ar="كل مرحلة من مراحل المجموعة لها لونها وطريقتها، وكلها تحتفل معاً في هذه الليلة." en="Every section of the group has its own colour and way of doing things, and all of them celebrate together on this night." /></p>
+        </div>
+        <ul class="units" role="list">
+          {UNITS.map((u) => (
+            <li class="unit" style={`--c:${u.color}`}>
+              <img src={`/img/${u.key}.webp`} alt="" loading="lazy" decoding="async" />
+              <div class="unit__txt">
+                <span class="unit__logo"><img src={`/img/logo-${u.key}.webp`} alt="" loading="lazy" /></span>
+                <span><strong><T ar={u.ar} en={u.en} /></strong><small><T ar={u.agesAr} en={u.agesEn} /></small></span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="story" aria-labelledby="story-title" style="padding-top:0">
+      <div class="wrap story">
+        <div class="story__text">
+          <span class="eyebrow"><T ar="منذ 1952" en="Since 1952" /></span>
+          <h2 id="story-title"><T ar="حكاية بدأت قبل 74 عاماً" en="A story that began 74 years ago" /></h2>
+          <p style="margin-top:14px"><T ar="تأسست المجموعة الحادية عشر عام 1952 على يد القائد جاك العيسي تحت اسم «مجموعة الحبل بلا دنس»، ضمن حركة كشافة ومرشدات وادي النيل." en="The XI Group was founded in 1952, first under the name “Immaculate Conception Group”, as part of the Wadi El Nil Scouts & Guides movement." /></p>
+          <p><T ar="ومن يومها مرّت أجيال كثيرة بخيامها ونيرانها وأناشيدها، وما زالت المجموعة تكبر بأعضائها وقادتها وعائلاتهم. هذا العيد لكل من مرّ بها." en="Generations have passed through its camps, campfires and songs since then, and the group keeps growing with its members, leaders and their families. This anniversary is for everyone who has been part of it." /></p>
+          <p style="margin-top:20px"><a class="btn btn--ghost" href={XI_SITE} target="_blank" rel="noopener"><T ar="موقع المجموعة" en="The group’s website" /><Icon name="external" size={16} /></a></p>
+        </div>
+        <div class="stats">
+          <div class="stat" style="--c:var(--gold)"><b class="num">{FOUNDED}</b><span><T ar="سنة التأسيس" en="Founded" /></span></div>
+          <div class="stat" style="--c:var(--scouts)"><b class="num">{YEARS}</b><span><T ar="عاماً من العطاء" en="Years" /></span></div>
+          <div class="stat" style="--c:var(--rovers)"><b class="num">4</b><span><T ar="مراحل" en="Sections" /></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--dark" id="ticket" aria-labelledby="ticket-title">
+      <div class="wrap buy">
+        <div>
+          <span class="eyebrow"><T ar="التذاكر" en="Tickets" /></span>
+          <h2 id="ticket-title"><T ar="تذكرتك في ثلاث خطوات" en="Your ticket in three steps" /></h2>
+          <p style="margin:12px 0 24px;color:rgb(255 255 255 / .75)"><T ar="ادفع ثمن التذكرة بإنستاباي، ارفع صورة إيصال التحويل، وتصلك تذكرتك برمز QR فوراً بعد التحقق." en="Pay with InstaPay, upload the transfer screenshot and get your QR ticket as soon as it is checked." /></p>
+          <ol class="steps">
+            <li><div><strong><T ar="حوّل ثمن التذكرة بإنستاباي" en="Pay with InstaPay" /></strong><p><T ar="من الزر بالأسفل، حوّل المبلغ بالضبط إلى حساب المجموعة." en="Use the button below to send the exact amount to the group’s account." /></p></div></li>
+            <li><div><strong><T ar="خُذ صورة لشاشة نجاح التحويل" en="Screenshot the confirmation" /></strong><p><T ar="يجب أن يظهر فيها المبلغ واسم المستلم والرقم المرجعي." en="It must show the amount, the receiver and the reference number." /></p></div></li>
+            <li><div><strong><T ar="ارفع الصورة واستلم تذكرتك" en="Upload it and get your ticket" /></strong><p><T ar="نقرأ الإيصال ونتأكد منه آلياً، ثم تظهر تذكرتك برمز QR تقدّمه على البوابة." en="We read and check the receipt automatically, then your QR ticket appears, ready for the gate." /></p></div></li>
+          </ol>
+
+          <div class="pay-box" id="pay-box">
+            <div class="pay-box__row">
+              <p class="pay-box__price"><span class="num" data-price>100</span> <small><T ar="جنيه مصري" en="EGP" /></small></p>
+              <a class="btn btn--gold" id="pay-link" href="#" target="_blank" rel="noopener" aria-disabled="true"><T ar="ادفع بإنستاباي" en="Pay with InstaPay" /><Icon name="external" size={16} /></a>
+            </div>
+            <div class="pay-box__row" id="handle-row" hidden>
+              <span style="font-size:.9375rem;color:rgb(255 255 255 / .75)"><T ar="أو حوّل إلى العنوان:" en="Or send to:" /></span>
+              <span class="handle"><span class="mono" id="pay-handle"></span><button class="copy-btn" type="button" data-copy="#pay-handle"><T ar="نسخ" en="Copy" /></button></span>
+            </div>
+            <p id="pay-soon" class="fine" style="color:rgb(255 255 255 / .7);text-align:start"><T ar="رابط الدفع يُضاف قريباً. تابع صفحاتنا للإعلان عن فتح الحجز." en="The payment link is coming soon. Follow our pages for when booking opens." /></p>
+          </div>
+
+          <div class="mine" id="mine" hidden>
+            <span class="eyebrow" style="margin:6px 0 0"><T ar="تذاكرك على هذا الجهاز" en="Your tickets on this device" /></span>
+          </div>
+        </div>
+
+        <div class="card" id="buy-card">
+          <h3><T ar="بيانات الحجز" en="Booking details" /></h3>
+          <p><T ar="تذكرة واحدة لكل تحويل. لحجز أكثر من تذكرة، كرّر الخطوات لكل شخص." en="One ticket per transfer. For more people, repeat the steps for each one." /></p>
+
+          <form class="form" id="buy-form" novalidate>
+            <div class="field">
+              <label for="f-name"><T ar="الاسم بالكامل" en="Full name" /></label>
+              <input class="input" id="f-name" name="name" autocomplete="name" required minlength="3" maxlength="80" data-ph-ar="مثال: مينا ماجد عزيز" data-ph-en="e.g. Mina Maged Aziz" />
+              <p class="err" data-err="name"></p>
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label for="f-phone"><T ar="رقم الموبايل" en="Mobile number" /></label>
+                <input class="input" id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" required data-ph-ar="01xxxxxxxxx" data-ph-en="01xxxxxxxxx" />
+                <p class="err" data-err="phone"></p>
+              </div>
+              <div class="field">
+                <label for="f-aff"><T ar="صلتك بالمجموعة" en="You are" /></label>
+                <select class="select" id="f-aff" name="affiliation">
+                  <option value="member" data-ar="عضو حالي" data-en="A current member">عضو حالي</option>
+                  <option value="alumni" data-ar="عضو قديم" data-en="An alumnus">عضو قديم</option>
+                  <option value="leader" data-ar="قائد" data-en="A leader">قائد</option>
+                  <option value="parent" data-ar="ولي أمر" data-en="A parent">ولي أمر</option>
+                  <option value="friend" data-ar="صديق للمجموعة" data-en="A friend of the group">صديق للمجموعة</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="f-email"><T ar="البريد الإلكتروني" en="Email" /> <span class="hint"><T ar="(اختياري)" en="(optional)" /></span></label>
+              <input class="input" id="f-email" name="email" type="email" autocomplete="email" dir="ltr" maxlength="120" data-ph-ar="name@example.com" data-ph-en="name@example.com" />
+              <p class="err" data-err="email"></p>
+            </div>
+            <div class="field">
+              <span class="label" id="receipt-label"><T ar="صورة إيصال التحويل" en="Transfer screenshot" /></span>
+              <label class="drop" id="drop">
+                <input type="file" id="f-receipt" name="receipt" accept="image/png,image/jpeg,image/webp" aria-labelledby="receipt-label" />
+                <span class="drop__empty" style="display:grid;gap:6px;justify-items:center">
+                  <Icon name="upload" size={30} />
+                  <strong><T ar="اضغط لاختيار صورة الإيصال" en="Tap to choose the screenshot" /></strong>
+                  <span style="font-size:.875rem"><T ar="صورة واضحة لشاشة نجاح التحويل (PNG أو JPG)" en="A clear screenshot of the success screen (PNG or JPG)" /></span>
+                </span>
+                <img class="drop__thumb" id="drop-thumb" alt="" hidden />
+                <span class="drop__name" id="drop-name" hidden></span>
+                <span class="drop__swap" id="drop-swap" hidden><T ar="تغيير" en="Change" /></span>
+              </label>
+              <p class="err" data-err="receipt"></p>
+            </div>
+            <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+            <div class="notice notice--bad" id="form-error" role="alert" hidden><Icon name="alert" size={18} /><span></span></div>
+            <button class="btn btn--block" type="submit" id="buy-submit"><Icon name="qr" /><T ar="أرسل واستلم تذكرتي" en="Send and get my ticket" /></button>
+            <p class="fine"><T ar="بالضغط على الزر توافق على أن يقرأ نظامنا صورة الإيصال للتحقق من الدفع فقط. لا نشارك بياناتك مع أي جهة." en="By sending, you agree that our system reads the screenshot only to check the payment. We do not share your details." /></p>
+          </form>
+
+          <div id="closed" class="state" hidden>
+            <span class="state__icon" style="background:var(--warn-soft);color:var(--warn)"><Icon name="hourglass" size={32} /></span>
+            <h3 id="closed-title"></h3>
+            <p id="closed-text"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="partners-title">
+      <div class="wrap">
+        <div class="partners">
+          <div>
+            <span class="eyebrow"><T ar="شركاء الاحتفال" en="Festival partners" /></span>
+            <h2 id="partners-title" style="font-size:clamp(1.5rem,3.6vw,2rem)"><T ar="عروض حصرية لحاملي التذاكر" en="Exclusive offers for ticket holders" /></h2>
+            <p><T ar="رعاة الاحتفال يقدّمون عروضاً لأصحاب التذاكر. وإن كنت صاحب نشاط وتحب أن تكون شريكاً في عيد الـ74، فباقات الرعاية متاحة." en="Our sponsors have offers for ticket holders. If you run a business and would like to partner with the 74th anniversary, sponsorship packages are open." /></p>
+          </div>
+          <div class="partners__cta">
+            <a class="btn" href={SPONSORS_URL} id="sponsors-link"><Icon name="gift" size={18} /><T ar="العروض والرعاة" en="Offers & sponsors" /></a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot__in">
+      <p><T ar="المجموعة الحادية عشر · كشافة ومرشدات وادي النيل · القاهرة" en="XI Group · Wadi El Nil Scouts & Guides · Cairo" /></p>
+      <nav class="foot__links" aria-label="روابط">
+        <a href={XI_SITE} target="_blank" rel="noopener"><T ar="موقع المجموعة" en="Group website" /></a>
+        <a href={FACEBOOK} target="_blank" rel="noopener"><Icon name="facebook" size={18} />Facebook</a>
+        <a href={INSTAGRAM} target="_blank" rel="noopener"><Icon name="instagram" size={18} />Instagram</a>
+        <a id="wa-link" href="#" target="_blank" rel="noopener" hidden><Icon name="whatsapp" size={18} /><T ar="تواصل معنا" en="Contact us" /></a>
+      </nav>
+    </div>
+  </footer>
+
+  <div class="checking" id="checking" hidden role="dialog" aria-modal="true" aria-labelledby="checking-title">
+    <div class="checking__box">
+      <div class="spinner" aria-hidden="true"></div>
+      <h3 id="checking-title"><T ar="نتحقق من التحويل…" en="Checking your transfer…" /></h3>
+      <ol>
+        <li data-stage="0"><T ar="رفع صورة الإيصال" en="Uploading the screenshot" /></li>
+        <li data-stage="1"><T ar="قراءة بيانات التحويل" en="Reading the transfer" /></li>
+        <li data-stage="2"><T ar="التأكد من المبلغ والمستلم" en="Checking amount and receiver" /></li>
+        <li data-stage="3"><T ar="إصدار تذكرتك" en="Issuing your ticket" /></li>
+      </ol>
+      <p style="color:rgb(255 255 255 / .6);font-size:.875rem"><T ar="قد يستغرق ذلك حتى نصف دقيقة. لا تغلق الصفحة." en="This can take up to half a minute. Please keep this page open." /></p>
+    </div>
+  </div>
+
+  <script>
+    import '../scripts/invite';
+  </script>
+</Base>

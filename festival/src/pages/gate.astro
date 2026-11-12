@@ -1,0 +1,131 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+---
+<Base title="البوابة · عيد الـ74" noindex bodyClass="staff gate-page">
+  <style is:global>
+    .gate-page { overscroll-behavior: none; }
+    .gate { min-height: 100svh; display: grid; grid-template-rows: auto 1fr auto; }
+    .gate__bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; background: var(--night-2); position: relative; }
+    .gate__bar::after { content: ''; position: absolute; inset: auto 0 0; height: 3px; background: var(--bunting); }
+    .gate__count { display: flex; gap: 14px; font-size: 0.875rem; color: rgb(255 255 255 / 0.75); }
+    .gate__count b { display: block; font: 700 1.5rem/1 var(--display); color: var(--gold-2); font-variant-numeric: tabular-nums; }
+    .icon-btn { width: 44px; height: 44px; display: inline-grid; place-items: center; border-radius: 50%; border: 0; background: rgb(255 255 255 / 0.1); color: #fff; cursor: pointer; }
+    .icon-btn:hover, .icon-btn[aria-pressed='true'] { background: var(--gold); color: var(--night); }
+    .viewer { position: relative; overflow: hidden; background: #000; display: grid; place-items: center; }
+    .viewer video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .frame { position: relative; width: min(72vw, 320px); aspect-ratio: 1; border-radius: 24px; box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.45); }
+    .frame::before {
+      content: ''; position: absolute; inset: -4px; border-radius: 26px;
+      --c: var(--gold); --l: 44px; --w: 5px;
+      background:
+        linear-gradient(var(--c), var(--c)) top left / var(--l) var(--w),
+        linear-gradient(var(--c), var(--c)) top left / var(--w) var(--l),
+        linear-gradient(var(--c), var(--c)) top right / var(--l) var(--w),
+        linear-gradient(var(--c), var(--c)) top right / var(--w) var(--l),
+        linear-gradient(var(--c), var(--c)) bottom left / var(--l) var(--w),
+        linear-gradient(var(--c), var(--c)) bottom left / var(--w) var(--l),
+        linear-gradient(var(--c), var(--c)) bottom right / var(--l) var(--w),
+        linear-gradient(var(--c), var(--c)) bottom right / var(--w) var(--l);
+      background-repeat: no-repeat;
+    }
+    .frame::after { content: ''; position: absolute; inset-inline: 8%; top: 50%; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); animation: scan 2.2s ease-in-out infinite; }
+    @keyframes scan { 0%, 100% { transform: translateY(calc(min(72vw, 320px) * -0.4)); } 50% { transform: translateY(calc(min(72vw, 320px) * 0.4)); } }
+    .frame.is-paused::after { animation-play-state: paused; opacity: 0; }
+    .viewer__hint { position: absolute; inset: auto 0 18px; text-align: center; color: #fff; font-size: 0.9375rem; text-shadow: 0 1px 4px rgb(0 0 0 / 0.6); }
+    .viewer__msg { position: relative; max-width: 340px; padding: 24px; text-align: center; display: grid; gap: 14px; justify-items: center; }
+    .gate__foot { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--night-2); }
+    .manual { display: flex; gap: 8px; }
+    .manual .input { background: #fff; text-transform: uppercase; letter-spacing: 0.12em; font-family: var(--mono); }
+    .manual .input:placeholder-shown { text-transform: none; letter-spacing: 0; font-family: var(--font); }
+    .result { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 24px; text-align: center; color: #fff; cursor: pointer; animation: pop 0.18s ease-out both; }
+    @keyframes pop { from { opacity: 0; transform: scale(1.04); } }
+    .result[data-r='admitted'] { background: #157a42; }
+    .result[data-r='already_used'] { background: #b7791f; }
+    .result[data-r='not_verified'], .result[data-r='unknown'] { background: #b3261e; }
+    .result[data-r='error'] { background: #3d4a42; }
+    .result__box { display: grid; gap: 14px; justify-items: center; max-width: 420px; }
+    .result__icon { width: 120px; height: 120px; border-radius: 50%; background: rgb(255 255 255 / 0.18); display: grid; place-items: center; }
+    .result h2 { color: #fff; font: 700 clamp(2rem, 9vw, 3rem)/1.2 var(--display); }
+    .result__name { font-size: clamp(1.25rem, 5vw, 1.75rem); font-weight: 600; }
+    .result__sub { color: rgb(255 255 255 / 0.85); }
+    .result__tap { margin-top: 18px; font-size: 0.875rem; color: rgb(255 255 255 / 0.75); }
+    .recent { list-style: none; margin: 10px 0 0; padding: 0; display: flex; gap: 6px; overflow-x: auto; }
+    .recent li { flex-shrink: 0; padding: 4px 10px; border-radius: 999px; font-size: 0.8125rem; background: rgb(255 255 255 / 0.08); white-space: nowrap; }
+    .recent li[data-r='admitted'] { color: #8be0ad; }
+    .recent li[data-r='already_used'] { color: #f5cf7c; }
+    .recent li[data-r='not_verified'], .recent li[data-r='unknown'] { color: #f3a39d; }
+  </style>
+
+  <!-- login -->
+  <section class="login" id="login">
+    <div class="card">
+      <a class="brand" href="/"><span class="brand__mark"><img src="/img/xi-logo.webp" alt="" width="32" height="32" /></span><span class="brand__name">البوابة · عيد الـ74</span></a>
+      <h3 style="text-align:center">تسجيل دخول فريق البوابة</h3>
+      <form class="form" id="login-form">
+        <div class="field">
+          <label for="g-key">كلمة سر البوابة</label>
+          <input class="input" id="g-key" type="password" autocomplete="current-password" required />
+        </div>
+        <div class="field">
+          <label for="g-name">اسم البوابة أو المسؤول <span class="hint">(يظهر في سجل الدخول)</span></label>
+          <input class="input" id="g-name" maxlength="40" placeholder="مثال: البوابة الرئيسية" />
+        </div>
+        <div class="notice notice--bad" id="login-err" role="alert" hidden><Icon name="alert" size={18} /><span></span></div>
+        <button class="btn btn--block" type="submit"><Icon name="camera" />ابدأ المسح</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- scanner -->
+  <div class="gate" id="gate" hidden>
+    <header class="gate__bar">
+      <div class="gate__count" aria-live="polite">
+        <span><b id="c-in">0</b>دخلوا</span>
+        <span><b id="c-valid">0</b>تذاكر صالحة</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="icon-btn" id="torch" type="button" aria-label="الكشاف" aria-pressed="false" hidden><Icon name="flash" /></button>
+        <button class="icon-btn" id="flip" type="button" aria-label="تبديل الكاميرا"><Icon name="refresh" /></button>
+        <button class="icon-btn" id="logout" type="button" aria-label="خروج"><Icon name="logout" /></button>
+      </div>
+    </header>
+
+    <div class="viewer" id="viewer">
+      <video id="video" playsinline muted></video>
+      <div class="frame" id="frame" aria-hidden="true"></div>
+      <p class="viewer__hint" id="hint">وجّه الكاميرا إلى رمز QR في التذكرة</p>
+      <div class="viewer__msg" id="cam-msg" hidden>
+        <Icon name="camera" size={40} />
+        <p id="cam-msg-text"></p>
+        <button class="btn btn--gold btn--sm" id="cam-retry" type="button">تشغيل الكاميرا</button>
+      </div>
+    </div>
+
+    <footer class="gate__foot">
+      <form class="manual" id="manual">
+        <input class="input" id="manual-code" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="أو اكتب رمز التذكرة" aria-label="رمز التذكرة" dir="ltr" />
+        <button class="btn btn--gold" type="submit">تحقق</button>
+      </form>
+      <ul class="recent" id="recent" aria-label="آخر عمليات المسح"></ul>
+    </footer>
+  </div>
+
+  <div class="result" id="result" hidden role="alertdialog" aria-live="assertive" aria-labelledby="r-title">
+    <div class="result__box">
+      <span class="result__icon" id="r-icon"></span>
+      <h2 id="r-title"></h2>
+      <p class="result__name" id="r-name"></p>
+      <p class="result__sub" id="r-sub"></p>
+      <p class="result__tap">اضغط في أي مكان لمسح التذكرة التالية</p>
+    </div>
+  </div>
+
+  <template id="ico-ok"><Icon name="check" size={72} /></template>
+  <template id="ico-warn"><Icon name="alert" size={64} /></template>
+  <template id="ico-bad"><Icon name="close" size={72} /></template>
+
+  <script>
+    import '../scripts/gate';
+  </script>
+</Base>

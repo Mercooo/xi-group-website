@@ -1,0 +1,165 @@
+---
+// Sponsors & offers for the 74th anniversary festival. Everything shown here comes
+// from src/data/sponsors.json, so adding a sponsor or an offer is a data edit.
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import data from '../data/sponsors.json';
+
+interface Sponsor { name: string; tier: string; logo?: string; url?: string; about?: string }
+interface Offer { sponsor: string; title: string; details?: string; code?: string; until?: string; url?: string }
+interface Pkg { tier: string; name: string; price: number | string | null; benefits: string[] }
+
+const tiers = data.tiers;
+const sponsors = data.sponsors as Sponsor[];
+const offers = (data.offers as Offer[]).filter((o) => !o.until || o.until >= new Date().toISOString().slice(0, 10));
+const packages = data.packages as Pkg[];
+const tierOf = (k: string) => tiers.find((t) => t.key === k);
+const contact = data.contact.whatsapp ? `https://wa.me/${data.contact.whatsapp.replace(/\D/g, '').replace(/^0/, '20')}` : data.contact.messenger;
+const ask = (pkg?: string) =>
+  data.contact.whatsapp
+    ? `${contact}?text=${encodeURIComponent(`أهلاً، أود الاستفسار عن ${pkg ?? 'رعاية'} عيد الـ74 للمجموعة الحادية عشر.`)}`
+    : contact;
+const price = (p: Pkg['price']) => (p == null || p === '' ? 'السعر عند التواصل' : typeof p === 'number' ? `${p.toLocaleString('en')} جنيه` : p);
+const fmtDate = (iso: string) => new Intl.DateTimeFormat('ar-EG-u-nu-latn', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(iso));
+---
+<Base title="شركاء وعروض عيد الـ74" description="رعاة الاحتفال بمرور 74 عاماً على تأسيس المجموعة الحادية عشر، وعروضهم الحصرية لحاملي التذاكر، وباقات الرعاية المتاحة.">
+  <style>
+    .sp-hero { background: var(--ink); color: #fff; position: relative; overflow: hidden; }
+    .sp-hero::after { content: ''; position: absolute; inset: auto 0 0; height: 8px; background: linear-gradient(90deg, #f47b20 0 25%, #f2c230 25% 50%, #4fae3a 50% 75%, #c8322f 75%); }
+    .sp-hero__in { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; padding-block: clamp(40px, 7vw, 80px); }
+    .sp-hero h1 { color: #fff; font-family: var(--display); font-size: clamp(2rem, 5.5vw, 3.4rem); line-height: 1.25; }
+    .sp-hero p { margin: 12px 0 22px; color: rgb(255 255 255 / 0.8); max-width: 56ch; font-size: 1.125rem; }
+    .sp-74 { font-family: var(--display); font-size: clamp(5rem, 16vw, 10rem); line-height: 0.85; color: #c9a961; direction: ltr; }
+    @media (max-width: 640px) { .sp-hero__in { grid-template-columns: 1fr; } .sp-74 { order: -1; } }
+    .btn--gold { background: #c9a961; color: var(--ink); }
+    .btn--gold:hover { background: #e8d7a8; color: var(--ink); }
+    .btn--light { background: transparent; color: #fff; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.7); }
+    .btn--light:hover { background: #fff; color: var(--ink); }
+    .sp { padding-block: clamp(40px, 7vw, 72px); }
+    .sp + .sp { padding-top: 0; }
+    .sp-head { margin-bottom: 24px; max-width: 62ch; }
+    .sp-head h2 { font-family: var(--display); font-size: clamp(1.6rem, 3.6vw, 2.2rem); }
+    .sp-head p { margin: 8px 0 0; color: var(--muted); }
+    .offers { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .offer { position: relative; display: grid; gap: 8px; padding: 22px 20px 20px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); }
+    .offer::before { content: ''; position: absolute; inset-inline-start: 0; inset-block: 18px; width: 5px; border-radius: 0 4px 4px 0; background: #c9a961; }
+    .offer__by { font-size: 0.875rem; font-weight: 600; color: var(--muted); }
+    .offer h3 { font-size: 1.25rem; line-height: 1.4; }
+    .offer p { margin: 0; color: var(--muted); }
+    .offer__code { justify-self: start; padding: 4px 12px; border: 2px dashed #c9a961; border-radius: 8px; font-family: ui-monospace, Menlo, monospace; letter-spacing: 0.12em; direction: ltr; }
+    .offer__until { font-size: 0.8125rem; color: var(--muted); }
+    .how { display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px; border-radius: var(--r); background: #f1ece0; margin-bottom: 18px; }
+    .how svg { flex-shrink: 0; color: #6b5528; margin-top: 4px; }
+    .how p { margin: 0; }
+    .tier { margin-bottom: 28px; }
+    .tier h3 { display: flex; align-items: center; gap: 10px; font-size: 1.125rem; margin-bottom: 12px; }
+    .tier h3::before { content: ''; width: 14px; height: 14px; border-radius: 50%; background: var(--c); }
+    .logos { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+    .logo-card { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 18px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--c); color: var(--text); text-decoration: none; height: 100%; }
+    .logo-card img { width: 100%; max-width: 140px; aspect-ratio: 3 / 2; object-fit: contain; }
+    .logo-card strong { color: var(--ink); }
+    .logo-card small { color: var(--muted); line-height: 1.6; }
+    .soon { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 24px; border-radius: var(--r-lg); border: 2px dashed var(--line); color: var(--muted); }
+    .soon p { margin: 0; max-width: 60ch; }
+    .packages { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+    .pkg { display: flex; flex-direction: column; gap: 14px; padding: 24px 22px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); border-top: 6px solid var(--c); }
+    .pkg h3 { font-family: var(--display); font-size: 1.5rem; }
+    .pkg__price { font-weight: 700; color: var(--ink); }
+    .pkg ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; flex: 1; }
+    .pkg li { display: grid; grid-template-columns: 20px 1fr; gap: 8px; line-height: 1.6; }
+    .pkg li svg { color: #4fae3a; margin-top: 3px; }
+  </style>
+
+  <section class="sp-hero" aria-labelledby="sp-title">
+    <div class="wrap sp-hero__in">
+      <div>
+        <h1 id="sp-title">شركاء وعروض عيد الـ74</h1>
+        <p>رعاة الاحتفال بمرور 74 عاماً على تأسيس المجموعة الحادية عشر، وعروضهم الحصرية لكل من يحمل تذكرة الاحتفال.</p>
+        <p class="btn-wrap">
+          <a class="btn btn--gold" href={data.festival.url}><Icon name="calendar" size={18} /> احجز تذكرتك</a>
+          <a class="btn btn--light" href="#packages">كن راعياً للاحتفال</a>
+        </p>
+      </div>
+      <span class="sp-74" aria-hidden="true">74</span>
+    </div>
+  </section>
+
+  <section class="sp wrap" aria-labelledby="offers-title">
+    <div class="sp-head">
+      <h2 id="offers-title">عروض لحاملي التذاكر</h2>
+      <p>عروض يقدّمها رعاة الاحتفال لأصحاب تذاكر عيد الـ74.</p>
+    </div>
+    {offers.length > 0 ? (
+      <>
+        <div class="how"><Icon name="person" size={18} /><p>للاستفادة من العرض، افتح صفحة تذكرتك (الرابط الذي وصلك بعد الدفع) وقدّمها للراعي، مع كود العرض إن وُجد.</p></div>
+        <ul class="offers" role="list">
+          {offers.map((o) => (
+            <li class="offer">
+              <span class="offer__by">{o.sponsor}</span>
+              <h3>{o.title}</h3>
+              {o.details && <p>{o.details}</p>}
+              {o.code && <span class="offer__code">{o.code}</span>}
+              {o.until && <span class="offer__until">ساري حتى {fmtDate(o.until)}</span>}
+              {o.url && <a href={o.url} target="_blank" rel="noopener">زيارة صفحة الراعي <Icon name="external" size={14} /></a>}
+            </li>
+          ))}
+        </ul>
+      </>
+    ) : (
+      <div class="soon">
+        <p>تُعلن العروض هنا قريباً. احتفظ برابط تذكرتك، فهو ما ستقدّمه للاستفادة من عروض الرعاة.</p>
+        <a class="btn btn--ghost" href={data.festival.url}>احجز تذكرتك</a>
+      </div>
+    )}
+  </section>
+
+  <section class="sp wrap" aria-labelledby="sponsors-title">
+    <div class="sp-head">
+      <h2 id="sponsors-title">رعاة الاحتفال</h2>
+      <p>شكراً لكل من يدعم المجموعة في عيدها الـ74.</p>
+    </div>
+    {sponsors.length > 0 ? (
+      tiers.filter((t) => sponsors.some((s) => s.tier === t.key)).map((t) => (
+        <div class="tier" style={`--c:${t.color}`}>
+          <h3>{t.name}</h3>
+          <ul class="logos" role="list">
+            {sponsors.filter((s) => s.tier === t.key).map((s) => {
+              const inner = (
+                <>
+                  {s.logo && <img src={s.logo} alt="" loading="lazy" />}
+                  <strong>{s.name}</strong>
+                  {s.about && <small>{s.about}</small>}
+                </>
+              );
+              return <li>{s.url ? <a class="logo-card" href={s.url} target="_blank" rel="noopener">{inner}</a> : <div class="logo-card">{inner}</div>}</li>;
+            })}
+          </ul>
+        </div>
+      ))
+    ) : (
+      <div class="soon">
+        <p>لم يُعلن عن الرعاة بعد. كن أول من يضع اسمه بجانب 74 عاماً من الكشافة.</p>
+        <a class="btn" href="#packages">باقات الرعاية</a>
+      </div>
+    )}
+  </section>
+
+  <section class="sp wrap" id="packages" aria-labelledby="packages-title">
+    <div class="sp-head">
+      <h2 id="packages-title">كن راعياً لعيد الـ74</h2>
+      <p>يحضر الاحتفال أعضاء المجموعة بمراحلها الأربع وعائلاتهم وقادتها وأعضاؤها القدامى. اختر الباقة المناسبة لنشاطك وتواصل معنا.</p>
+    </div>
+    <ul class="packages" role="list">
+      {packages.map((p) => (
+        <li class="pkg" style={`--c:${tierOf(p.tier)?.color ?? 'var(--line)'}`}>
+          <h3>{p.name}</h3>
+          <span class="pkg__price">{price(p.price)}</span>
+          <ul role="list">
+            {p.benefits.map((b) => <li><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg><span>{b}</span></li>)}
+          </ul>
+          <a class="btn" href={ask(p.name)} target="_blank" rel="noopener"><Icon name={data.contact.whatsapp ? 'whatsapp' : 'facebook'} size={18} /> تواصل معنا</a>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Base>

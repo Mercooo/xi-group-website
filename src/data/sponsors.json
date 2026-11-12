@@ -1,0 +1,54 @@
+{
+  "_help": "Edit this file to publish sponsors and offers on /sponsors. Logos go in public/sponsors/. Leave a list empty to show its 'coming soon' state. Prices are shown exactly as written; null shows 'on request'.",
+  "festival": {
+    "title": "عيد الـ74 للمجموعة الحادية عشر",
+    "url": "https://xi-festival-74.vercel.app"
+  },
+  "contact": {
+    "whatsapp": "",
+    "messenger": "https://m.me/XI.SGWEN",
+    "facebook": "https://www.facebook.com/XI.SGWEN"
+  },
+  "tiers": [
+    { "key": "gold", "name": "الراعي الذهبي", "color": "#c9a961" },
+    { "key": "silver", "name": "الراعي الفضي", "color": "#9aa5a0" },
+    { "key": "partner", "name": "شركاء العروض", "color": "#4fae3a" }
+  ],
+  "sponsors": [],
+  "offers": [],
+  "packages": [
+    {
+      "tier": "gold",
+      "name": "الراعي الذهبي",
+      "price": null,
+      "benefits": [
+        "شعارك في أعلى صفحة الرعاة وفي صفحة الدعوة",
+        "ركن خاص لنشاطك في مكان الاحتفال",
+        "شكر وذكر لاسمك خلال برنامج الحفل",
+        "منشورات تعريفية على صفحات المجموعة",
+        "عرضك الحصري يظهر لكل حامل تذكرة"
+      ]
+    },
+    {
+      "tier": "silver",
+      "name": "الراعي الفضي",
+      "price": null,
+      "benefits": [
+        "شعارك في صفحة الرعاة",
+        "منشور تعريفي على صفحات المجموعة",
+        "عرضك يظهر لكل حامل تذكرة"
+      ]
+    },
+    {
+      "tier": "partner",
+      "name": "شريك عروض",
+      "price": null,
+      "benefits": [
+        "عرض أو خصم لحاملي التذاكر في صفحة العروض",
+        "اسمك ورابط نشاطك بجانب العرض"
+      ]
+    }
+  ],
+  "_example_sponsor": { "name": "اسم الراعي", "tier": "gold", "logo": "/sponsors/logo.webp", "url": "https://example.com", "about": "سطر واحد عن النشاط" },
+  "_example_offer": { "sponsor": "اسم الراعي", "title": "خصم 20% على كل المنتجات", "details": "قدّم تذكرتك (رمز QR) عند الدفع.", "code": "XI74", "until": "2026-12-31", "url": "https://example.com" }
+}

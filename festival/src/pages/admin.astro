@@ -1,0 +1,216 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+---
+<Base title="لوحة المنظمين · عيد الـ74" noindex bodyClass="admin-page">
+  <style is:global>
+    .admin-page { background: var(--paper); }
+    .adm-bar { background: var(--night); color: #fff; position: sticky; top: 0; z-index: 30; }
+    .adm-bar::after { content: ''; position: absolute; inset: auto 0 0; height: 3px; background: var(--bunting); }
+    .adm-bar__in { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 60px; }
+    .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+    .tab { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 0; background: transparent; color: rgb(255 255 255 / 0.75); font: 600 0.9375rem var(--font); cursor: pointer; white-space: nowrap; }
+    .tab[aria-selected='true'] { background: rgb(255 255 255 / 0.12); color: #fff; }
+    .tab .badge { min-width: 22px; padding: 0 6px; border-radius: 999px; background: var(--warn); color: #fff; font-size: 0.75rem; line-height: 22px; text-align: center; }
+    .adm { padding: 24px 0 64px; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .kpi { background: var(--surface); border-radius: var(--r); padding: 16px; box-shadow: var(--shadow); border-top: 4px solid var(--c, var(--line)); }
+    .kpi b { display: block; font: 700 1.875rem/1.1 var(--display); color: var(--ink); font-variant-numeric: tabular-nums; }
+    .kpi span { font-size: 0.875rem; color: var(--muted); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+    .toolbar .input { max-width: 320px; min-height: 44px; }
+    .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter { min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); font: 600 0.875rem var(--font); color: var(--text); cursor: pointer; }
+    .filter[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: #fff; }
+    .orders { display: grid; gap: 8px; }
+    .order { display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; align-items: center; padding: 14px 16px; border-radius: 14px; background: var(--surface); box-shadow: 0 1px 2px rgb(0 0 0 / 0.05); border-inline-start: 5px solid var(--c, var(--line)); cursor: pointer; text-align: start; border-top: 0; border-bottom: 0; border-inline-end: 0; font: inherit; color: inherit; width: 100%; }
+    .order:hover { box-shadow: var(--shadow); }
+    .order[data-s='verified'] { --c: var(--ok); }
+    .order[data-s='review'] { --c: var(--warn); }
+    .order[data-s='rejected'] { --c: var(--bad); }
+    .order__name { font-weight: 700; color: var(--ink); }
+    .order__meta { font-size: 0.8125rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 12px; }
+    .order__side { display: grid; justify-items: end; gap: 4px; }
+    .pager { display: flex; justify-content: center; gap: 10px; margin-top: 16px; }
+    .empty-list { padding: 40px 16px; text-align: center; color: var(--muted); background: var(--surface); border-radius: var(--r); }
+    dialog.sheet { width: min(100% - 24px, 720px); max-height: calc(100svh - 24px); border: 0; border-radius: var(--r-lg); padding: 0; box-shadow: 0 30px 80px rgb(0 0 0 / 0.35); }
+    dialog.sheet::backdrop { background: rgb(13 22 17 / 0.6); }
+    .sheet__head { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 18px; background: var(--surface); border-bottom: 1px solid var(--line); z-index: 1; }
+    .sheet__body { padding: 18px; display: grid; gap: 16px; }
+    .detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+    @media (max-width: 640px) { .detail { grid-template-columns: 1fr; } }
+    .receipt-img { width: 100%; border-radius: 12px; background: #eee; min-height: 200px; object-fit: contain; max-height: 70svh; }
+    .dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 0.9375rem; margin: 0; }
+    .dl dt { color: var(--muted); }
+    .dl dd { margin: 0; word-break: break-word; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn--ok { --bg: var(--ok); }
+    .btn--bad { --bg: var(--bad); }
+    .panel { background: var(--surface); border-radius: var(--r-lg); padding: clamp(18px, 3vw, 28px); box-shadow: var(--shadow); max-width: 760px; }
+    .panel h2 { font-family: var(--display); font-size: 1.375rem; margin-bottom: 4px; }
+    .panel h3 { font-size: 1.0625rem; margin-top: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .switch { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+    .switch input { width: 22px; height: 22px; accent-color: var(--ok); }
+    .scans { width: 100%; border-collapse: collapse; font-size: 0.9375rem; background: var(--surface); border-radius: var(--r); overflow: hidden; }
+    .scans th, .scans td { padding: 10px 12px; text-align: start; border-bottom: 1px solid var(--line); }
+    .scans th { background: #f0ede4; font-weight: 600; }
+  </style>
+
+  <section class="login" id="login" style="background:var(--night)">
+    <div class="card">
+      <a class="brand" href="/"><span class="brand__mark"><img src="/img/xi-logo.webp" alt="" width="32" height="32" /></span><span class="brand__name">لوحة المنظمين · عيد الـ74</span></a>
+      <form class="form" id="login-form">
+        <div class="field">
+          <label for="a-key">كلمة سر المنظمين</label>
+          <input class="input" id="a-key" type="password" autocomplete="current-password" required />
+        </div>
+        <div class="notice notice--bad" id="login-err" role="alert" hidden><Icon name="alert" size={18} /><span></span></div>
+        <button class="btn btn--block" type="submit">دخول</button>
+      </form>
+    </div>
+  </section>
+
+  <div id="app" hidden>
+    <header class="adm-bar">
+      <div class="wrap adm-bar__in">
+        <nav class="tabs" role="tablist" aria-label="أقسام اللوحة">
+          <button class="tab" role="tab" aria-selected="true" data-tab="orders"><Icon name="list" size={18} />الطلبات <span class="badge" id="badge-review" hidden></span></button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="issue"><Icon name="plus" size={18} />إصدار تذكرة</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="settings"><Icon name="settings" size={18} />الإعدادات</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="scans"><Icon name="qr" size={18} />سجل البوابة</button>
+        </nav>
+        <div style="display:flex;gap:8px;align-items:center">
+          <a class="btn btn--sm btn--ghost" href="/gate" style="color:#fff"><Icon name="camera" size={16} />البوابة</a>
+          <button class="btn btn--sm btn--ghost" id="logout" type="button" style="color:#fff" aria-label="خروج"><Icon name="logout" size={16} /></button>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap adm">
+      <!-- orders -->
+      <section data-panel="orders">
+        <div class="kpis">
+          <div class="kpi" style="--c:var(--ok)"><b id="k-verified">–</b><span>تذاكر مؤكدة</span></div>
+          <div class="kpi" style="--c:var(--warn)"><b id="k-review">–</b><span>تحتاج مراجعة</span></div>
+          <div class="kpi" style="--c:var(--bad)"><b id="k-rejected">–</b><span>مرفوضة</span></div>
+          <div class="kpi" style="--c:var(--scouts)"><b id="k-admitted">–</b><span>دخلوا الاحتفال</span></div>
+          <div class="kpi" style="--c:var(--gold)"><b id="k-revenue">–</b><span>إجمالي المؤكد (جنيه)</span></div>
+        </div>
+        <div class="toolbar">
+          <input class="input" id="q" type="search" placeholder="بحث بالاسم أو الموبايل أو الرمز أو المرجع" aria-label="بحث" />
+          <div class="filters" role="group" aria-label="تصفية">
+            <button class="filter" data-f="" aria-pressed="true">الكل</button>
+            <button class="filter" data-f="review" aria-pressed="false">مراجعة</button>
+            <button class="filter" data-f="verified" aria-pressed="false">مؤكدة</button>
+            <button class="filter" data-f="rejected" aria-pressed="false">مرفوضة</button>
+            <button class="filter" data-f="checked_in" aria-pressed="false">دخلوا</button>
+          </div>
+          <span style="flex:1"></span>
+          <button class="btn btn--sm btn--ghost" id="refresh" type="button"><Icon name="refresh" size={16} />تحديث</button>
+          <button class="btn btn--sm" id="csv" type="button"><Icon name="download" size={16} />تصدير CSV</button>
+        </div>
+        <div class="orders" id="orders" aria-live="polite"></div>
+        <div class="pager" id="pager" hidden>
+          <button class="btn btn--sm btn--ghost" id="prev" type="button">السابق</button>
+          <span id="page-info" style="align-self:center;color:var(--muted)"></span>
+          <button class="btn btn--sm btn--ghost" id="next" type="button">التالي</button>
+        </div>
+      </section>
+
+      <!-- issue -->
+      <section data-panel="issue" hidden>
+        <div class="panel">
+          <h2>إصدار تذكرة يدوياً</h2>
+          <p style="color:var(--muted)">للدفع النقدي، أو ضيوف الشرف والرعاة. تصدر التذكرة مؤكدة فوراً.</p>
+          <form class="form" id="issue-form">
+            <div class="row2">
+              <div class="field"><label for="i-name">الاسم</label><input class="input" id="i-name" required minlength="2" maxlength="80" /></div>
+              <div class="field"><label for="i-phone">الموبايل <span class="hint">(اختياري)</span></label><input class="input" id="i-phone" type="tel" dir="ltr" /></div>
+            </div>
+            <div class="field"><label for="i-note">ملاحظة <span class="hint">(مثلاً: دفع نقداً)</span></label><input class="input" id="i-note" maxlength="300" /></div>
+            <button class="btn" type="submit"><Icon name="ticket" size={18} />إصدار التذكرة</button>
+          </form>
+          <div class="notice notice--ok" id="issued" hidden style="margin-top:16px"><Icon name="check-circle" size={18} /><span></span></div>
+        </div>
+      </section>
+
+      <!-- settings -->
+      <section data-panel="settings" hidden>
+        <form class="panel form" id="settings-form" style="margin-top:0">
+          <div>
+            <h2>إعدادات الاحتفال والحجز</h2>
+            <p style="color:var(--muted)">التغييرات تظهر في صفحة الدعوة فوراً، دون إعادة نشر الموقع.</p>
+          </div>
+
+          <h3>الحجز</h3>
+          <label class="switch"><input type="checkbox" name="sales_open" />الحجز مفتوح</label>
+          <div class="row2">
+            <div class="field"><label for="s-price">ثمن التذكرة (جنيه)</label><input class="input" id="s-price" name="price_egp" type="number" min="1" step="1" dir="ltr" /></div>
+            <div class="field"><label for="s-cap">الحد الأقصى للتذاكر <span class="hint">(فارغ = بلا حد)</span></label><input class="input" id="s-cap" name="capacity" type="number" min="1" step="1" dir="ltr" /></div>
+          </div>
+          <div class="field"><label for="s-start">تاريخ فتح الحجز <span class="hint">(التحويلات الأقدم منه تُرفض)</span></label><input class="input" id="s-start" name="sales_start" type="date" dir="ltr" /></div>
+
+          <h3>إنستاباي: الدفع والتحقق من المستلم</h3>
+          <div class="field"><label for="s-payurl">رابط الدفع بإنستاباي <span class="hint">(https://ipn.eg/S/…)</span></label><input class="input" id="s-payurl" name="pay_url" type="url" dir="ltr" placeholder="https://ipn.eg/S/..." /></div>
+          <div class="field"><label for="s-handle">عنوان الدفع الظاهر للزوار <span class="hint">(مثل name@instapay)</span></label><input class="input" id="s-handle" name="pay_handle" dir="ltr" /></div>
+          <div class="notice notice--info"><Icon name="alert" size={18} /><span>البيانات التالية يقارن بها النظام اسم المستلم وعنوانه في صورة الإيصال. اكتب كل قيمة في سطر. إن تركتها فارغة تذهب كل الطلبات للمراجعة اليدوية.</span></div>
+          <div class="field"><label for="s-rh">عناوين إنستاباي المستلِمة</label><textarea class="textarea" id="s-rh" name="recipient_handles" dir="ltr" placeholder="name@instapay"></textarea></div>
+          <div class="field"><label for="s-rn">اسم المستلم كما يظهر في إنستاباي <span class="hint">(بالعربي و/أو الإنجليزي)</span></label><textarea class="textarea" id="s-rn" name="recipient_names"></textarea></div>
+          <div class="field"><label for="s-rp">رقم موبايل أو حساب المستلم</label><textarea class="textarea" id="s-rp" name="recipient_phones" dir="ltr" placeholder="01xxxxxxxxx"></textarea></div>
+
+          <h3>تفاصيل الاحتفال</h3>
+          <div class="row2">
+            <div class="field"><label for="s-es">يبدأ</label><input class="input" id="s-es" name="event_start" type="datetime-local" dir="ltr" /></div>
+            <div class="field"><label for="s-ee">ينتهي</label><input class="input" id="s-ee" name="event_end" type="datetime-local" dir="ltr" /></div>
+          </div>
+          <div class="field"><label for="s-vn">المكان</label><input class="input" id="s-vn" name="venue_name" maxlength="160" /></div>
+          <div class="field"><label for="s-vd">العنوان بالتفصيل</label><input class="input" id="s-vd" name="venue_detail" maxlength="160" /></div>
+          <div class="field"><label for="s-map">رابط الخريطة</label><input class="input" id="s-map" name="maps_url" type="url" dir="ltr" placeholder="https://maps.google.com/..." /></div>
+          <div class="row2">
+            <div class="field"><label for="s-wa">واتساب للتواصل</label><input class="input" id="s-wa" name="contact_whatsapp" type="tel" dir="ltr" placeholder="01xxxxxxxxx" /></div>
+            <div class="field"><label for="s-sp">رابط صفحة العروض والرعاة</label><input class="input" id="s-sp" name="sponsors_url" type="url" dir="ltr" /></div>
+          </div>
+          <div class="notice notice--bad" id="settings-err" role="alert" hidden><Icon name="alert" size={18} /><span></span></div>
+          <button class="btn" type="submit"><Icon name="check" size={18} />حفظ الإعدادات</button>
+        </form>
+      </section>
+
+      <!-- scans -->
+      <section data-panel="scans" hidden>
+        <div class="toolbar"><button class="btn btn--sm btn--ghost" id="scans-refresh" type="button"><Icon name="refresh" size={16} />تحديث</button></div>
+        <div style="overflow-x:auto"><table class="scans"><thead><tr><th>الوقت</th><th>النتيجة</th><th>الرمز</th><th>البوابة</th></tr></thead><tbody id="scans-body"></tbody></table></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
+    <div class="sheet__head">
+      <h2 id="sheet-title" style="font-size:1.125rem"></h2>
+      <button class="btn btn--sm btn--ghost" type="button" data-close aria-label="إغلاق"><Icon name="close" size={18} /></button>
+    </div>
+    <div class="sheet__body">
+      <div class="detail">
+        <div><img class="receipt-img" id="d-img" alt="صورة إيصال التحويل" hidden /><p id="d-noimg" class="empty-list" hidden>لا توجد صورة إيصال (تذكرة صادرة يدوياً).</p></div>
+        <div style="display:grid;gap:14px;align-content:start">
+          <dl class="dl" id="d-info"></dl>
+          <div id="d-reasons"></div>
+          <div class="field"><label for="d-note">ملاحظة المنظمين</label><input class="input" id="d-note" maxlength="300" /></div>
+          <div class="actions">
+            <button class="btn btn--ok btn--sm" type="button" data-set="verified"><Icon name="check" size={16} />تأكيد التذكرة</button>
+            <button class="btn btn--bad btn--sm" type="button" data-set="rejected"><Icon name="close" size={16} />رفض</button>
+            <button class="btn btn--ghost btn--sm" type="button" data-set="review">إعادة للمراجعة</button>
+          </div>
+          <div class="actions">
+            <a class="btn btn--ghost btn--sm" id="d-link" target="_blank" rel="noopener"><Icon name="external" size={16} />صفحة التذكرة</a>
+            <a class="btn btn--ghost btn--sm" id="d-wa" target="_blank" rel="noopener"><Icon name="whatsapp" size={16} />إرسال بواتساب</a>
+            <button class="btn btn--ghost btn--sm" type="button" id="d-undo" hidden>إلغاء تسجيل الدخول</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    import '../scripts/admin';
+  </script>
+</Base>

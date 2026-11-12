@@ -1,0 +1,67 @@
+---
+import '@fontsource/ibm-plex-sans-arabic/400.css';
+import '@fontsource/ibm-plex-sans-arabic/600.css';
+import '@fontsource/ibm-plex-sans-arabic/700.css';
+import '@fontsource/reem-kufi/700.css';
+import '../styles/fest.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  noindex?: boolean;
+  bodyClass?: string;
+  theme?: string;
+}
+const {
+  title,
+  description = 'المجموعة الحادية عشر تحتفل بمرور 74 عاماً على تأسيسها. احجز تذكرتك وادفع بإنستاباي واستلم تذكرتك برمز QR فوراً.',
+  noindex = false,
+  bodyClass,
+  theme = '#0d1611',
+} = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const og = new URL('/img/og.jpg', Astro.site);
+---
+<!doctype html>
+<html lang="ar" dir="rtl" data-lang="ar">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content={theme} />
+    {noindex ? <meta name="robots" content="noindex, nofollow" /> : <link rel="canonical" href={canonical} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ar_EG" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={og} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/img/xi-logo.webp" type="image/webp" />
+    <link rel="apple-touch-icon" href="/img/xi-logo.webp" />
+    <link rel="preconnect" href="https://ckuiiqfdlvtcfleglqce.supabase.co" crossorigin />
+    <script is:inline>
+      // Apply the saved language before the first paint.
+      try {
+        var l = new URLSearchParams(location.search).get('lang') || localStorage.getItem('xi74-lang');
+        if (l === 'en') { var h = document.documentElement; h.lang = 'en'; h.dir = 'ltr'; h.dataset.lang = 'en'; }
+      } catch (e) {}
+    </script>
+  </head>
+  <body class={bodyClass}>
+    <slot />
+    <script>
+      import { applyLang } from '../scripts/lang';
+      applyLang();
+      document.addEventListener('click', (e) => {
+        const b = (e.target as HTMLElement).closest('[data-lang-toggle]');
+        if (!b) return;
+        const next = document.documentElement.dataset.lang === 'en' ? 'ar' : 'en';
+        try { localStorage.setItem('xi74-lang', next); } catch {}
+        applyLang(next);
+      });
+    </script>
+  </body>
+</html>

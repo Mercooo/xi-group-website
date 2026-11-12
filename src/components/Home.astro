@@ -42,6 +42,20 @@ const pdfHref = pdf && pdf.kind === 'links' ? pdf.items[0].href : undefined;
 const storeLink = groups.find((g) => g.kind === 'links' && g.items.some((i) => /store\.sgwen\.org/.test(i.href)));
 const storeImage = groups.slice(chartIndex + 1).find((g) => g.kind === 'gallery');
 ---
+<section class="fest-band" aria-labelledby="fest-title">
+  <div class="wrap fest-band__inner">
+    <span class="fest-band__74" aria-hidden="true">74</span>
+    <div class="fest-band__text">
+      <h2 id="fest-title">عيد المجموعة الـ74</h2>
+      <p>74 عاماً من الكشافة منذ 1952. احجز تذكرتك للاحتفال، واكتشف عروض الرعاة لحاملي التذاكر.</p>
+    </div>
+    <p class="btn-wrap">
+      <a class="btn fest-band__cta" href="https://xi-festival-74.vercel.app">احجز تذكرتك</a>
+      <a class="btn btn--ghost fest-band__ghost" href="/sponsors">العروض والرعاة</a>
+    </p>
+  </div>
+</section>
+
 <section class="home-units" aria-labelledby="units-title">
   <div class="wrap">
     <h2 class="band-title" id="units-title">أربع مراحل، من الطفولة إلى الشباب</h2>

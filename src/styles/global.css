@@ -590,6 +590,7 @@ strong, b { font-weight: 700; }
 .footer__grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 40px; padding-block: 48px 32px; }
 .footer__about p { font-size: 0.95rem; line-height: 1.85; max-width: 44ch; margin: 14px 0; }
 .footer__store { display: inline-flex; align-items: center; gap: 8px; color: #fff; }
+.footer__store + .footer__store { margin-inline-start: 18px; }
 .footer__store:hover { color: var(--unit); }
 .footer__title { color: #fff; font-size: 0.98rem; margin: 0 0 12px; }
 .footer__title:not(:first-child) { margin-top: 24px; }
@@ -626,3 +627,17 @@ strong, b { font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* ========================================================================== 74th anniversary band */
+.fest-band { position: relative; background: var(--ink); color: rgb(255 255 255 / 0.85); padding-block: clamp(28px, 4vw, 40px); overflow: hidden; }
+.fest-band::after { content: ''; position: absolute; inset: auto 0 0; height: 6px; background: linear-gradient(90deg, #f47b20 0 25%, #f2c230 25% 50%, #4fae3a 50% 75%, #c8322f 75%); }
+.fest-band__inner { display: flex; align-items: center; gap: clamp(16px, 4vw, 40px); flex-wrap: wrap; }
+.fest-band__74 { font-family: var(--display); font-size: clamp(3.5rem, 9vw, 5.5rem); line-height: 0.9; color: #c9a961; direction: ltr; }
+.fest-band__text { flex: 1 1 280px; }
+.fest-band h2 { color: #fff; font-family: var(--display); font-size: clamp(1.4rem, 3vw, 1.9rem); }
+.fest-band p { margin: 4px 0 0; }
+.fest-band .btn-wrap { margin: 0; }
+.fest-band__cta { background: #c9a961; color: var(--ink); }
+.fest-band__cta:hover { background: #e8d7a8; color: var(--ink); }
+.fest-band__ghost { color: #fff; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.7); }
+.fest-band__ghost:hover { background: #fff; color: var(--ink); }
