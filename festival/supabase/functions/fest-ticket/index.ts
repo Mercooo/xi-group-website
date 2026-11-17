@@ -1,12 +1,24 @@
 // Public endpoint, read-only.
 //   GET ?config=1   → what the invitation page needs (price, InstaPay link, whether sales are open)
 //   GET ?code=XXXX  → one ticket's state. The code is the secret printed in the QR; it is never listed.
+//   GET ?read_token=…&sha=…  → redeems a one-time pass for the festival site's AI receipt reader
 import { db, getSettings, json, CORS } from "../_shared/shared.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method !== "GET") return json({ error: "method_not_allowed" }, 405);
   const url = new URL(req.url);
+
+  // /api/ocr on the festival site redeems a one-time pass before spending the AI key.
+  if (url.searchParams.has("read_token")) {
+    const token = (url.searchParams.get("read_token") || "").replace(/[^a-f0-9]/g, "").slice(0, 64);
+    const sha = (url.searchParams.get("sha") || "").replace(/[^a-f0-9]/g, "").slice(0, 64);
+    if (token.length < 32 || sha.length !== 64) return json({ ok: false });
+    const since = new Date(Date.now() - 3 * 60_000).toISOString();
+    const { data } = await db.from("fest_read_tokens").update({ used_at: new Date().toISOString() })
+      .eq("token", token).eq("sha256", sha).is("used_at", null).gte("created_at", since).select("token").maybeSingle();
+    return json({ ok: !!data });
+  }
 
   if (url.searchParams.has("config")) {
     const s = await getSettings();

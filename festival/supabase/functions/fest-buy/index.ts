@@ -3,7 +3,8 @@
 // The InstaPay screenshot is stored privately and read by the first reader available:
 //   1. Claude (vision)   when ANTHROPIC_API_KEY is set
 //   2. Gemini (vision)   when GEMINI_API_KEY is set (free tier)
-//   3. Tesseract OCR     always: the festival site's /api/ocr, free, no key, no AI
+//   3. the festival site's /api/ocr: Gemini when GEMINI_API_KEY is set in its Vercel project,
+//      otherwise Tesseract OCR (free, no key, no AI)
 // Whatever reads it, fixed rules in ../_shared/rules.ts decide: 100 EGP, paid to the configured
 // receiver, successful, unique reference, sensible date. Clear passes get a ticket at once;
 // anything uncertain goes to review. Plain OCR never rejects on its own.
@@ -167,26 +168,33 @@ async function readWithGemini(key: string, bytes: Uint8Array, mediaType: string)
   return { ok: false, reason: "auto_check_failed", detail: last };
 }
 
-// Free OCR on the festival site (Vercel). Text only; parseReceiptText turns it into fields.
+// The festival site's /api/ocr (Vercel). With GEMINI_API_KEY set in that Vercel project it
+// reads the screenshot with Gemini and returns fields; without it, it returns Tesseract text
+// (free, no AI) that parseReceiptText turns into fields. A one-time pass stops anyone else
+// from spending the AI key through that public endpoint.
 const OCR_URL = Deno.env.get("FEST_OCR_URL") || "https://xi-festival-74.vercel.app/api/ocr";
 const OCR_MAX_BYTES = 4_400_000;
 
-async function readWithOcr(bytes: Uint8Array, mediaType: string, recipient: Recipient): Promise<ReadResult> {
+async function readWithSite(bytes: Uint8Array, mediaType: string, sha: string, recipient: Recipient): Promise<ReadResult> {
   if (bytes.length > OCR_MAX_BYTES) return { ok: false, reason: "image_too_large_for_auto_check" };
   try {
-    const r = await fetch(OCR_URL, { method: "POST", headers: { "content-type": mediaType }, body: bytes, signal: AbortSignal.timeout(55_000) });
+    const token = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
+    await db.from("fest_read_tokens").insert({ token, sha256: sha });
+    await db.from("fest_read_tokens").delete().lt("created_at", new Date(Date.now() - 86_400_000).toISOString());
+    const r = await fetch(OCR_URL, { method: "POST", headers: { "content-type": mediaType, "x-read-token": token }, body: bytes, signal: AbortSignal.timeout(58_000) });
     const j = await r.json().catch(() => ({}));
+    if (r.ok && j.fields && typeof j.fields === "object") return { ok: true, ocr: j.fields as Ocr, model: String(j.model || "gemini"), strict: true };
     if (!r.ok || typeof j.text !== "string") return { ok: false, reason: "auto_check_failed", detail: `ocr ${r.status} ${j.error ?? ""}`.trim() };
     const ocr = parseReceiptText(j.text, recipient);
     return { ok: true, ocr: { ...ocr, notes: `OCR confidence ${Math.round(j.confidence ?? 0)}%\n${j.text.slice(0, 1500)}` }, model: "tesseract", strict: false };
   } catch (e) {
-    console.error("ocr read failed", e instanceof Error ? e.message : e);
+    console.error("site read failed", e instanceof Error ? e.message : e);
     return { ok: false, reason: "auto_check_failed", detail: "ocr unreachable" };
   }
 }
 
 /** The best reader available; an AI that fails falls back to the next one. */
-async function readReceipt(bytes: Uint8Array, mediaType: string, recipient: Recipient): Promise<ReadResult> {
+async function readReceipt(bytes: Uint8Array, mediaType: string, sha: string, recipient: Recipient): Promise<ReadResult> {
   const claude = Deno.env.get("ANTHROPIC_API_KEY");
   const gemini = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_API_KEY");
   let first: ReadResult | null = null;
@@ -200,7 +208,7 @@ async function readReceipt(bytes: Uint8Array, mediaType: string, recipient: Reci
     if (r.ok) return r;
     first ??= r;
   }
-  const r = await readWithOcr(bytes, mediaType, recipient);
+  const r = await readWithSite(bytes, mediaType, sha, recipient);
   return r.ok ? r : first ?? r;
 }
 
@@ -266,7 +274,7 @@ Deno.serve(async (req) => {
   if (upErr) return json({ error: "save_failed" }, 500);
 
   const recipient = { handles: settings.recipient_handles, names: settings.recipient_names, phones: settings.recipient_phones };
-  const read = await readReceipt(bytes, kind.type, recipient);
+  const read = await readReceipt(bytes, kind.type, sha, recipient);
   let status: "verified" | "review" | "rejected" = "review";
   let reasons: string[] = [];
   let reference: string | null = null;
