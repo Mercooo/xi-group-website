@@ -31,6 +31,18 @@ export interface Ticket {
   venue_detail: string | null;
   maps_url: string | null;
   contact_whatsapp?: string | null;
+  seats?: SeatTicket[];
+  qty?: number;
+  source?: 'instapay' | 'leader' | 'admin';
+}
+
+/** One seat of a booking: its own QR code, handed out once the booking is verified. */
+export interface SeatTicket {
+  id: string;
+  label_ar: string;
+  label_en: string;
+  code: string | null;
+  checked_in_at: string | null;
 }
 
 export async function getConfig(): Promise<PublicConfig | null> {
@@ -53,7 +65,7 @@ export async function getTicket(code: string): Promise<{ ticket?: Ticket; error?
 }
 
 /** Calls a passcode-protected function (fest-gate / fest-admin). */
-export async function staff<T = any>(fn: 'fest-gate' | 'fest-admin', key: string, body: Record<string, unknown>): Promise<{ ok: boolean; status: number; data: T & { error?: string } }> {
+export async function staff<T = any>(fn: 'fest-gate' | 'fest-admin' | 'fest-leader', key: string, body: Record<string, unknown>): Promise<{ ok: boolean; status: number; data: T & { error?: string } }> {
   try {
     const r = await fetch(`${API}/${fn}`, {
       method: 'POST',

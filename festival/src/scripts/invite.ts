@@ -2,6 +2,8 @@
 import { API, SPONSORS_URL } from '../lib/site';
 import { getConfig, getTicket, rememberTicket, savedTickets, type PublicConfig } from './api';
 import { formatDate, formatTime, lang, t } from './lang';
+import { mountSeatMap } from './seatmap';
+import { MAX_SEATS, seatLabel, seatsSummary } from '../lib/seats';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
 let cfg: PublicConfig | null = null;
@@ -10,6 +12,7 @@ let cfg: PublicConfig | null = null;
 function renderConfig() {
   if (!cfg) return;
   document.querySelectorAll('[data-price]').forEach((el) => (el.textContent = String(cfg!.price)));
+  renderChosen();
 
   if (cfg.event_start) {
     const when = `${formatDate(cfg.event_start)} · ${formatTime(cfg.event_start)}`;
@@ -51,6 +54,8 @@ function renderConfig() {
   // Booking closed / sold out / not set up yet.
   const closed = !cfg.sales_open || !cfg.pay_url;
   $('#buy-form').hidden = closed;
+  $('#picker-bar').hidden = closed;
+  salesClosed = closed;
   $('#closed').hidden = !closed;
   if (closed) {
     $('#closed-title').textContent = cfg.sold_out ? t('نفدت التذاكر', 'Sold out') : !cfg.pay_url ? t('الحجز يفتح قريباً', 'Booking opens soon') : t('الحجز مغلق حالياً', 'Booking is closed');
@@ -145,6 +150,174 @@ function toast(msg: string) {
   setTimeout(() => el.remove(), 2200);
 }
 
+// ------------------------------------------------------------ seat picker
+// Chosen seats are held on the server for 15 minutes under a token kept in this tab,
+// so a reload keeps them. The hold is renewed each time the choice changes.
+const HOLD_KEY = 'xi74-hold';
+type Hold = { token: string; seats: string[]; expires: string };
+let salesClosed = false;
+let chosen: string[] = [];
+let hold: Hold | null = null;
+let syncing: Promise<void> | null = null;
+let syncTimer = 0;
+let seatsCache: { taken: string[]; held: string[] } = { taken: [], held: [] };
+
+const readHold = (): Hold | null => {
+  try {
+    const h = JSON.parse(sessionStorage.getItem(HOLD_KEY) || 'null');
+    return h && Date.parse(h.expires) > Date.now() ? h : null;
+  } catch { return null; }
+};
+const writeHold = (h: Hold | null) => {
+  hold = h;
+  try { h ? sessionStorage.setItem(HOLD_KEY, JSON.stringify(h)) : sessionStorage.removeItem(HOLD_KEY); } catch {}
+};
+
+const map = mountSeatMap($('#seatmap'), pick);
+
+function pickerMsg(text: string) {
+  $('#picker-msg').textContent = text;
+}
+
+function pick(id: string) {
+  if (salesClosed) return;
+  pickerMsg('');
+  if (chosen.includes(id)) chosen = chosen.filter((x) => x !== id);
+  else if (chosen.length >= MAX_SEATS) { pickerMsg(t(`يمكنك اختيار ${MAX_SEATS} مقاعد كحد أقصى في الحجز الواحد.`, `You can choose up to ${MAX_SEATS} seats per booking.`)); return; }
+  else chosen = [...chosen, id].sort();
+  paintSeats();
+  renderChosen();
+  clearTimeout(syncTimer);
+  syncTimer = window.setTimeout(() => { syncing = syncHold(); }, 450);
+}
+
+/** Tells the server which seats this guest is holding (or lets them go). */
+async function syncHold(): Promise<void> {
+  const want = [...chosen];
+  try {
+    if (!want.length) {
+      if (hold) fetch(`${API}/fest-seats`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'release', token: hold.token }) }).catch(() => {});
+      writeHold(null);
+      renderTimer();
+      return;
+    }
+    const r = await fetch(`${API}/fest-seats`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'hold', seats: want, token: hold?.token }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.ok) {
+      writeHold({ token: j.token, seats: j.seats, expires: j.expires_at });
+    } else if (r.status === 409) {
+      // Someone else got there first: drop those seats and show the fresh plan.
+      const mine = new Set(hold?.seats ?? []);
+      const lost = want.filter((id) => (j.taken ?? []).includes(id) || ((j.held ?? []).includes(id) && !mine.has(id)));
+      seatsCache = { taken: j.taken ?? [], held: j.held ?? [] };
+      chosen = chosen.filter((id) => !lost.includes(id));
+      pickerMsg(t(`سبقك أحد إلى ${lost.length > 1 ? 'هذه المقاعد' : 'هذا المقعد'}: ${lost.map((x) => seatLabel(x, 'ar')).join('، ')}. اختر غيره.`, `Someone else just took ${lost.map((x) => seatLabel(x, 'en')).join(', ')}. Please choose another.`));
+      paintSeats();
+      renderChosen();
+      if (chosen.length) return syncHold();
+    } else if (j.error === 'too_many_holds') {
+      pickerMsg(t('مقاعد كثيرة محجوزة مؤقتاً من هذا الجهاز. أكمل حجزاً أو انتظر قليلاً.', 'Too many seats are being held from this device. Finish a booking or wait a little.'));
+    } else if (j.error === 'sales_closed') {
+      pickerMsg(t('الحجز مغلق حالياً.', 'Booking is closed right now.'));
+    }
+  } catch {
+    pickerMsg(t('تعذر الاتصال لحجز المقاعد. تأكد من الإنترنت.', 'Could not reach the server to hold your seats. Check your internet.'));
+  } finally {
+    renderTimer();
+  }
+}
+
+function paintSeats() {
+  const mine = new Set(hold?.seats ?? []);
+  const taken = new Set(seatsCache.taken);
+  const held = new Set(seatsCache.held);
+  for (const id of map.ids()) {
+    if (chosen.includes(id)) map.set(id, 'selected');
+    else if (taken.has(id)) map.set(id, 'taken');
+    else if (held.has(id) && !mine.has(id)) map.set(id, 'held');
+    else map.set(id, 'free');
+  }
+}
+
+async function refreshSeats() {
+  try {
+    const r = await fetch(`${API}/fest-seats`);
+    if (!r.ok) return;
+    const j = await r.json();
+    seatsCache = { taken: j.taken ?? [], held: j.held ?? [] };
+    // A chosen seat that was bought meanwhile (only possible once a hold ran out).
+    const lost = chosen.filter((id) => seatsCache.taken.includes(id));
+    if (lost.length) {
+      chosen = chosen.filter((id) => !lost.includes(id));
+      pickerMsg(t(`لم يعد متاحاً: ${lost.map((x) => seatLabel(x, 'ar')).join('، ')}.`, `No longer available: ${lost.map((x) => seatLabel(x, 'en')).join(', ')}.`));
+      renderChosen();
+      syncing = syncHold();
+    }
+    paintSeats();
+  } catch {}
+}
+
+let tick = 0;
+function renderTimer() {
+  clearInterval(tick);
+  const box = $('#picker-timer');
+  box.hidden = !hold;
+  if (!hold) return;
+  const end = Date.parse(hold.expires);
+  const draw = () => {
+    const ms = end - Date.now();
+    if (ms <= 0) {
+      clearInterval(tick);
+      writeHold(null);
+      chosen = [];
+      box.hidden = true;
+      pickerMsg(t('انتهت مهلة الـ15 دقيقة وأُتيحت المقاعد لغيرك. اختر مقاعدك مرة أخرى.', 'The 15 minutes ran out and the seats were released. Please choose again.'));
+      renderChosen();
+      refreshSeats();
+      return;
+    }
+    const m = Math.floor(ms / 60000), sec = Math.floor((ms % 60000) / 1000);
+    box.querySelector('span')!.textContent = t(`محجوزة لك ${m}:${String(sec).padStart(2, '0')}`, `Held for you ${m}:${String(sec).padStart(2, '0')}`);
+  };
+  draw();
+  tick = window.setInterval(draw, 1000);
+}
+
+function renderChosen() {
+  const price = cfg?.price ?? 100;
+  const n = chosen.length;
+  const total = n * price;
+  const l = lang();
+  $('#picker-seats').textContent = n ? `${t(`${n} ${n === 1 ? 'مقعد' : n === 2 ? 'مقعدان' : n <= 10 ? 'مقاعد' : 'مقعداً'}`, `${n} seat${n === 1 ? '' : 's'}`)}: ${seatsSummary(chosen, l)}` : t('لم تختر مقاعد بعد.', 'No seats chosen yet.');
+  $('#picker-total').textContent = String(total);
+  $('#picker-clear').hidden = !n;
+  $('#pay-total').textContent = String(n ? total : price);
+  $('#pay-calc').textContent = n ? t(`${n} × ${price} جنيه`, `${n} × ${price} EGP`) : t('للمقعد الواحد', 'per seat');
+  const box = $('#chosen');
+  box.classList.toggle('chosen--empty', !n);
+  $('#chosen-empty').hidden = !!n;
+  $('#chosen-top').hidden = $('#chosen-list').hidden = !n;
+  $('#chosen-count').textContent = t(`${n} ${n === 1 ? 'مقعد' : n === 2 ? 'مقعدان' : 'مقاعد'} · ${n} × ${price}`, `${n} seat${n === 1 ? '' : 's'} · ${n} × ${price}`);
+  $('#chosen-total').textContent = String(total);
+  $('#chosen-list').replaceChildren(...chosen.map((id) => Object.assign(document.createElement('span'), { textContent: seatLabel(id, l) })));
+  if (n) setErr('seats', '');
+}
+
+$('#picker-clear').addEventListener('click', () => {
+  chosen = [];
+  pickerMsg('');
+  paintSeats();
+  renderChosen();
+  syncing = syncHold();
+});
+
+// Restore a hold from earlier in this tab (e.g. after coming back from the InstaPay app).
+hold = readHold();
+if (hold) chosen = [...hold.seats];
+refreshSeats().then(renderTimer);
+setInterval(() => { if (document.visibilityState === 'visible') refreshSeats(); }, 15_000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { hold = readHold(); if (!hold && chosen.length) { chosen = []; renderChosen(); } refreshSeats(); renderTimer(); } });
+
 // ---------------------------------------------------------------- the form
 const form = $<HTMLFormElement>('#buy-form');
 const fileInput = $<HTMLInputElement>('#f-receipt');
@@ -187,7 +360,8 @@ function validate() {
   const name = (form.elements.namedItem('name') as HTMLInputElement).value.trim();
   const phone = normPhone((form.elements.namedItem('phone') as HTMLInputElement).value);
   const email = (form.elements.namedItem('email') as HTMLInputElement).value.trim();
-  setErr('name', ''); setErr('phone', ''); setErr('email', ''); setErr('receipt', '');
+  setErr('name', ''); setErr('phone', ''); setErr('email', ''); setErr('receipt', ''); setErr('seats', '');
+  if (!chosen.length) { setErr('seats', t('اختر مقعداً واحداً على الأقل من خريطة المسرح.', 'Choose at least one seat on the theatre plan.')); ok = false; }
   if (name.length < 3 || !/\s/.test(name)) { setErr('name', t('اكتب اسمك الثنائي على الأقل.', 'Please write at least your first and last name.')); ok = false; }
   if (!/^(01\d{9}|201\d{9}|\d{8,15})$/.test(phone)) { setErr('phone', t('اكتب رقم موبايل صحيح، مثل 01012345678.', 'Enter a valid mobile number, e.g. 01012345678.')); ok = false; }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErr('email', t('البريد الإلكتروني غير صحيح.', 'That email address looks wrong.')); ok = false; }
@@ -229,6 +403,8 @@ const ERRORS: Record<string, [string, string]> = {
   reference_used: ['هذا التحويل مستخدم لتذكرة أخرى.', 'This transfer was already used for another ticket.'],
   save_failed: ['حدث خطأ أثناء الحفظ. حاول مرة أخرى.', 'Something went wrong saving it. Please try again.'],
   network: ['تعذر الاتصال. تأكد من الإنترنت وحاول مرة أخرى.', 'Could not connect. Check your internet and try again.'],
+  seats_required: ['اختر مقاعدك من خريطة المسرح أولاً.', 'Choose your seats on the theatre plan first.'],
+  seat_unavailable: ['أحد المقاعد التي اخترتها لم يعد متاحاً. راجع اختيارك على الخريطة وأعد الإرسال.', 'One of your seats is no longer available. Check your choice on the plan and send again.'],
 };
 
 function formError(code: string | null) {
@@ -270,12 +446,23 @@ form.addEventListener('submit', async (e) => {
     const fd = new FormData(form);
     fd.set('phone', normPhone(String(fd.get('phone'))));
     fd.set('lang', lang());
+    // Make sure the server holds exactly these seats for us before paying for them.
+    clearTimeout(syncTimer);
+    if (syncing) await syncing;
+    if (!hold || hold.seats.join() !== chosen.join() || Date.parse(hold.expires) - Date.now() < 30_000) await syncHold();
+    if (!chosen.length) throw new Error('seats_required');
+    fd.set('seats', chosen.join(','));
+    if (hold) fd.set('hold', hold.token);
     const blob = await prepare(file!);
     fd.set('receipt', blob, blob === file ? file!.name : 'receipt.jpg');
     const r = await fetch(`${API}/fest-buy`, { method: 'POST', body: fd });
     const j = await r.json().catch(() => ({ error: 'save_failed' }));
-    if (!r.ok || !j.code) throw new Error(j.error || 'save_failed');
+    if (!r.ok || !j.code) {
+      if (j.error === 'seat_unavailable') refreshSeats();
+      throw new Error(j.error || 'save_failed');
+    }
     rememberTicket(j.code, String(fd.get('name')), j.status);
+    writeHold(null); // the seats now belong to the booking
     location.href = `/t/${j.code}?new=1`;
   } catch (err) {
     checking(false);
@@ -289,7 +476,7 @@ form.addEventListener('submit', async (e) => {
 function syncOptions() {
   document.querySelectorAll<HTMLOptionElement>('option[data-ar]').forEach((o) => (o.textContent = lang() === 'en' ? o.dataset.en! : o.dataset.ar!));
 }
-document.addEventListener('langchange', () => { syncOptions(); renderConfig(); renderMine(); if (!$('#form-error').hidden) formError(null); });
+document.addEventListener('langchange', () => { syncOptions(); renderConfig(); renderMine(); renderChosen(); renderTimer(); if (!$('#form-error').hidden) formError(null); });
 syncOptions();
 renderMine();
 refreshMine();

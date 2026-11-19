@@ -3,7 +3,7 @@
 import QRCode from 'qrcode';
 import { SPONSORS_URL } from '../lib/site';
 import { reasonText } from '../lib/reasons';
-import { getTicket, rememberTicket, type Ticket } from './api';
+import { getTicket, rememberTicket, type SeatTicket, type Ticket } from './api';
 import { formatDate, formatDateTime, formatTime, lang, t } from './lang';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
@@ -11,6 +11,11 @@ const code = (location.pathname.match(/\/t\/([A-Za-z0-9]{8,16})/)?.[1] || new UR
 const ticketUrl = `${location.origin}/t/${code}`;
 let current: Ticket | null = null;
 let poll = 0;
+// Which seat's ticket is on screen (a QR opened from …?seat=CODE starts on that seat).
+let seatCode = (new URLSearchParams(location.search).get('seat') || '').toUpperCase();
+const seatsOf = (tk: Ticket) => (tk.seats ?? []).filter((s) => s.code);
+const seatUrl = (s: SeatTicket | null) => (s?.code ? `${ticketUrl}?seat=${s.code}` : ticketUrl);
+const seatName = (s: SeatTicket) => (lang() === 'en' ? s.label_en : s.label_ar);
 // Opened right after booking (/t/CODE?new=1): say the booking was received.
 const fresh = new URLSearchParams(location.search).has('new');
 if (fresh) {
@@ -66,21 +71,19 @@ async function render(tk: Ticket) {
     const justApproved = prevStatus === 'review';
     (document.querySelector('[data-f="approved"]') as HTMLElement).hidden = !justApproved;
     if (justApproved) announce(t('تم قبول حجزك! تذكرتك جاهزة.', 'Your booking was approved! Your ticket is ready.'));
-    await QRCode.toCanvas($<HTMLCanvasElement>('#qr'), ticketUrl, { width: 520, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#0d1611', light: '#ffffff' } });
-    const used = !!tk.checked_in_at;
-    $('#qr-frame').classList.toggle('is-used', used);
-    $('#used-stamp').hidden = !used;
-    const chip = $('#tk-chip');
-    chip.className = `chip ${used ? 'chip--bad' : 'chip--ok'}`;
-    chip.textContent = used ? t(`تم الدخول ${formatDateTime(tk.checked_in_at!)}`, `Checked in ${formatDateTime(tk.checked_in_at!)}`) : t('صالحة للدخول', 'Valid for entry');
+    await showSeat(tk);
     $<HTMLAnchorElement>('#offers').href = tk.sponsors_url || SPONSORS_URL;
     setupCalendar(tk);
-    if (!used) poll = window.setTimeout(load, 60_000); // reflect the gate check-in
+    const allIn = seatsOf(tk).length ? seatsOf(tk).every((x) => x.checked_in_at) : !!tk.checked_in_at;
+    if (!allIn) poll = window.setTimeout(load, 60_000); // reflect the gate check-in
   } else if (tk.status === 'review') {
     view('review');
     rememberTicket(tk.code, tk.name, 'review');
     document.title = t('قيد المراجعة · ', 'Under review · ') + baseTitle;
     (document.querySelector('[data-f="fresh"]') as HTMLElement).hidden = !fresh;
+    const seatList = (tk.seats ?? []).map(seatName);
+    (document.querySelector('[data-f="seats-wrap"]') as HTMLElement).hidden = !seatList.length;
+    fill('seats', seatList.join(t('، ', ', ')));
     const specific = tk.reasons.filter((r) => !GENERIC.has(r));
     (document.querySelector('[data-f="why"]') as HTMLElement).hidden = !specific.length;
     fillReasons(specific);
@@ -94,6 +97,40 @@ async function render(tk: Ticket) {
     document.title = baseTitle;
     if (prevStatus === 'review') announce(t('للأسف لم يُقبل الإيصال. افتح الصفحة لمعرفة السبب.', 'Sorry, the receipt was not accepted. Open the page to see why.'));
   }
+}
+
+/** Shows one seat's QR (or the booking's QR for bookings made before seats existed). */
+async function showSeat(tk: Ticket) {
+  const seats = seatsOf(tk);
+  let cur: SeatTicket | null = null;
+  if (seats.length) {
+    cur = seats.find((x) => x.code === seatCode) ?? seats.find((x) => !x.checked_in_at) ?? seats[0];
+    seatCode = cur.code!;
+  }
+  const tabs = $('#seat-tabs');
+  tabs.hidden = seats.length < 2;
+  tabs.replaceChildren(...seats.map((x) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', String(x === cur));
+    b.classList.toggle('is-used', !!x.checked_in_at);
+    b.textContent = seatName(x);
+    b.addEventListener('click', () => { seatCode = x.code!; showSeat(tk); });
+    return b;
+  }));
+  $('#tk-seat').hidden = !cur;
+  $('#tk-seat').textContent = cur ? seatName(cur) : '';
+  $('#tk-howto').hidden = seats.length > 1;
+  $('#tk-howto-seats').hidden = seats.length <= 1;
+  $('#pdf-label').textContent = seats.length > 1 ? t(`تحميل التذاكر الـ${seats.length} PDF للطباعة`, `Download all ${seats.length} tickets as PDF`) : t('تحميل التذكرة PDF للطباعة', 'Download printable PDF');
+  await QRCode.toCanvas($<HTMLCanvasElement>('#qr'), seatUrl(cur), { width: 520, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#0d1611', light: '#ffffff' } });
+  const usedAt = cur ? cur.checked_in_at : tk.checked_in_at;
+  $('#qr-frame').classList.toggle('is-used', !!usedAt);
+  $('#used-stamp').hidden = !usedAt;
+  const chip = $('#tk-chip');
+  chip.className = `chip ${usedAt ? 'chip--bad' : 'chip--ok'}`;
+  chip.textContent = usedAt ? t(`تم الدخول ${formatDateTime(usedAt)}`, `Checked in ${formatDateTime(usedAt)}`) : t('صالحة للدخول', 'Valid for entry');
 }
 
 let lastStatus: Ticket['status'] | null = null;
@@ -173,58 +210,132 @@ function setupCalendar(tk: Ticket) {
   a.hidden = false;
 }
 
-/** A shareable image of the ticket, for people who'd rather show a photo at the gate. */
-async function saveImage() {
-  if (!current) return;
+/** The printable ticket design for one seat (or the whole booking when it has no seats). */
+async function drawTicket(tk: Ticket, seat: SeatTicket | null): Promise<HTMLCanvasElement> {
   await document.fonts.ready;
-  const W = 1080, H = 1560;
+  const W = 1240, H = 1754; // A5 at 150 dpi
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
   const g = c.getContext('2d')!;
   const ar = lang() === 'ar';
-  g.direction = ar ? 'rtl' : 'ltr';
-  // card
-  g.fillStyle = '#0d1611'; g.fillRect(0, 0, W, H);
-  g.fillStyle = '#f5f2ea';
-  g.beginPath(); g.roundRect(60, 60, W - 120, H - 120, 44); g.fill();
-  g.fillStyle = '#15231b';
-  g.beginPath(); g.roundRect(60, 60, W - 120, 300, [44, 44, 0, 0]); g.fill();
+  const dir = ar ? 'rtl' : 'ltr';
+  g.direction = dir;
+  // paper
+  g.fillStyle = '#f5f2ea'; g.fillRect(0, 0, W, H);
+  // header band
+  g.fillStyle = '#0d1611'; g.fillRect(0, 0, W, 420);
+  g.globalAlpha = 0.07; g.fillStyle = '#c9a961';
+  g.font = '800 520px "Cairo Variable"'; g.direction = 'ltr'; g.textAlign = 'left';
+  g.fillText('74', -30, 470);
+  g.globalAlpha = 1;
   const colors = ['#f47b20', '#f2c230', '#4fae3a', '#c8322f'];
-  colors.forEach((col, i) => { g.fillStyle = col; g.fillRect(60 + i * ((W - 120) / 4), 350, (W - 120) / 4, 12); });
-  g.fillStyle = '#c9a961'; g.font = '800 190px "Cairo Variable"'; g.textAlign = 'left'; g.direction = 'ltr';
-  g.fillText('74', 110, 300);
-  g.direction = ar ? 'rtl' : 'ltr';
-  g.textAlign = 'right';
-  g.fillStyle = '#e8d7a8'; g.font = '600 38px "Tajawal"';
-  g.fillText(t('المجموعة الحادية عشر', 'XI Group'), W - 110, 170);
-  g.fillStyle = '#ffffff'; g.font = '700 54px "Cairo Variable"';
-  g.fillText(t('تذكرة عيد الـ74', '74th anniversary'), W - 110, 250);
+  colors.forEach((col, i) => { g.fillStyle = col; g.fillRect(i * (W / 4), 420, W / 4, 14); });
+  // logo
+  try {
+    const logo = new Image();
+    logo.src = '/img/xi-logo.webp';
+    await logo.decode();
+    const cx = ar ? 150 : W - 150;
+    g.save();
+    g.beginPath(); g.arc(cx, 150, 74, 0, Math.PI * 2); g.fillStyle = '#ffffff'; g.fill(); g.clip();
+    g.drawImage(logo, cx - 66, 84, 132, 132);
+    g.restore();
+  } catch {}
+  g.direction = dir; g.textAlign = ar ? 'right' : 'left';
+  const x0 = ar ? W - 90 : 90;
+  g.fillStyle = '#e8d7a8'; g.font = '600 40px "Tajawal"';
+  g.fillText(t('كشافة ومرشدات وادي النيل · المجموعة الحادية عشر', 'Wadi El Nil Scouts & Guides · XI Group'), x0, 130, W - 340);
+  g.fillStyle = '#ffffff'; g.font = '800 92px "Cairo Variable"';
+  g.fillText(t('عيد الـ74', '74th anniversary'), x0, 250, W - 340);
+  g.fillStyle = '#c9a961'; g.font = '600 40px "Tajawal"';
+  const when = whenText(tk);
+  g.fillText(when ?? t('الموعد يُعلن قريباً', 'Date to be announced'), x0, 330, W - 200);
+  if (tk.venue_name) { g.fillStyle = 'rgba(255,255,255,.75)'; g.font = '400 34px "Tajawal"'; g.fillText([tk.venue_name, tk.venue_detail].filter(Boolean).join(' · '), x0, 385, W - 200); }
+
+  // seat block
+  g.textAlign = 'center';
+  let y = 520;
+  if (seat) {
+    const [r, sCode] = seat.id.split('-');
+    const parts = [
+      [t('الصف', 'Row'), String(Number(r))],
+      [t('القسم', 'Section'), t({ L: 'يسار', M: 'وسط', R: 'يمين' }[sCode[0]]!, { L: 'Left', M: 'Centre', R: 'Right' }[sCode[0]]!)],
+      [t('المقعد', 'Seat'), String(Number(sCode.slice(1)))],
+    ];
+    const bw = 300, gap = 30, total = bw * 3 + gap * 2;
+    parts.forEach(([k, v], i) => {
+      const idx = ar ? 2 - i : i;
+      const bx = (W - total) / 2 + idx * (bw + gap);
+      g.fillStyle = '#ffffff'; g.beginPath(); g.roundRect(bx, y, bw, 170, 24); g.fill();
+      g.strokeStyle = '#e2ddd0'; g.lineWidth = 3; g.stroke();
+      g.fillStyle = '#75602c'; g.font = '600 32px "Tajawal"'; g.fillText(k, bx + bw / 2, y + 55);
+      g.fillStyle = '#0d1611'; g.font = '800 72px "Cairo Variable"'; g.fillText(v, bx + bw / 2, y + 140, bw - 30);
+    });
+    y += 210;
+  }
+
   // QR
   const q = document.createElement('canvas');
-  await QRCode.toCanvas(q, ticketUrl, { width: 640, margin: 2, errorCorrectionLevel: 'M', color: { dark: '#0d1611', light: '#ffffff' } });
-  g.fillStyle = '#ffffff'; g.beginPath(); g.roundRect((W - 700) / 2, 420, 700, 700, 32); g.fill();
-  g.drawImage(q, (W - 640) / 2, 450, 640, 640);
-  g.textAlign = 'center';
+  const qs = seat ? 600 : 680;
+  await QRCode.toCanvas(q, seatUrl(seat), { width: qs, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#0d1611', light: '#ffffff' } });
+  g.fillStyle = '#ffffff'; g.beginPath(); g.roundRect((W - qs - 60) / 2, y, qs + 60, qs + 60, 32); g.fill();
+  g.drawImage(q, (W - qs) / 2, y + 30, qs, qs);
+  y += qs + 60;
   g.fillStyle = '#16241d'; g.font = '700 58px "Cairo Variable"';
-  g.fillText(current.name, W / 2, 1210, W - 200);
-  g.fillStyle = '#5d685f'; g.font = '600 40px ui-monospace, Menlo, monospace'; g.direction = 'ltr';
-  g.fillText(current.code.replace(/(.{4})/g, '$1 ').trim(), W / 2, 1275);
-  g.direction = ar ? 'rtl' : 'ltr';
-  g.font = '400 36px "Tajawal"'; g.fillStyle = '#16241d';
-  const when = whenText(current);
-  if (when) g.fillText(when, W / 2, 1360, W - 200);
-  if (current.venue_name) g.fillText(current.venue_name, W / 2, 1415, W - 200);
+  g.fillText(tk.name, W / 2, y + 80, W - 200);
+  g.fillStyle = '#5d685f'; g.font = '600 38px ui-monospace, Menlo, monospace'; g.direction = 'ltr';
+  g.fillText((seat?.code ?? tk.code).replace(/(.{4})(?=.)/g, '$1 '), W / 2, y + 140);
+  g.direction = dir;
+  // footer: dashed tear line and instructions
+  g.strokeStyle = '#c9b98f'; g.lineWidth = 3; g.setLineDash([16, 12]);
+  g.beginPath(); g.moveTo(60, H - 190); g.lineTo(W - 60, H - 190); g.stroke(); g.setLineDash([]);
+  g.fillStyle = '#16241d'; g.font = '600 34px "Tajawal"';
+  g.fillText(t('قدّم هذه التذكرة على البوابة · تُستخدم مرة واحدة لشخص واحد', 'Show this ticket at the gate · one person, one entry'), W / 2, H - 120, W - 160);
   g.fillStyle = '#75602c'; g.font = '400 30px "Tajawal"';
-  g.fillText(t('تُستخدم مرة واحدة على البوابة', 'Valid for one entry'), W / 2, 1475);
-  c.toBlob((b) => {
-    if (!b) return;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(b);
-    a.download = `xi-74-${current!.code}.png`;
-    document.body.append(a);
-    a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-  }, 'image/png');
+  g.fillText(t(`رمز الحجز ${tk.code}`, `Booking ${tk.code}`), W / 2, H - 70, W - 160);
+  return c;
+}
+
+function download(blob: Blob, name: string) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+
+/** A picture of the ticket on screen, for people who'd rather show a photo at the gate. */
+async function saveImage() {
+  if (!current) return;
+  const seat = seatsOf(current).find((x) => x.code === seatCode) ?? null;
+  const c = await drawTicket(current, seat);
+  c.toBlob((b) => b && download(b, `xi-74-${seat ? seat.id : current!.code}.png`), 'image/png');
+}
+
+/** Every seat's ticket as one A5 page each, ready to print. */
+async function savePdf() {
+  if (!current) return;
+  const btn = $<HTMLButtonElement>('#save-pdf');
+  btn.disabled = true;
+  try {
+    const { jsPDF } = await import('jspdf');
+    const seats = seatsOf(current);
+    const pages = seats.length ? seats : [null];
+    const pdf = new jsPDF({ unit: 'mm', format: 'a5', orientation: 'portrait', compress: true });
+    for (let i = 0; i < pages.length; i++) {
+      if (i) pdf.addPage('a5', 'portrait');
+      const c = await drawTicket(current, pages[i]);
+      pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 148, 210);
+    }
+    pdf.setProperties({ title: t('تذاكر عيد الـ74', '74th anniversary tickets'), creator: 'XI Group' });
+    download(pdf.output('blob'), `xi-74-${current.code}.pdf`);
+  } catch (e) {
+    console.error(e);
+    toast(t('تعذر إنشاء الملف. جرّب حفظ الصورة.', 'Could not make the PDF. Try saving the image.'));
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function toast(msg: string) {
@@ -241,6 +352,7 @@ async function copyLink() {
 }
 
 $('#save-qr').addEventListener('click', saveImage);
+$('#save-pdf').addEventListener('click', savePdf);
 $('#share').addEventListener('click', async () => {
   if (navigator.share) {
     try { await navigator.share({ title: t('تذكرتي لعيد الـ74', 'My 74th anniversary ticket'), url: ticketUrl }); } catch {}

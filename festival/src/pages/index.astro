@@ -31,7 +31,7 @@ import { UNITS, FOUNDED, YEARS, XI_SITE, SPONSORS_URL, FACEBOOK, INSTAGRAM } fro
         <ul class="facts" role="list">
           <li><Icon name="calendar" size={18} /><span id="fact-date"><T ar="الموعد يُعلن قريباً" en="Date to be announced" /></span></li>
           <li><Icon name="pin" size={18} /><span id="fact-venue"><T ar="المكان يُعلن قريباً" en="Venue to be announced" /></span></li>
-          <li><Icon name="ticket" size={18} /><span><span class="num" data-price>100</span> <T ar="جنيه للتذكرة" en="EGP per ticket" /></span></li>
+          <li><Icon name="ticket" size={18} /><span><span class="num" data-price>100</span> <T ar="جنيه للمقعد" en="EGP per seat" /></span></li>
         </ul>
         <div class="countdown" id="countdown" hidden aria-live="off">
           <div><b data-cd="d">0</b><small><T ar="يوم" en="days" /></small></div>
@@ -86,20 +86,46 @@ import { UNITS, FOUNDED, YEARS, XI_SITE, SPONSORS_URL, FACEBOOK, INSTAGRAM } fro
     </section>
 
     <section class="section section--dark" id="ticket" aria-labelledby="ticket-title">
-      <div class="wrap buy">
+      <div class="wrap">
+        <span class="eyebrow"><T ar="التذاكر" en="Tickets" /></span>
+        <h2 id="ticket-title"><T ar="اختر مقعدك واحجز في أربع خطوات" en="Pick your seats and book in four steps" /></h2>
+        <p style="margin:12px 0 0;color:rgb(255 255 255 / .75);max-width:62ch"><T ar="اختر مقاعدك من خريطة المسرح، ادفع ثمنها بإنستاباي، ارفع صورة إيصال التحويل، وتصلك تذكرة برمز QR لكل مقعد بعد التحقق." en="Choose your seats on the theatre plan, pay for them with InstaPay, upload the transfer screenshot and get a QR ticket for every seat once it is checked." /></p>
+
+        <div class="picker" id="picker">
+          <div class="picker__head">
+            <div>
+              <h3><span class="num">1</span> · <T ar="اختر مقاعدك" en="Choose your seats" /></h3>
+              <p><T ar="اضغط على المقاعد المتاحة، حتى 10 مقاعد في الحجز الواحد. نحجزها لك 15 دقيقة حتى تكمل الدفع." en="Tap the free seats, up to 10 per booking. We keep them for you for 15 minutes while you pay." /></p>
+            </div>
+          </div>
+          <div id="seatmap" aria-label="خريطة مقاعد المسرح" data-aria-ar="خريطة مقاعد المسرح" data-aria-en="Theatre seating plan" role="group"></div>
+          <div class="seat-legend" aria-hidden="true">
+            <span><i class="seat" data-state="free"></i><T ar="متاح" en="Available" /></span>
+            <span><i class="seat" data-state="selected"></i><T ar="اخترته" en="Your choice" /></span>
+            <span><i class="seat" data-state="held"></i><T ar="يُحجز الآن" en="Being booked" /></span>
+            <span><i class="seat" data-state="taken"></i><T ar="محجوز" en="Booked" /></span>
+          </div>
+          <div class="picker__bar" id="picker-bar">
+            <span class="picker__seats" id="picker-seats"><T ar="لم تختر مقاعد بعد." en="No seats chosen yet." /></span>
+            <span class="picker__timer" id="picker-timer" hidden><Icon name="hourglass" size={16} /><span></span></span>
+            <span><strong class="num" id="picker-total">0</strong> <T ar="جنيه" en="EGP" /></span>
+            <button class="btn btn--ghost btn--sm" type="button" id="picker-clear" hidden style="color:#fff"><T ar="إلغاء الاختيار" en="Clear" /></button>
+          </div>
+          <p class="picker__msg notice notice--warn" id="picker-msg" role="status"></p>
+        </div>
+      </div>
+
+      <div class="wrap buy" style="margin-top:clamp(28px,5vw,44px)">
         <div>
-          <span class="eyebrow"><T ar="التذاكر" en="Tickets" /></span>
-          <h2 id="ticket-title"><T ar="تذكرتك في ثلاث خطوات" en="Your ticket in three steps" /></h2>
-          <p style="margin:12px 0 24px;color:rgb(255 255 255 / .75)"><T ar="ادفع ثمن التذكرة بإنستاباي، ارفع صورة إيصال التحويل، وتصلك تذكرتك برمز QR فوراً بعد التحقق." en="Pay with InstaPay, upload the transfer screenshot and get your QR ticket as soon as it is checked." /></p>
-          <ol class="steps">
-            <li><div><strong><T ar="حوّل ثمن التذكرة بإنستاباي" en="Pay with InstaPay" /></strong><p><T ar="من الزر بالأسفل، حوّل المبلغ بالضبط إلى حساب المجموعة." en="Use the button below to send the exact amount to the group’s account." /></p></div></li>
+          <ol class="steps" start="2" style="counter-reset:s 1">
+            <li><div><strong><T ar="حوّل المبلغ الإجمالي بإنستاباي" en="Pay the total with InstaPay" /></strong><p><T ar="تحويل واحد بثمن كل المقاعد التي اخترتها، بالضبط، إلى حساب المجموعة." en="One transfer for all the seats you chose, the exact total, to the group’s account." /></p></div></li>
             <li><div><strong><T ar="خُذ صورة لشاشة نجاح التحويل" en="Screenshot the confirmation" /></strong><p><T ar="يجب أن يظهر فيها المبلغ واسم المستلم والرقم المرجعي." en="It must show the amount, the receiver and the reference number." /></p></div></li>
-            <li><div><strong><T ar="ارفع الصورة واستلم تذكرتك" en="Upload it and get your ticket" /></strong><p><T ar="نقرأ الإيصال ونتأكد منه آلياً، ثم تظهر تذكرتك برمز QR تقدّمه على البوابة." en="We read and check the receipt automatically, then your QR ticket appears, ready for the gate." /></p></div></li>
+            <li><div><strong><T ar="ارفع الصورة واستلم تذاكرك" en="Upload it and get your tickets" /></strong><p><T ar="نقرأ الإيصال ونتأكد منه آلياً، ثم تظهر تذكرة برمز QR لكل مقعد، تقدّمها على البوابة وتحمّلها PDF للطباعة." en="We read and check the receipt automatically, then a QR ticket appears for every seat, ready for the gate and as a printable PDF." /></p></div></li>
           </ol>
 
           <div class="pay-box" id="pay-box">
             <div class="pay-box__row">
-              <p class="pay-box__price"><span class="num" data-price>100</span> <small><T ar="جنيه مصري" en="EGP" /></small></p>
+              <p class="pay-box__price"><span class="num" id="pay-total">100</span> <small><T ar="جنيه مصري" en="EGP" /></small><small id="pay-calc" style="display:block;font-size:.8125rem;margin-top:6px"></small></p>
               <a class="btn btn--gold" id="pay-link" href="#" target="_blank" rel="noopener" aria-disabled="true"><T ar="ادفع بإنستاباي" en="Pay with InstaPay" /><Icon name="external" size={16} /></a>
             </div>
             <div class="pay-box__row" id="handle-row" hidden>
@@ -110,15 +136,21 @@ import { UNITS, FOUNDED, YEARS, XI_SITE, SPONSORS_URL, FACEBOOK, INSTAGRAM } fro
           </div>
 
           <div class="mine" id="mine" hidden>
-            <span class="eyebrow" style="margin:6px 0 0"><T ar="تذاكرك على هذا الجهاز" en="Your tickets on this device" /></span>
+            <span class="eyebrow" style="margin:6px 0 0"><T ar="حجوزاتك على هذا الجهاز" en="Your bookings on this device" /></span>
           </div>
         </div>
 
         <div class="card" id="buy-card">
           <h3><T ar="بيانات الحجز" en="Booking details" /></h3>
-          <p><T ar="تذكرة واحدة لكل تحويل. لحجز أكثر من تذكرة، كرّر الخطوات لكل شخص." en="One ticket per transfer. For more people, repeat the steps for each one." /></p>
+          <p><T ar="تحويل واحد لكل المقاعد المختارة، وتذكرة QR منفصلة لكل مقعد." en="One transfer for all the chosen seats, and a separate QR ticket for each seat." /></p>
 
           <form class="form" id="buy-form" novalidate>
+            <div class="chosen chosen--empty" id="chosen" aria-live="polite">
+              <span id="chosen-empty"><T ar="اختر مقاعدك أولاً من خريطة المسرح." en="First choose your seats on the theatre plan." /> <a href="#picker" style="color:inherit"><T ar="إلى الخريطة" en="Go to the plan" /></a></span>
+              <div class="chosen__top" id="chosen-top" hidden><span id="chosen-count"></span><span class="chosen__total"><span class="num" id="chosen-total"></span> <T ar="جنيه" en="EGP" /></span></div>
+              <div class="seats-pill" id="chosen-list" hidden></div>
+              <p class="err" data-err="seats"></p>
+            </div>
             <div class="field">
               <label for="f-name"><T ar="الاسم بالكامل" en="Full name" /></label>
               <input class="input" id="f-name" name="name" autocomplete="name" required minlength="3" maxlength="80" data-ph-ar="مثال: مينا ماجد عزيز" data-ph-en="e.g. Mina Maged Aziz" />
@@ -163,7 +195,7 @@ import { UNITS, FOUNDED, YEARS, XI_SITE, SPONSORS_URL, FACEBOOK, INSTAGRAM } fro
             </div>
             <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
             <div class="notice notice--bad" id="form-error" role="alert" hidden><Icon name="alert" size={18} /><span></span></div>
-            <button class="btn btn--block" type="submit" id="buy-submit"><Icon name="qr" /><T ar="أرسل واستلم تذكرتي" en="Send and get my ticket" /></button>
+            <button class="btn btn--block" type="submit" id="buy-submit"><Icon name="qr" /><T ar="أرسل واستلم تذاكري" en="Send and get my tickets" /></button>
             <p class="fine"><T ar="بالضغط على الزر توافق على أن يقرأ نظامنا صورة الإيصال للتحقق من الدفع فقط. لا نشارك بياناتك مع أي جهة." en="By sending, you agree that our system reads the screenshot only to check the payment. We do not share your details." /></p>
           </form>
 

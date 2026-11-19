@@ -1,0 +1,121 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+---
+<Base title="حجز القادة · عيد الـ74" noindex bodyClass="leader-page">
+  <style is:global>
+    .leader-page { background: var(--night); }
+    .ld-bar { color: #fff; border-bottom: 1px solid rgb(255 255 255 / 0.08); position: relative; }
+    .ld-bar::after { content: ''; position: absolute; inset: auto 0 0; height: 3px; background: var(--bunting); }
+    .ld-bar__in { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; }
+    .ld-bar .brand { color: #fff; }
+    .ld { padding: 24px 0 64px; display: grid; gap: 22px; color: #fff; }
+    .ld h1 { color: #fff; font: 700 clamp(1.5rem, 4vw, 2rem)/1.3 var(--display); }
+    .ld__hello p { color: rgb(255 255 255 / 0.72); }
+    .quota { display: inline-flex; gap: 8px; align-items: center; padding: 4px 14px; border-radius: 999px; background: rgb(201 169 97 / 0.15); color: var(--gold-2); font-weight: 700; font-size: 0.9375rem; margin-top: 8px; }
+    .ld-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+    .ld-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 22px; align-items: start; }
+    .ld .card h2 { font: 700 1.25rem/1.4 var(--display); color: var(--ink); }
+    .done { display: grid; gap: 10px; }
+    .done__code { font: 700 1.25rem var(--mono); letter-spacing: 0.08em; direction: ltr; text-align: center; padding: 8px; background: var(--paper); border-radius: 10px; }
+    .bk { display: grid; gap: 4px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); }
+    .bk__top { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-weight: 700; color: var(--ink); }
+    .bk__seats { font-size: 0.875rem; color: var(--muted); }
+    .bk__actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .bk__actions .btn { min-height: 36px; padding: 4px 12px; font-size: 0.875rem; }
+    .list-empty { color: var(--muted); padding: 12px 0; }
+  </style>
+
+  <section class="login" id="login">
+    <div class="card">
+      <a class="brand" href="/"><span class="brand__mark"><img src="/img/xi-logo.webp" alt="" width="32" height="32" /></span><span class="brand__name">حجز القادة · عيد الـ74</span></a>
+      <p style="color:var(--muted);text-align:center;margin-bottom:8px">لقادة الأشبال والفرقة والمجموعة: احجز مقاعد أعضاء وحدتك وأسرهم بدون تحويل إنستاباي.</p>
+      <form class="form" id="login-form">
+        <div class="field">
+          <label for="l-key">كلمة سر القائد</label>
+          <input class="input" id="l-key" type="password" autocomplete="current-password" required dir="ltr" />
+        </div>
+        <div class="notice notice--bad" id="login-err" role="alert" hidden><Icon name="alert" size={18} /><span></span></div>
+        <button class="btn btn--block" type="submit">دخول</button>
+      </form>
+    </div>
+  </section>
+
+  <div id="app" hidden>
+    <header class="ld-bar">
+      <div class="wrap ld-bar__in">
+        <a class="brand" href="/"><span class="brand__mark"><img src="/img/xi-logo.webp" alt="" width="32" height="32" /></span><span class="brand__name">حجز القادة<small>عيد الـ74</small></span></a>
+        <button class="btn btn--ghost btn--sm" type="button" id="logout" style="color:#fff">خروج</button>
+      </div>
+    </header>
+
+    <main class="wrap ld">
+      <div class="ld__hello">
+        <h1 id="hello"></h1>
+        <p>اختر المقاعد من الخريطة، اكتب اسم صاحب الحجز، واضغط «احجز». الحجز يُؤكَّد فوراً بدون دفع، ويحصل كل مقعد على تذكرة برمز QR يمكن طباعتها PDF.</p>
+        <span class="quota" id="quota"></span>
+      </div>
+
+      <div class="ld-grid">
+        <div>
+          <div id="seatmap" role="group" aria-label="خريطة مقاعد المسرح"></div>
+          <div class="seat-legend" aria-hidden="true">
+            <span><i class="seat" data-state="free"></i>متاح</span>
+            <span><i class="seat" data-state="selected"></i>اخترته</span>
+            <span><i class="seat" data-state="held"></i>يُحجز الآن</span>
+            <span><i class="seat" data-state="taken"></i>محجوز</span>
+          </div>
+        </div>
+
+        <div class="ld-cards">
+          <div class="card">
+            <h2>حجز جديد</h2>
+            <form class="form" id="book-form" novalidate>
+              <div class="chosen chosen--empty" id="chosen" aria-live="polite">
+                <span id="chosen-empty">اختر المقاعد من خريطة المسرح (حتى 10 في الحجز الواحد).</span>
+                <div class="chosen__top" id="chosen-top" hidden><span id="chosen-count"></span><button class="btn btn--ghost btn--sm" type="button" id="clear" style="min-height:32px;padding:2px 12px">مسح</button></div>
+                <div class="seats-pill" id="chosen-list" hidden></div>
+              </div>
+              <div class="field">
+                <label for="b-name">اسم صاحب الحجز</label>
+                <input class="input" id="b-name" name="name" required maxlength="80" placeholder="مثال: أسرة مينا ماجد" />
+                <p class="err" data-err="name"></p>
+              </div>
+              <div class="row2">
+                <div class="field">
+                  <label for="b-phone">الموبايل <span class="hint">(اختياري)</span></label>
+                  <input class="input" id="b-phone" name="phone" type="tel" inputmode="tel" dir="ltr" placeholder="01xxxxxxxxx" />
+                </div>
+                <div class="field">
+                  <label for="b-note">ملاحظة <span class="hint">(اختياري)</span></label>
+                  <input class="input" id="b-note" name="note" maxlength="200" placeholder="مثال: شبل + والديه" />
+                </div>
+              </div>
+              <div class="notice notice--bad" id="book-err" role="alert" hidden><Icon name="alert" size={18} /><span></span></div>
+              <button class="btn btn--block" type="submit" id="book-btn"><Icon name="ticket" />احجز المقاعد</button>
+            </form>
+            <div class="done" id="done" hidden>
+              <p class="notice notice--ok"><Icon name="check-circle" size={18} /><span id="done-text"></span></p>
+              <p class="done__code" id="done-code"></p>
+              <div class="actions" style="display:flex;flex-wrap:wrap;gap:8px">
+                <a class="btn btn--sm" id="done-open" href="#" target="_blank" rel="noopener"><Icon name="ticket" size={16} />فتح التذاكر والـPDF</a>
+                <a class="btn btn--ghost btn--sm" id="done-wa" href="#" target="_blank" rel="noopener"><Icon name="whatsapp" size={16} />إرسال بواتساب</a>
+                <button class="btn btn--ghost btn--sm" type="button" id="done-copy"><Icon name="link" size={16} />نسخ الرابط</button>
+                <button class="btn btn--ghost btn--sm" type="button" id="done-new">حجز آخر</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>حجوزاتي</h2>
+            <div id="mine" style="display:grid;gap:8px;margin-top:10px"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    import '../scripts/leader';
+  </script>
+</Base>

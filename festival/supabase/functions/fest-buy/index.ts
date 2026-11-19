@@ -1,17 +1,18 @@
 // Public endpoint: a guest buys a festival ticket.
-// multipart/form-data: name, phone, email?, affiliation?, lang, website (honeypot), receipt (image).
+// multipart/form-data: name, phone, email?, affiliation?, lang, seats (ids, comma-separated), hold (token from
+// fest-seats), website (honeypot), receipt (image). The amount due is price × number of seats.
 // The InstaPay screenshot is stored privately and read by the first reader available:
 //   1. Claude (vision)   when ANTHROPIC_API_KEY is set
 //   2. Gemini (vision)   when GEMINI_API_KEY is set (free tier)
 //   3. the festival site's /api/ocr: Gemini when GEMINI_API_KEY is set in its Vercel project,
 //      otherwise Tesseract OCR (free, no key, no AI)
-// Whatever reads it, fixed rules in ../_shared/rules.ts decide: 100 EGP, paid to the configured
+// Whatever reads it, fixed rules in ../_shared/rules.ts decide: price × seats, paid to the configured
 // receiver, successful, unique reference, sensible date. Clear passes get a ticket at once;
 // anything uncertain goes to review. Plain OCR never rejects on its own.
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { GoogleGenAI } from "npm:@google/genai@2.29.1";
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
-import { BUCKET, db, getSettings, ipHash, json, normPhone, sha256Hex, CORS } from "../_shared/shared.ts";
+import { BUCKET, claimSeats, cleanSeats, db, getSettings, ipHash, json, MAX_SEATS, normPhone, sha256Hex, CORS } from "../_shared/shared.ts";
 import { judge, normReference, type Ocr, type Recipient } from "../_shared/rules.ts";
 import { parseReceiptText } from "../_shared/textparse.ts";
 
@@ -236,6 +237,9 @@ Deno.serve(async (req) => {
   if (name.length < 3) return json({ error: "bad_name" }, 400);
   if (phone.length < 8 || phone.length > 15) return json({ error: "bad_phone" }, 400);
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "bad_email" }, 400);
+  const seats = cleanSeats(f.seats);
+  if (!seats) return json({ error: "seats_required", max: MAX_SEATS }, 400);
+  const hold = /^[a-f0-9]{32}$/.test(f.hold || "") ? f.hold : null;
   if (!file) return json({ error: "receipt_required" }, 400);
   if (file.size > MAX_BYTES) return json({ error: "too_big" }, 413);
 
@@ -269,6 +273,14 @@ Deno.serve(async (req) => {
     return json({ error: "duplicate_receipt" }, 409);
   }
 
+  // The seats must still be free, or held by this guest, before anything is stored.
+  {
+    const { data: rows } = await db.from("fest_seats").select("id,order_id,hold_token,held_until").in("id", seats);
+    const now = Date.now();
+    const blocked = (rows ?? []).filter((r) => r.order_id || (r.held_until && Date.parse(r.held_until) > now && r.hold_token !== hold));
+    if (blocked.length || (rows ?? []).length !== seats.length) return json({ error: "seat_unavailable", seats: blocked.map((r) => r.id) }, 409);
+  }
+
   const receipt_path = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${kind.ext}`;
   const { error: upErr } = await db.storage.from(BUCKET).upload(receipt_path, bytes, { contentType: kind.type, upsert: false });
   if (upErr) return json({ error: "save_failed" }, 500);
@@ -279,7 +291,7 @@ Deno.serve(async (req) => {
   let reasons: string[] = [];
   let reference: string | null = null;
   if (read.ok) {
-    const v = judge(read.ocr, { price: settings.price_egp, recipient, salesStart: settings.sales_start, strict: read.strict });
+    const v = judge(read.ocr, { price: settings.price_egp * seats.length, recipient, salesStart: settings.sales_start, strict: read.strict });
     status = v.status;
     reasons = v.reasons;
     reference = normReference(read.ocr.reference);
@@ -309,12 +321,22 @@ Deno.serve(async (req) => {
     recipient: read.ok ? [read.ocr.recipient_name, read.ocr.recipient_address].filter(Boolean).join(" · ") || null : null,
     paid_at: read.ok ? [read.ocr.date_iso, read.ocr.time].filter(Boolean).join(" ") || null : null,
     ip_hash: who,
+    seats, qty: seats.length, source: "instapay",
   };
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const code = newCode();
-    const { error } = await db.from("fest_orders").insert({ ...row, code });
-    if (!error) return json({ ok: true, code, status, reasons });
+    const { data: created, error } = await db.from("fest_orders").insert({ ...row, code }).select("id").single();
+    if (!error) {
+      // A rejected booking doesn't keep seats. Otherwise the seats become this booking's, all or nothing.
+      if (status !== "rejected" && !(await claimSeats(created.id, seats, hold))) {
+        await db.from("fest_orders").delete().eq("id", created.id);
+        await db.storage.from(BUCKET).remove([receipt_path]);
+        return json({ error: "seat_unavailable" }, 409);
+      }
+      // A rejected booking keeps the guest's hold until it runs out, so they can send the right screenshot.
+      return json({ ok: true, code, status, reasons, seats });
+    }
     if (error.code === "23505" && /code/.test(error.message)) continue; // code collision: draw again
     await db.storage.from(BUCKET).remove([receipt_path]);
     if (error.code === "23505") return json({ error: /reference/.test(error.message) ? "reference_used" : "duplicate_receipt" }, 409);

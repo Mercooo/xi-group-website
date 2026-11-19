@@ -41,7 +41,8 @@ import Icon from '../components/Icon.astro';
     .result { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 24px; text-align: center; color: #fff; cursor: pointer; animation: pop 0.18s ease-out both; }
     @keyframes pop { from { opacity: 0; transform: scale(1.04); } }
     .result[data-r='admitted'] { background: #157a42; }
-    .result[data-r='already_used'] { background: #b7791f; }
+    .result[data-r='already_used'], .result[data-r='seat_ticket_required'] { background: #b7791f; }
+    .result__seat { font: 800 clamp(1.5rem, 7vw, 2.25rem)/1.2 var(--display); background: rgb(0 0 0 / 0.22); border-radius: 14px; padding: 6px 18px; }
     .result[data-r='not_verified'], .result[data-r='unknown'] { background: #b3261e; }
     .result[data-r='error'] { background: #3d4a42; }
     .result__box { display: grid; gap: 14px; justify-items: center; max-width: 420px; }
@@ -116,6 +117,7 @@ import Icon from '../components/Icon.astro';
       <span class="result__icon" id="r-icon"></span>
       <h2 id="r-title"></h2>
       <p class="result__name" id="r-name"></p>
+      <p class="result__seat" id="r-seat" hidden></p>
       <p class="result__sub" id="r-sub"></p>
       <p class="result__tap">اضغط في أي مكان لمسح التذكرة التالية</p>
     </div>

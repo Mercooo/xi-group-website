@@ -2,12 +2,12 @@
 // POST { action: "login" }                     → checks the passcode
 // POST { action: "scan", code, gate }          → admits a verified, unused ticket (atomically)
 // POST { action: "stats" }                     → admitted / valid tickets so far
-import { authorize, db, json, CORS } from "../_shared/shared.ts";
+import { authorize, db, json, seatLabel, CORS } from "../_shared/shared.ts";
 
-/** A QR may hold the ticket URL (…/t/CODE) or the bare code. */
+/** A QR may hold a seat ticket URL (…/t/BOOKING?seat=CODE), an older ticket URL (…/t/CODE) or the bare code. */
 function extractCode(raw: string) {
   const s = String(raw || "").trim();
-  const m = s.match(/\/t\/([A-Za-z0-9]{8,16})/) || s.match(/[?&]c(?:ode)?=([A-Za-z0-9]{8,16})/);
+  const m = s.match(/[?&]seat=([A-Za-z0-9]{8,16})/) || s.match(/\/t\/([A-Za-z0-9]{8,16})/) || s.match(/[?&]c(?:ode)?=([A-Za-z0-9]{8,16})/);
   return (m ? m[1] : s).toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
@@ -23,11 +23,14 @@ Deno.serve(async (req) => {
   if (body.action === "login") return json({ ok: true, role: auth.role });
 
   if (body.action === "stats") {
-    const [{ count: admitted }, { count: valid }] = await Promise.all([
-      db.from("fest_orders").select("id", { count: "exact", head: true }).not("checked_in_at", "is", null),
-      db.from("fest_orders").select("id", { count: "exact", head: true }).eq("status", "verified"),
+    // People, not bookings: each seat in a verified booking is one person (older bookings without seats count once).
+    const [{ data: seatRows }, { count: legacyValid }, { count: legacyIn }] = await Promise.all([
+      db.from("fest_seats").select("checked_in_at,fest_orders!inner(status)").not("order_id", "is", null).eq("fest_orders.status", "verified"),
+      db.from("fest_orders").select("id", { count: "exact", head: true }).eq("status", "verified").eq("qty", 1).eq("seats", "{}"),
+      db.from("fest_orders").select("id", { count: "exact", head: true }).not("checked_in_at", "is", null).eq("seats", "{}"),
     ]);
-    return json({ admitted: admitted ?? 0, valid: valid ?? 0 });
+    const rows = seatRows ?? [];
+    return json({ admitted: rows.filter((r) => r.checked_in_at).length + (legacyIn ?? 0), valid: rows.length + (legacyValid ?? 0) });
   }
 
   if (body.action === "scan") {
@@ -41,7 +44,7 @@ Deno.serve(async (req) => {
     if (error) { console.error(error.message); return json({ error: "server" }, 500); }
     // deno-lint-ignore no-explicit-any
     const r = data as any;
-    return json({ result: r.result, code, name: r.name, status: r.status, checked_in_at: r.checked_in_at, checked_in_by: r.checked_in_by });
+    return json({ result: r.result, code, name: r.name, status: r.status, checked_in_at: r.checked_in_at, checked_in_by: r.checked_in_by, seat: r.seat, seat_label: r.seat ? seatLabel(r.seat) : null });
   }
 
   return json({ error: "bad_action" }, 400);

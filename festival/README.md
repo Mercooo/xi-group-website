@@ -1,13 +1,24 @@
 # XI · 74: festival invitation and ticketing
 
-The invitation website for the XI Group's 74th anniversary (1952 – 2026). Guests pay 100 EGP with InstaPay, upload the transfer screenshot, and get a QR ticket. The gate team scans tickets with a phone camera.
+The invitation website for the XI Group's 74th anniversary (1952 – 2026). Guests pick their seats on the theatre plan, pay 100 EGP a seat with InstaPay, upload the transfer screenshot, and get a QR ticket for every seat (also as a printable PDF). Unit leaders book seats without paying. The gate team scans tickets with a phone camera.
 
 | Page | Who | What |
 | --- | --- | --- |
 | `/` | Everyone | Invitation, InstaPay box, booking form (Arabic, with an English toggle) |
-| `/t/<code>` | Ticket holder | Ticket with QR, status, calendar file, saved image, sponsors' offers |
+| `/t/<code>` | Ticket holder | One QR per seat, status, printable PDF (one A5 page per seat), image, calendar file, sponsors' offers |
+| `/leader` | Unit leaders (own passcode) | Book seats for members and families without InstaPay; list and cancel their bookings |
 | `/gate` | Gate team (passcode) | Camera scanner: admitted / already used / not verified / unknown |
-| `/admin` | Organisers (passcode) | Orders, receipt review, manual tickets, settings, gate log, CSV |
+| `/admin` | Organisers (passcode) | Orders, receipt review, seat map, manual tickets with seats, leader accounts, settings, gate log, CSV |
+
+## Seats
+
+The theatre has one floor of 12 rows, each split into left 5 · centre 10 · right 5 (240 seats). Seat ids look like `03-M07` (row 3, centre seat 7).
+
+- Choosing seats holds them for 15 minutes (`fest-seats`), so two guests can't pay for the same seat. One device can hold at most 20 seats; a booking has at most 10.
+- The amount due is **seats × price**: 3 seats at 100 EGP need one transfer of exactly 300 EGP. Any other amount is `wrong_amount`.
+- When the booking is accepted, the seats are claimed all at once and each gets its own ticket code. A rejected booking gives its seats back; un-rejecting takes them again if nobody bought them meanwhile.
+- Each seat's QR holds `/t/<booking>?seat=<seat code>`. The gate admits each seat once and shows its row and number. Scanning the booking's own code returns `seat_ticket_required`.
+- Leaders (`fest_leaders`, managed in `/admin → القادة`) book through `fest-leader`. Their bookings are verified at once, marked with the leader, and don't count as revenue. A leader can have a seat quota.
 
 The sponsors and offers page is part of the group website: `/sponsors`, driven by `src/data/sponsors.json` in the parent project.
 
@@ -24,7 +35,7 @@ The sponsors and offers page is part of the group website: `/sponsors`, driven b
 
    If an AI reader fails, the next one is used.
 3. Fixed rules decide the outcome. They live in `supabase/functions/_shared/rules.ts`, with OCR text parsing in `textparse.ts`.
-   - The amount must equal the price.
+   - The amount must equal the price × the number of seats.
    - The receiver must match the InstaPay address, phone or name set in `/admin`.
    - The transfer must show as successful.
    - The reference must not have been used for another ticket.
@@ -38,8 +49,8 @@ At the gate, `fest_check_in()` admits a verified ticket exactly once, in a singl
 
 ## Backend (Supabase project `ckuiiqfdlvtcfleglqce`)
 
-- **Tables:** `fest_settings`, `fest_orders`, `fest_scans`, `fest_auth_fails`, `fest_keys`. RLS is on with no policies, so only the functions can reach them.
-- **Functions:** `fest-buy`, `fest-ticket` (public), `fest-gate`, `fest-admin` (passcode in the `x-fest-key` header). All are deployed with `verify_jwt = false`.
+- **Tables:** `fest_settings`, `fest_orders`, `fest_seats`, `fest_leaders`, `fest_scans`, `fest_auth_fails`, `fest_keys`, `fest_read_tokens`. RLS is on with no policies, so only the functions can reach them.
+- **Functions:** `fest-buy`, `fest-ticket`, `fest-seats` (public), `fest-gate`, `fest-admin`, `fest-leader` (passcode in the `x-fest-key` header). All are deployed with `verify_jwt = false`.
 - **Passcodes** are stored as salted PBKDF2 hashes in `fest_keys` and changed from `/admin → الإعدادات → كلمات السر`.
   - The admin passcode opens `/admin` and `/gate`. The gate passcode opens `/gate` only.
   - Ten wrong passcodes from one address lock it out for ten minutes.

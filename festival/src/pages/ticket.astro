@@ -30,6 +30,8 @@ import { SPONSORS_URL } from '../lib/site';
       <div data-view="verified" hidden>
         <div class="ticket__body">
           <p class="approved" data-f="approved" hidden role="status"><Icon name="check-circle" size={20} /><span><T ar="تم قبول حجزك! هذه تذكرتك." en="Your booking was approved! Here is your ticket." /></span></p>
+          <div class="seat-tabs" id="seat-tabs" role="tablist" hidden></div>
+          <p class="tk-seat" id="tk-seat" hidden></p>
           <span class="chip chip--ok" id="tk-chip"><T ar="صالحة للدخول" en="Valid for entry" /></span>
           <div class="qr-frame" id="qr-frame">
             <canvas id="qr" width="260" height="260" role="img" aria-label="QR"></canvas>
@@ -37,7 +39,8 @@ import { SPONSORS_URL } from '../lib/site';
           </div>
           <p class="tk-name" data-f="name"></p>
           <p class="tk-code" data-f="code"></p>
-          <p class="fine"><T ar="قدّم رمز QR على البوابة. التذكرة تُستخدم مرة واحدة فقط، فلا تشاركها." en="Show this QR at the gate. It works once only, so don’t share it." /></p>
+          <p class="fine" id="tk-howto"><T ar="قدّم رمز QR على البوابة. التذكرة تُستخدم مرة واحدة فقط، فلا تشاركها." en="Show this QR at the gate. It works once only, so don’t share it." /></p>
+          <p class="fine" id="tk-howto-seats" hidden><T ar="لكل مقعد تذكرة برمز QR خاص، تُستخدم مرة واحدة. اختر المقعد بالأعلى لعرض تذكرته، أو حمّل كل التذاكر PDF وأعطِ كل شخص تذكرته." en="Every seat has its own QR ticket that works once. Pick a seat above to show its ticket, or download them all as a PDF and give each person theirs." /></p>
         </div>
         <div class="perf" aria-hidden="true"></div>
         <ul class="tk-info" role="list">
@@ -53,6 +56,7 @@ import { SPONSORS_URL } from '../lib/site';
           <Icon name="hourglass" size={20} />
           <span><T ar="حجزك قيد المراجعة ولم يُقبل بعد" en="Your booking is under review and not accepted yet" /></span>
         </p>
+        <p class="review__seats" data-f="seats-wrap" hidden><T ar="مقاعدك محجوزة لك أثناء المراجعة:" en="Your seats are kept for you during the review:" /> <strong data-f="seats"></strong></p>
         <p class="review__fresh" data-f="fresh" hidden><T ar="تم استلام طلبك وصورة الإيصال بنجاح." en="We received your booking and your screenshot." /></p>
         <ol class="track" aria-label="حالة الحجز">
           <li class="is-done"><span class="track__dot"><Icon name="check" size={16} /></span><span><strong><T ar="استلمنا الإيصال" en="Receipt received" /></strong></span></li>
@@ -105,7 +109,8 @@ import { SPONSORS_URL } from '../lib/site';
     </article>
 
     <div class="tk-actions" id="tk-actions" hidden>
-      <button class="btn btn--gold" type="button" id="save-qr"><Icon name="download" size={18} /><T ar="حفظ صورة التذكرة" en="Save ticket image" /></button>
+      <button class="btn btn--gold btn--wide" type="button" id="save-pdf"><Icon name="download" size={18} /><span id="pdf-label"><T ar="تحميل التذكرة PDF للطباعة" en="Download printable PDF" /></span></button>
+      <button class="btn btn--light" type="button" id="save-qr"><Icon name="download" size={18} /><T ar="حفظ كصورة" en="Save as image" /></button>
       <button class="btn btn--light" type="button" id="share"><Icon name="share" size={18} /><T ar="مشاركة الرابط" en="Share link" /></button>
       <a class="btn btn--ghost btn--wide" id="cal" href="#" download="xi-74.ics" hidden style="color:#fff"><Icon name="calendar" size={18} /><T ar="أضف إلى التقويم" en="Add to calendar" /></a>
     </div>

@@ -139,7 +139,7 @@ async function readFrame(): Promise<string | null> {
 
 // ------------------------------------------------------------------ scan
 async function onCode(raw: string) {
-  const code = (raw.match(/\/t\/([A-Za-z0-9]{8,16})/)?.[1] || raw).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const code = (raw.match(/[?&]seat=([A-Za-z0-9]{8,16})/)?.[1] || raw.match(/\/t\/([A-Za-z0-9]{8,16})/)?.[1] || raw).toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (code === last.code && Date.now() - last.at < 4000) return;
   last = { code, at: Date.now() };
   busy = true;
@@ -156,6 +156,7 @@ const TEXT: Record<string, { title: string; icon: string }> = {
   already_used: { title: 'استُخدمت من قبل', icon: 'ico-warn' },
   not_verified: { title: 'التذكرة غير مؤكدة', icon: 'ico-bad' },
   unknown: { title: 'تذكرة غير معروفة', icon: 'ico-bad' },
+  seat_ticket_required: { title: 'امسح تذكرة المقعد', icon: 'ico-warn' },
   error: { title: 'تعذر التحقق', icon: 'ico-warn' },
 };
 
@@ -167,15 +168,18 @@ function show(result: string, d: any) {
   $('#r-title').textContent = info.title;
   $('#r-icon').replaceChildren(($(`#${info.icon}`) as HTMLTemplateElement).content.cloneNode(true));
   $('#r-name').textContent = d?.name || '';
+  $('#r-seat').textContent = d?.seat_label || '';
+  $('#r-seat').hidden = !d?.seat_label;
   let sub = '';
   if (result === 'already_used' && d.checked_in_at) sub = `دخل ${formatDateTime(d.checked_in_at, 'ar')}${d.checked_in_by ? ` · ${d.checked_in_by}` : ''}`;
   else if (result === 'not_verified') sub = d.status === 'review' ? 'الدفع ما زال قيد المراجعة. وجّه صاحبها إلى المنظمين.' : 'الدفع مرفوض. وجّه صاحبها إلى المنظمين.';
+  else if (result === 'seat_ticket_required') sub = 'هذا رمز الحجز كله. لكل مقعد تذكرة برمز QR خاص في صفحة التذكرة: امسح تذكرة كل شخص.';
   else if (result === 'unknown') sub = 'هذا الرمز ليس من تذاكر الاحتفال.';
   else if (result === 'error') sub = 'تأكد من الإنترنت ثم امسح مرة أخرى.';
   $('#r-sub').textContent = sub;
   box.hidden = false;
   feedback(result);
-  addRecent(result, d?.name || d?.code || '');
+  addRecent(result, [d?.name || d?.code || '', d?.seat_label].filter(Boolean).join(' · '));
   clearTimeout(dismissTimer);
   dismissTimer = window.setTimeout(dismiss, result === 'admitted' ? 2200 : 6000);
 }

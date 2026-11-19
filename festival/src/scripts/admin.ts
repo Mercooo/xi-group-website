@@ -2,6 +2,8 @@
 import { reasonText } from '../lib/reasons';
 import { staff } from './api';
 import { formatDateTime } from './lang';
+import { mountSeatMap, type SeatMap } from './seatmap';
+import { MAX_SEATS, seatLabel, seatsSummary } from '../lib/seats';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
 const S_KEY = 'xi74-admin-key';
@@ -15,6 +17,8 @@ const STATUS: Record<string, [string, string]> = {
 };
 const AFF: Record<string, string> = { member: 'عضو حالي', alumni: 'عضو قديم', leader: 'قائد', parent: 'ولي أمر', friend: 'صديق', guest: 'ضيف' };
 const ticketUrl = (code: string) => `${location.origin}/t/${code}`;
+const SOURCE: Record<string, string> = { instapay: 'إنستاباي', leader: 'حجز قائد', admin: 'إصدار يدوي' };
+const sourceText = (o: any) => (o.source === 'leader' && o.fest_leaders ? `${o.fest_leaders.name} (${o.fest_leaders.unit})` : SOURCE[o.source] || '');
 const el = (tag: string, cls?: string, text?: string) => {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -47,6 +51,9 @@ document.querySelectorAll<HTMLElement>('[data-tab]').forEach((tab) =>
     document.querySelectorAll<HTMLElement>('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== tab.dataset.tab));
     if (tab.dataset.tab === 'settings') loadSettings();
     if (tab.dataset.tab === 'scans') loadScans();
+    if (tab.dataset.tab === 'seats') loadSeatMap();
+    if (tab.dataset.tab === 'issue') loadIssueMap();
+    if (tab.dataset.tab === 'leaders') loadLeaders();
   }),
 );
 
@@ -57,13 +64,16 @@ function renderStats(s: any) {
   $('#k-rejected').textContent = s.rejected;
   $('#k-admitted').textContent = s.admitted;
   $('#k-revenue').textContent = Number(s.revenue).toLocaleString('en');
+  $('#k-seats').textContent = `${s.seats_booked ?? 0}${s.seats_review ? ` +${s.seats_review}` : ''}`;
+  $('#k-free').textContent = String(s.seats_free ?? '–');
   const b = $('#badge-review');
   b.textContent = s.review;
   b.hidden = !s.review;
 }
+let price = 100;
 async function loadStats() {
   const r = await api({ action: 'stats' });
-  if (r.ok) renderStats(r.data);
+  if (r.ok) { renderStats(r.data); price = r.data.price ?? price; }
 }
 
 // ---------------------------------------------------------------- orders
@@ -90,6 +100,8 @@ async function loadOrders() {
     meta.append(el('span', 'mono', o.phone), el('span', '', formatDateTime(o.created_at, 'ar')));
     if (o.affiliation) meta.append(el('span', '', AFF[o.affiliation] || o.affiliation));
     if (o.reference) meta.append(el('span', 'mono', `#${o.reference}`));
+    if (o.seats?.length) meta.append(el('span', '', `${o.seats.length} ${o.seats.length === 1 ? 'مقعد' : 'مقاعد'}: ${seatsSummary(o.seats, 'ar')}`));
+    if (o.source && o.source !== 'instapay') meta.append(el('span', '', sourceText(o)));
     main.append(meta);
     if (o.status !== 'verified' && o.reasons?.length) main.append(el('div', 'order__meta', o.reasons.map((x: string) => reasonText(x, 'ar')).join(' · ')));
     const side = el('div', 'order__side');
@@ -138,7 +150,10 @@ async function openOrder(o: any) {
     dl.append(el('dd', mono ? 'mono' : '', v));
   };
   add('الحالة', STATUS[o.status][0] + (o.auto_verified ? ' (تحقق آلي)' : ''));
-  add('رمز التذكرة', o.code, true);
+  add('رمز الحجز', o.code, true);
+  add('المقاعد', o.seats?.length ? `${o.seats.length}: ${o.seats.map((x: string) => seatLabel(x, 'ar')).join('، ')}` : null);
+  add('المصدر', sourceText(o));
+  add('المطلوب', o.source === 'instapay' && o.seats?.length ? `${o.seats.length} × ${price} = ${o.seats.length * price} جنيه` : null);
   add('الموبايل', o.phone, true);
   add('البريد', o.email);
   add('الصلة', AFF[o.affiliation] || o.affiliation);
@@ -190,7 +205,7 @@ async function openOrder(o: any) {
 const waTo = (phone: string) => (phone && phone !== '-' ? phone.replace(/^0/, '20') : '');
 function decisionMessage(o: any, status: string) {
   const link = ticketUrl(o.code);
-  if (status === 'verified') return `أهلاً ${o.name}، تم قبول حجزك لعيد الـ74 للمجموعة الحادية عشر 🎉\nهذه تذكرتك برمز QR، قدّمها على البوابة:\n${link}`;
+  if (status === 'verified') return `أهلاً ${o.name}، تم قبول حجزك لعيد الـ74 للمجموعة الحادية عشر 🎉\n${o.seats?.length ? `مقاعدك: ${o.seats.map((x: string) => seatLabel(x, 'ar')).join('، ')}\n` : ''}تذاكرك برمز QR (ويمكن تحميلها PDF للطباعة)، قدّمها على البوابة:\n${link}`;
   if (status === 'rejected') return `أهلاً ${o.name}، للأسف لم نتمكن من قبول إيصال التحويل لحجزك في عيد الـ74.\nالتفاصيل في صفحة الحجز:\n${link}\nإن كنت حوّلت المبلغ الصحيح، ردّ على هذه الرسالة بصورة أوضح للإيصال.`;
   return '';
 }
@@ -199,10 +214,10 @@ document.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((b) =>
   b.addEventListener('click', async () => {
     if (!open) return;
     const status = b.dataset.set!;
-    if (status === 'rejected' && !confirm('رفض هذا الطلب؟ لن تصبح التذكرة صالحة للدخول.')) return;
+    if (status === 'rejected' && !confirm(`رفض هذا الطلب؟ لن تصبح التذكرة صالحة للدخول${open.seats?.length ? '، وستعود مقاعده متاحة للحجز' : ''}.`)) return;
     b.disabled = true;
     const r = await api({ action: 'set_status', id: open.id, status, note: $<HTMLInputElement>('#d-note').value });
-    if (!r.ok) { b.disabled = false; return alert(r.data.error === 'reference_used' ? 'يوجد طلب آخر مؤكد بنفس رقم المرجع.' : 'تعذر الحفظ.'); }
+    if (!r.ok) { b.disabled = false; return alert(r.data.error === 'reference_used' ? 'يوجد طلب آخر مؤكد بنفس رقم المرجع.' : r.data.error === 'seats_taken' ? 'لا يمكن: مقاعد هذا الطلب حُجزت لشخص آخر بعد رفضه.' : 'تعذر الحفظ.'); }
     open.status = status;
     document.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((x) => (x.disabled = x.dataset.set === status));
     // Tell the organiser the guest's page already updated, and offer to message them now.
@@ -241,7 +256,7 @@ $('#d-delete').addEventListener('click', async () => {
 $('#csv').addEventListener('click', async () => {
   const r = await api({ action: 'list', status: filter, q: $<HTMLInputElement>('#q').value, all: true });
   if (!r.ok) return alert('تعذر التصدير.');
-  const cols = ['code', 'name', 'phone', 'email', 'affiliation', 'status', 'auto_verified', 'amount', 'reference', 'recipient', 'paid_at', 'created_at', 'checked_in_at', 'checked_in_by', 'admin_note', 'reasons'];
+  const cols = ['code', 'name', 'phone', 'email', 'affiliation', 'status', 'qty', 'seats', 'source', 'auto_verified', 'amount', 'reference', 'recipient', 'paid_at', 'created_at', 'checked_in_at', 'checked_in_by', 'admin_note', 'reasons'];
   const cell = (v: unknown) => {
     let s = Array.isArray(v) ? v.join(' | ') : v == null ? '' : String(v);
     if (/^[=+\-@]/.test(s)) s = "'" + s; // keep spreadsheets from running formulas
@@ -258,12 +273,12 @@ $('#csv').addEventListener('click', async () => {
 // ---------------------------------------------------------------- issue
 $('#issue-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const r = await api({ action: 'issue', name: $<HTMLInputElement>('#i-name').value, phone: $<HTMLInputElement>('#i-phone').value, note: $<HTMLInputElement>('#i-note').value });
+  const r = await api({ action: 'issue', name: $<HTMLInputElement>('#i-name').value, phone: $<HTMLInputElement>('#i-phone').value, note: $<HTMLInputElement>('#i-note').value, seats: issueSeats });
   const box = $('#issued');
   box.hidden = false;
   const span = box.querySelector('span')!;
   span.textContent = '';
-  if (!r.ok) { box.className = 'notice notice--bad'; span.textContent = 'تعذر إصدار التذكرة.'; return; }
+  if (!r.ok) { box.className = 'notice notice--bad'; span.textContent = r.data.error === 'seat_unavailable' ? 'أحد المقاعد حُجز للتو. اختر غيره.' : 'تعذر إصدار التذكرة.'; loadIssueMap(); return; }
   box.className = 'notice notice--ok';
   span.append('صدرت التذكرة: ');
   const a = el('a', 'mono', ticketUrl(r.data.code)) as HTMLAnchorElement;
@@ -271,6 +286,8 @@ $('#issue-form').addEventListener('submit', async (e) => {
   a.target = '_blank';
   span.append(a);
   (e.target as HTMLFormElement).reset();
+  issueSeats = [];
+  loadIssueMap();
   loadStats();
 });
 
@@ -353,7 +370,7 @@ $('#pass-form').addEventListener('submit', async (e) => {
 });
 
 // ------------------------------------------------------------------ scans
-const SCAN: Record<string, string> = { admitted: '✓ دخل', already_used: '! مستخدمة', not_verified: '✕ غير مؤكدة', unknown: '✕ غير معروفة' };
+const SCAN: Record<string, string> = { admitted: '✓ دخل', already_used: '! مستخدمة', not_verified: '✕ غير مؤكدة', unknown: '✕ غير معروفة', seat_ticket_required: '! رمز الحجز بدل تذكرة المقعد' };
 async function loadScans() {
   const r = await api({ action: 'scans' });
   const body = $('#scans-body');
@@ -368,14 +385,156 @@ async function loadScans() {
 }
 $('#scans-refresh').addEventListener('click', loadScans);
 
+// ------------------------------------------------------------------ seats
+let adminMap: SeatMap | null = null;
+let seatRows = new Map<string, any>();
+const SEAT_STATE: Record<string, string> = { verified: 'مؤكد', review: 'قيد المراجعة', rejected: 'مرفوض', held: 'يُحجز الآن (لم يكمل الدفع)', free: 'متاح' };
+
+async function loadSeatMap() {
+  adminMap ??= mountSeatMap($('#admin-map'), showSeatInfo, { pickAny: true });
+  const r = await api({ action: 'seat_map' });
+  if (!r.ok) return;
+  seatRows = new Map(r.data.seats.map((x: any) => [x.id, x]));
+  for (const x of r.data.seats) {
+    const st = x.in ? 'in' : x.state === 'verified' ? 'taken' : x.state === 'review' ? 'review' : x.state === 'held' ? 'held' : 'free';
+    adminMap.set(x.id, st, x.name ? `${x.name}${x.source === 'leader' ? ' · قائد' : x.source === 'admin' ? ' · يدوي' : ''}` : undefined);
+  }
+}
+$('#seats-refresh').addEventListener('click', loadSeatMap);
+
+function showSeatInfo(id: string) {
+  const x = seatRows.get(id);
+  const box = $('#seat-info');
+  box.hidden = false;
+  box.textContent = '';
+  box.append(el('h2', '', seatLabel(id, 'ar')));
+  const dl = el('dl', 'dl');
+  const add = (k: string, v: string) => { dl.append(el('dt', '', k), el('dd', '', v)); };
+  add('الحالة', x?.in ? 'دخل صاحبه' : SEAT_STATE[x?.state ?? 'free'] ?? x?.state);
+  if (x?.name) add('الاسم', x.name);
+  if (x?.source) add('المصدر', SOURCE[x.source] ?? x.source);
+  box.append(dl);
+  if (x?.code) {
+    const a = el('a', 'btn btn--sm btn--ghost', 'فتح الطلب') as HTMLAnchorElement;
+    a.href = '#';
+    a.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const r = await api({ action: 'list', q: x.code });
+      const o = r.ok ? r.data.rows.find((row: any) => row.code === x.code) : null;
+      if (o) openOrder(o);
+    });
+    const t = el('a', 'btn btn--sm btn--ghost', 'صفحة التذاكر') as HTMLAnchorElement;
+    t.href = ticketUrl(x.code);
+    t.target = '_blank';
+    const row = el('div', 'actions');
+    row.style.marginTop = '10px';
+    row.append(a, t);
+    box.append(row);
+  }
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Seats for a manually issued ticket.
+let issueMap: SeatMap | null = null;
+let issueSeats: string[] = [];
+let issueTaken = new Set<string>();
+function paintIssue() {
+  if (!issueMap) return;
+  for (const id of issueMap.ids()) issueMap.set(id, issueSeats.includes(id) ? 'selected' : issueTaken.has(id) ? 'taken' : 'free');
+  $('#issue-seats').textContent = issueSeats.length ? `${issueSeats.length}: ${seatsSummary(issueSeats, 'ar')}` : 'لم تُختر مقاعد.';
+}
+async function loadIssueMap() {
+  issueMap ??= mountSeatMap($('#issue-map'), (id) => {
+    if (issueSeats.includes(id)) issueSeats = issueSeats.filter((x) => x !== id);
+    else if (issueSeats.length < MAX_SEATS) issueSeats = [...issueSeats, id].sort();
+    paintIssue();
+  });
+  const r = await api({ action: 'seat_map' });
+  if (!r.ok) return;
+  issueTaken = new Set(r.data.seats.filter((x: any) => x.state !== 'free').map((x: any) => x.id));
+  issueSeats = issueSeats.filter((id) => !issueTaken.has(id));
+  paintIssue();
+}
+
+// ---------------------------------------------------------------- leaders
+let leaders: any[] = [];
+async function loadLeaders() {
+  const r = await api({ action: 'leaders_list' });
+  const box = $('#leaders');
+  box.textContent = '';
+  if (!r.ok) { box.append(el('p', 'empty-list', 'تعذر التحميل.')); return; }
+  leaders = r.data.rows;
+  if (!leaders.length) box.append(el('p', 'empty-list', 'لا توجد حسابات قادة بعد.'));
+  for (const l of leaders) {
+    const b = el('button', 'order') as HTMLButtonElement;
+    b.type = 'button';
+    b.dataset.s = l.active ? 'verified' : 'rejected';
+    const main = el('div');
+    main.append(el('div', 'order__name', l.name));
+    main.append(el('div', 'order__meta', `${l.unit} · حجز ${l.seats_used} ${l.seat_quota ? `من ${l.seat_quota}` : ''} مقعد`));
+    const side = el('div', 'order__side');
+    side.append(el('span', `chip ${l.active ? 'chip--ok' : 'chip--bad'}`, l.active ? 'مفعّل' : 'موقوف'));
+    b.append(main, side);
+    b.addEventListener('click', () => editLeader(l));
+    box.append(b);
+  }
+}
+function editLeader(l: any | null) {
+  $<HTMLInputElement>('#lf-id').value = l?.id ?? '';
+  $<HTMLInputElement>('#lf-name').value = l?.name ?? '';
+  $<HTMLInputElement>('#lf-unit').value = l?.unit ?? '';
+  $<HTMLInputElement>('#lf-pass').value = '';
+  $<HTMLInputElement>('#lf-quota').value = l?.seat_quota ?? '';
+  $<HTMLInputElement>('#lf-active').checked = l ? !!l.active : true;
+  $('#lf-title').textContent = l ? `تعديل: ${l.name}` : 'قائد جديد';
+  $('#lf-pass-hint').textContent = l ? '(اتركها فارغة لعدم تغييرها)' : '(8 أحرف على الأقل)';
+  $('#lf-new').hidden = !l;
+  $('#lf-msg').hidden = true;
+  $('#leader-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+$('#lf-new').addEventListener('click', () => editLeader(null));
+$('#lf-gen').addEventListener('click', () => {
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const r = crypto.getRandomValues(new Uint8Array(12));
+  const s = [...r].map((x) => A[x % 32]).join('');
+  $<HTMLInputElement>('#lf-pass').value = `${s.slice(0, 4)}-${s.slice(4, 8)}-${s.slice(8)}`;
+});
+$('#leader-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = $<HTMLInputElement>('#lf-id').value;
+  const pass = $<HTMLInputElement>('#lf-pass').value.trim();
+  const r = await api({
+    action: 'leader_save', id: id || undefined,
+    name: $<HTMLInputElement>('#lf-name').value, unit: $<HTMLInputElement>('#lf-unit').value,
+    passcode: pass || undefined, seat_quota: $<HTMLInputElement>('#lf-quota').value || null,
+    active: $<HTMLInputElement>('#lf-active').checked,
+  });
+  const msg = $('#lf-msg');
+  msg.hidden = false;
+  if (!r.ok) {
+    msg.className = 'notice notice--bad';
+    msg.querySelector('span')!.textContent = { weak_passcode: 'كلمة السر يجب أن تكون 8 أحرف على الأقل.', bad_leader: 'اكتب الاسم والوحدة.' }[r.data.error || ''] || 'تعذر الحفظ.';
+    return;
+  }
+  msg.className = 'notice notice--ok';
+  msg.querySelector('span')!.textContent = pass ? `تم الحفظ. كلمة السر: ${pass} — احفظها وأعطها للقائد، لن تظهر مرة أخرى.` : 'تم الحفظ.';
+  $<HTMLInputElement>('#lf-id').value = r.data.id;
+  $<HTMLInputElement>('#lf-pass').value = '';
+  loadLeaders();
+});
+
 // ------------------------------------------------------------------ start
 let auto = 0;
 function start(stats?: any) {
   $('#login').hidden = true;
   $('#app').hidden = false;
-  if (stats) renderStats(stats); else loadStats();
+  if (stats) { renderStats(stats); price = stats.price ?? price; } else loadStats();
   loadOrders();
   clearInterval(auto);
-  auto = window.setInterval(() => { if (!sheet.open && document.visibilityState === 'visible') { loadStats(); loadOrders(); } }, 30_000);
+  auto = window.setInterval(() => {
+    if (sheet.open || document.visibilityState !== 'visible') return;
+    loadStats(); loadOrders();
+    if (!$('[data-panel="seats"]').hidden) loadSeatMap();
+  }, 30_000);
 }
 if (key) api({ action: 'stats' }).then((r) => (r.ok ? start(r.data) : sessionStorage.removeItem(S_KEY)));

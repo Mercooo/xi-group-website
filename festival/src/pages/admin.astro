@@ -75,7 +75,9 @@ import Icon from '../components/Icon.astro';
       <div class="wrap adm-bar__in">
         <nav class="tabs" role="tablist" aria-label="أقسام اللوحة">
           <button class="tab" role="tab" aria-selected="true" data-tab="orders"><Icon name="list" size={18} />الطلبات <span class="badge" id="badge-review" hidden></span></button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="seats"><Icon name="ticket" size={18} />المقاعد</button>
           <button class="tab" role="tab" aria-selected="false" data-tab="issue"><Icon name="plus" size={18} />إصدار تذكرة</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="leaders"><Icon name="list" size={18} />القادة</button>
           <button class="tab" role="tab" aria-selected="false" data-tab="settings"><Icon name="settings" size={18} />الإعدادات</button>
           <button class="tab" role="tab" aria-selected="false" data-tab="scans"><Icon name="qr" size={18} />سجل البوابة</button>
         </nav>
@@ -94,7 +96,9 @@ import Icon from '../components/Icon.astro';
           <div class="kpi" style="--c:var(--warn)"><b id="k-review">–</b><span>تحتاج مراجعة</span></div>
           <div class="kpi" style="--c:var(--bad)"><b id="k-rejected">–</b><span>مرفوضة</span></div>
           <div class="kpi" style="--c:var(--scouts)"><b id="k-admitted">–</b><span>دخلوا الاحتفال</span></div>
-          <div class="kpi" style="--c:var(--gold)"><b id="k-revenue">–</b><span>إجمالي المؤكد (جنيه)</span></div>
+          <div class="kpi" style="--c:var(--gold)"><b id="k-revenue">–</b><span>إجمالي المدفوع المؤكد (جنيه)</span></div>
+          <div class="kpi" style="--c:var(--cubs)"><b id="k-seats">–</b><span>مقاعد محجوزة من 240</span></div>
+          <div class="kpi" style="--c:var(--buds)"><b id="k-free">–</b><span>مقاعد متاحة</span></div>
         </div>
         <div class="toolbar">
           <input class="input" id="q" type="search" placeholder="بحث بالاسم أو الموبايل أو الرمز أو المرجع" aria-label="بحث" />
@@ -128,9 +132,60 @@ import Icon from '../components/Icon.astro';
               <div class="field"><label for="i-phone">الموبايل <span class="hint">(اختياري)</span></label><input class="input" id="i-phone" type="tel" dir="ltr" /></div>
             </div>
             <div class="field"><label for="i-note">ملاحظة <span class="hint">(مثلاً: دفع نقداً)</span></label><input class="input" id="i-note" maxlength="300" /></div>
+            <div class="field">
+              <span class="label">المقاعد <span class="hint">(اختر من الخريطة، حتى 10)</span></span>
+              <div id="issue-map"></div>
+              <p class="hint" id="issue-seats" style="margin-top:6px">لم تُختر مقاعد.</p>
+            </div>
             <button class="btn" type="submit"><Icon name="ticket" size={18} />إصدار التذكرة</button>
           </form>
           <div class="notice notice--ok" id="issued" hidden style="margin-top:16px"><Icon name="check-circle" size={18} /><span></span></div>
+        </div>
+      </section>
+
+      <!-- seats -->
+      <section data-panel="seats" hidden>
+        <div class="toolbar">
+          <p style="color:var(--muted);margin:0">اضغط على أي مقعد لمعرفة صاحبه. تتحدث الخريطة كل 30 ثانية.</p>
+          <span style="flex:1"></span>
+          <button class="btn btn--sm btn--ghost" id="seats-refresh" type="button"><Icon name="refresh" size={16} />تحديث</button>
+        </div>
+        <div id="admin-map" class="theatre--admin"></div>
+        <div class="seat-legend theatre--admin" style="color:var(--muted)" aria-hidden="true">
+          <span><i class="seat" data-state="free"></i>متاح</span>
+          <span><i class="seat" data-state="taken"></i>مؤكد</span>
+          <span><i class="seat" data-state="review"></i>قيد المراجعة</span>
+          <span><i class="seat" data-state="in"></i>دخل</span>
+          <span><i class="seat" data-state="held"></i>يُحجز الآن</span>
+        </div>
+        <div class="panel" id="seat-info" hidden style="margin-top:14px"></div>
+      </section>
+
+      <!-- leaders -->
+      <section data-panel="leaders" hidden>
+        <div class="panel" style="max-width:860px">
+          <h2>حسابات القادة</h2>
+          <p style="color:var(--muted)">كل قائد يدخل صفحة <a href="/leader" target="_blank">/leader</a> بكلمة سره، ويحجز مقاعد لأعضاء وحدته وأسرهم بدون دفع. حجوزاته تظهر في الطلبات باسمه. كلمات السر تُحفظ مشفّرة، فاحفظها عند إنشائها.</p>
+          <div id="leaders" style="display:grid;gap:8px;margin:14px 0"></div>
+          <form class="form" id="leader-form" style="border-top:1px solid var(--line);padding-top:14px">
+            <h3 id="lf-title" style="border:0;margin:0;padding:0">قائد جديد</h3>
+            <input type="hidden" id="lf-id" />
+            <div class="row2">
+              <div class="field"><label for="lf-name">الاسم الظاهر</label><input class="input" id="lf-name" required maxlength="80" placeholder="مثال: قائد الأشبال" /></div>
+              <div class="field"><label for="lf-unit">الوحدة</label><input class="input" id="lf-unit" required maxlength="60" placeholder="مثال: الأشبال" /></div>
+            </div>
+            <div class="row2">
+              <div class="field"><label for="lf-pass">كلمة السر <span class="hint" id="lf-pass-hint">(8 أحرف على الأقل)</span></label><input class="input" id="lf-pass" dir="ltr" maxlength="100" autocomplete="new-password" /></div>
+              <div class="field"><label for="lf-quota">الحد الأقصى للمقاعد <span class="hint">(فارغ = بلا حد)</span></label><input class="input" id="lf-quota" type="number" min="1" step="1" dir="ltr" /></div>
+            </div>
+            <label class="switch"><input type="checkbox" id="lf-active" checked />الحساب مفعّل</label>
+            <div class="notice" id="lf-msg" role="status" hidden><Icon name="check-circle" size={18} /><span></span></div>
+            <div class="actions">
+              <button class="btn" type="submit"><Icon name="check" size={18} />حفظ</button>
+              <button class="btn btn--ghost" type="button" id="lf-gen">كلمة سر عشوائية</button>
+              <button class="btn btn--ghost" type="button" id="lf-new" hidden>قائد جديد</button>
+            </div>
+          </form>
         </div>
       </section>
 

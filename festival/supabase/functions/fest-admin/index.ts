@@ -1,8 +1,9 @@
 // Organisers' board. Needs the admin passcode in the x-fest-key header. POST { action, ... }:
 //   stats | list { status?, q?, page? } | receipt { id } | set_status { id, status, note? }
 //   undo_checkin { id } | issue { name, phone, note? } | settings_get | settings_set { ...fields } | scans
-//   set_passcode { role: admin | gate, passcode } | delete { id }
-import { authorize, BUCKET, db, forgetPasscodes, getSettings, hashPasscode, json, newSalt, normPhone, CORS, PASS_ITERATIONS } from "../_shared/shared.ts";
+//   set_passcode { role: admin | gate, passcode } | delete { id } | seat_map
+//   leaders_list | leader_save { id?, name, unit, passcode?, seat_quota?, active? }
+import { authorize, BUCKET, claimSeats, cleanSeats, db, forgetLeaders, forgetPasscodes, getSettings, hashPasscode, json, newSalt, normPhone, seatLabel, CORS, PASS_ITERATIONS } from "../_shared/shared.ts";
 
 const PAGE = 50;
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -31,7 +32,23 @@ Deno.serve(async (req) => {
         count((q) => q.eq("auto_verified", true)),
       ]);
       const s = await getSettings();
-      return json({ verified, review, rejected, admitted, auto, revenue: verified * s.price_egp, price: s.price_egp });
+      // Seats: booked (verified), waiting (in review), free; money only from paid (InstaPay) seats.
+      const { data: seatRows } = await db.from("fest_seats").select("order_id,checked_in_at,fest_orders(status,source)");
+      let seatsBooked = 0, seatsReview = 0, seatsIn = 0, paidSeats = 0;
+      for (const r of seatRows ?? []) {
+        // deno-lint-ignore no-explicit-any
+        const o = (r as any).fest_orders;
+        if (!r.order_id || !o) continue;
+        if (o.status === "verified") { seatsBooked++; if (o.source === "instapay") paidSeats++; }
+        if (o.status === "review") seatsReview++;
+        if (r.checked_in_at) seatsIn++;
+      }
+      const seatsTotal = (seatRows ?? []).length;
+      return json({
+        verified, review, rejected, admitted: admitted + seatsIn, auto, price: s.price_egp,
+        revenue: paidSeats * s.price_egp,
+        seats_total: seatsTotal, seats_booked: seatsBooked, seats_review: seatsReview, seats_free: seatsTotal - seatsBooked - seatsReview, seats_in: seatsIn,
+      });
     }
 
     case "list": {
@@ -39,7 +56,7 @@ Deno.serve(async (req) => {
       const all = b.all === true;
       let q = db
         .from("fest_orders")
-        .select("id,code,created_at,name,phone,email,affiliation,status,auto_verified,reasons,amount,reference,recipient,paid_at,receipt_path,reviewed_at,reviewed_by,admin_note,checked_in_at,checked_in_by", { count: "exact" })
+        .select("id,code,created_at,name,phone,email,affiliation,status,auto_verified,reasons,amount,reference,recipient,paid_at,receipt_path,reviewed_at,reviewed_by,admin_note,checked_in_at,checked_in_by,seats,qty,source,fest_leaders(name,unit)", { count: "exact" })
         .order("created_at", { ascending: false });
       if (["verified", "review", "rejected"].includes(b.status)) q = q.eq("status", b.status);
       if (b.status === "checked_in") q = q.not("checked_in_at", "is", null);
@@ -65,6 +82,16 @@ Deno.serve(async (req) => {
 
     case "set_status": {
       if (!["verified", "review", "rejected"].includes(b.status)) return json({ error: "bad_status" }, 400);
+      const { data: cur } = await db.from("fest_orders").select("id,status,seats").eq("id", b.id).maybeSingle();
+      if (!cur) return json({ error: "not_found" }, 404);
+      const seats: string[] = cur.seats ?? [];
+      if (b.status === "rejected" && seats.length) {
+        await db.rpc("fest_release_seats", { p_order: cur.id }); // the seats go back on sale
+      } else if (cur.status === "rejected" && b.status !== "rejected" && seats.length) {
+        // Un-rejecting: take the same seats back, if nobody bought them meanwhile.
+        const { count } = await db.from("fest_seats").select("id", { count: "exact", head: true }).eq("order_id", cur.id);
+        if ((count ?? 0) < seats.length && !(await claimSeats(cur.id, seats, null))) return json({ error: "seats_taken" }, 409);
+      }
       const patch: Record<string, unknown> = { status: b.status, reviewed_at: new Date().toISOString(), reviewed_by: "admin" };
       if (typeof b.note === "string") patch.admin_note = b.note.slice(0, 300);
       const { data, error } = await db.from("fest_orders").update(patch).eq("id", b.id).select("id,status").maybeSingle();
@@ -78,31 +105,82 @@ Deno.serve(async (req) => {
       const { data } = await db.from("fest_orders").select("id,receipt_path").eq("id", b.id).maybeSingle();
       if (!data) return json({ error: "not_found" }, 404);
       if (data.receipt_path) await db.storage.from(BUCKET).remove([data.receipt_path]);
+      await db.rpc("fest_release_seats", { p_order: data.id });
       await db.from("fest_scans").update({ order_id: null }).eq("order_id", data.id);
       const { error } = await db.from("fest_orders").delete().eq("id", data.id);
       return error ? json({ error: "server" }, 500) : json({ ok: true });
     }
 
     case "undo_checkin": {
+      await db.from("fest_seats").update({ checked_in_at: null, checked_in_by: null }).eq("order_id", b.id);
       const { error } = await db.from("fest_orders").update({ checked_in_at: null, checked_in_by: null }).eq("id", b.id);
       return error ? json({ error: "server" }, 500) : json({ ok: true });
     }
 
     case "issue": {
-      // A ticket without an InstaPay transfer (cash, guests of honour, sponsors).
+      // A ticket without an InstaPay transfer (cash, guests of honour, sponsors), optionally with seats.
       const name = String(b.name || "").trim().slice(0, 80);
       const phone = normPhone(b.phone || "");
       if (name.length < 2) return json({ error: "bad_name" }, 400);
+      const seats = b.seats && (Array.isArray(b.seats) ? b.seats.length : String(b.seats).trim()) ? cleanSeats(b.seats) : [];
+      if (seats === null) return json({ error: "bad_seats" }, 400);
       for (let i = 0; i < 3; i++) {
         const code = newCode();
-        const { error } = await db.from("fest_orders").insert({
-          code, name, phone: phone || "-", status: "verified", reasons: ["issued_by_admin"],
+        const { data: created, error } = await db.from("fest_orders").insert({
+          code, name, phone: phone || "-", status: "verified", reasons: ["issued_by_admin"], seats, qty: Math.max(1, seats.length), source: "admin",
           admin_note: String(b.note || "").slice(0, 300) || null, reviewed_at: new Date().toISOString(), reviewed_by: "admin",
-        });
-        if (!error) return json({ ok: true, code });
-        if (error.code !== "23505") return json({ error: "server" }, 500);
+        }).select("id").single();
+        if (error) { if (error.code === "23505") continue; return json({ error: "server" }, 500); }
+        if (seats.length && !(await claimSeats(created.id, seats, null))) {
+          await db.from("fest_orders").delete().eq("id", created.id);
+          return json({ error: "seat_unavailable" }, 409);
+        }
+        return json({ ok: true, code });
       }
       return json({ error: "server" }, 500);
+    }
+
+    case "seat_map": {
+      // Who sits where, for the organisers.
+      const { data } = await db.from("fest_seats").select("id,held_until,checked_in_at,fest_orders(code,name,status,source)").order("id");
+      const now = Date.now();
+      return json({
+        seats: (data ?? []).map((r) => {
+          // deno-lint-ignore no-explicit-any
+          const o = (r as any).fest_orders;
+          return { id: r.id, label: seatLabel(r.id), state: o ? o.status : r.held_until && Date.parse(r.held_until) > now ? "held" : "free", name: o?.name ?? null, code: o?.code ?? null, source: o?.source ?? null, in: !!r.checked_in_at };
+        }),
+      });
+    }
+
+    case "leaders_list": {
+      const { data: leaders } = await db.from("fest_leaders").select("id,name,unit,seat_quota,active,created_at").order("created_at");
+      const { data: used } = await db.from("fest_orders").select("leader_id,qty").eq("source", "leader").neq("status", "rejected");
+      const usedBy = new Map<string, number>();
+      for (const u of used ?? []) usedBy.set(u.leader_id, (usedBy.get(u.leader_id) ?? 0) + u.qty);
+      return json({ rows: (leaders ?? []).map((l) => ({ ...l, seats_used: usedBy.get(l.id) ?? 0 })) });
+    }
+
+    case "leader_save": {
+      const name = String(b.name || "").trim().slice(0, 80);
+      const unit = String(b.unit || "").trim().slice(0, 60);
+      if (name.length < 2 || unit.length < 2) return json({ error: "bad_leader" }, 400);
+      const patch: Record<string, unknown> = { name, unit };
+      if (b.seat_quota !== undefined) patch.seat_quota = Number(b.seat_quota) > 0 ? Math.round(Number(b.seat_quota)) : null;
+      if (b.active !== undefined) patch.active = !!b.active;
+      const pass = String(b.passcode || "").trim();
+      if (pass) {
+        if (pass.length < 8 || pass.length > 100) return json({ error: "weak_passcode" }, 400);
+        patch.salt = newSalt();
+        patch.hash = await hashPasscode(pass, patch.salt as string);
+        patch.iterations = PASS_ITERATIONS;
+      }
+      let res;
+      if (b.id) res = await db.from("fest_leaders").update(patch).eq("id", b.id).select("id").maybeSingle();
+      else if (!pass) return json({ error: "weak_passcode" }, 400);
+      else res = await db.from("fest_leaders").insert(patch).select("id").single();
+      forgetLeaders();
+      return res.error || !res.data ? json({ error: "server" }, 500) : json({ ok: true, id: res.data.id });
     }
 
     case "settings_get":

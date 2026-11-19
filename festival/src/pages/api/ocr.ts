@@ -49,18 +49,22 @@ async function readWithGemini(key: string, bytes: Uint8Array, mime: string) {
   const ai = new GoogleGenAI({ apiKey: key });
   const models = (process.env.GEMINI_MODEL || GEMINI_MODELS).split(',').map((m) => m.trim()).filter(Boolean);
   let last = '';
+  const t0 = Date.now();
   for (const model of models) {
+    // A busy model can hang; give each one a slice of the time and keep room for the fallback.
+    const left = 40_000 - (Date.now() - t0);
+    if (left < 4_000) break;
     try {
       const res = await ai.models.generateContent({
         model,
         contents: [{ role: 'user', parts: [{ inlineData: { mimeType: mime, data: Buffer.from(bytes).toString('base64') } }, { text: 'Transcribe this payment screenshot.' }] }],
-        config: { systemInstruction: SYSTEM, responseMimeType: 'application/json', responseSchema: GEMINI_SCHEMA as any, temperature: 0 },
+        config: { systemInstruction: SYSTEM, responseMimeType: 'application/json', responseSchema: GEMINI_SCHEMA as any, temperature: 0, abortSignal: AbortSignal.timeout(Math.min(18_000, left)) },
       });
       if (res.text) return { fields: JSON.parse(res.text), model };
       last = `${model}: empty`;
     } catch (e: any) {
       last = `${model}: ${String(e?.message || e).slice(0, 160)}`;
-      if ([429, 500, 503, 404].includes(e?.status)) continue; // busy or unavailable: next model
+      if ([429, 500, 503, 404].includes(e?.status) || /abort|timeout/i.test(String(e?.name) + String(e?.message))) continue; // busy, slow or unavailable: next model
       break;
     }
   }

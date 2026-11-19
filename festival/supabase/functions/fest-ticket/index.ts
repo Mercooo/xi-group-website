@@ -2,7 +2,7 @@
 //   GET ?config=1   → what the invitation page needs (price, InstaPay link, whether sales are open)
 //   GET ?code=XXXX  → one ticket's state. The code is the secret printed in the QR; it is never listed.
 //   GET ?read_token=…&sha=…  → redeems a one-time pass for the festival site's AI receipt reader
-import { db, getSettings, json, CORS } from "../_shared/shared.ts";
+import { db, getSettings, json, seatLabel, CORS } from "../_shared/shared.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
   if (code.length < 8 || code.length > 16) return json({ error: "bad_code" }, 400);
   const { data } = await db
     .from("fest_orders")
-    .select("code,name,phone,status,reasons,created_at,checked_in_at,reviewed_at,ocr")
+    .select("id,code,name,phone,status,reasons,created_at,checked_in_at,reviewed_at,ocr,seats,qty,source")
     .eq("code", code)
     .maybeSingle();
   if (!data) return json({ error: "not_found" }, 404);
@@ -57,12 +57,28 @@ Deno.serve(async (req) => {
   // a person reviews; the organisers still see them. Decisions the organisers made are shown.
   const ocrGuess = data.status === "review" && data.ocr?.model === "tesseract";
   const reasons = data.status === "verified" || ocrGuess ? [] : data.reasons;
+  // Each seat is its own entry ticket. Its QR code is only handed out once the booking is verified.
+  let seatTickets: { id: string; label_ar: string; label_en: string; code: string | null; checked_in_at: string | null }[] = [];
+  if ((data.seats ?? []).length) {
+    const { data: rows } = await db.from("fest_seats").select("id,ticket_code,checked_in_at").eq("order_id", data.id).order("id");
+    const held = new Map((rows ?? []).map((r) => [r.id, r]));
+    seatTickets = (data.seats as string[]).map((id) => ({
+      id,
+      label_ar: seatLabel(id, "ar"),
+      label_en: seatLabel(id, "en"),
+      code: data.status === "verified" ? held.get(id)?.ticket_code ?? null : null,
+      checked_in_at: held.get(id)?.checked_in_at ?? null,
+    }));
+  }
   return json({
     code: data.code,
     name: data.name,
     phone: data.phone.replace(/^(\d{3})\d+(\d{3})$/, "$1•••••$2"),
     status: data.status,
     reasons,
+    seats: seatTickets,
+    qty: data.qty,
+    source: data.source,
     created_at: data.created_at,
     checked_in_at: data.checked_in_at,
     sponsors_url: s.sponsors_url,
