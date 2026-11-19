@@ -1,0 +1,306 @@
+/* ==========================================================================
+   XI · 74 — "A Journey Through Time"
+   The invitation page dressed like the event's ticket: a starlit Bethlehem night,
+   red velvet theatre curtains and embossed gold lettering.
+   ========================================================================== */
+.journey {
+  --midnight: #0a1338;
+  --navy: #16286a;
+  --navy-2: #1d3380;
+  --gold-hi: #fff1c2;
+  --gold-leaf: #e8c068;
+  --gold-deep: #a8792a;
+  --velvet: #9b1a16;
+  --velvet-dark: #4a0807;
+  --amber: #f3a33a;
+  --starlight: #fff6dc;
+  --ruqaa: 'Aref Ruqaa', 'Amiri', serif;
+  --roman: 'Cinzel', 'Trajan Pro', Georgia, serif;
+  --gilt: linear-gradient(180deg, var(--gold-hi) 0%, #f7dd8f 28%, var(--gold-leaf) 52%, var(--gold-deep) 74%, #f2d27e 100%);
+  --gilt-text: linear-gradient(180deg, #fff8dc 8%, #f9e3a0 34%, #edc96f 58%, #c8963c 82%, #f4d98a 100%);
+  --velvet-folds:
+    linear-gradient(180deg, rgb(0 0 0 / 0.35), transparent 22%, transparent 70%, rgb(0 0 0 / 0.5)),
+    repeating-linear-gradient(90deg, var(--velvet-dark) 0, #7d1210 2.2%, #c3261e 4.6%, #8e1612 7%, var(--velvet-dark) 9.4%);
+  background: var(--midnight);
+  color: #fff;
+}
+.journey ::selection { background: var(--gold-leaf); color: var(--midnight); }
+
+/* ------------------------------------------------------------- gold type */
+.gold-title {
+  font-family: var(--ruqaa);
+  font-weight: 700;
+  font-size: clamp(2.75rem, 10vw, 5.5rem);
+  line-height: 1.25;
+  text-align: center;
+  color: var(--gold-leaf);
+  margin: 0;
+}
+.gold-title > .ar,
+.gold-title > .en,
+.gold-title--md .ar,
+.gold-title--md .en,
+.gold-title--sm .ar,
+.gold-title--sm .en {
+  background: var(--gilt-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 0 #4d2f08) drop-shadow(0 0 22px rgb(247 200 100 / 0.32));
+  padding-inline: 0.1em; /* room for the Ruqaa swashes */
+}
+html[data-lang='en'] .gold-title { font-family: var(--roman); font-size: clamp(1.75rem, 7vw, 3.75rem); letter-spacing: 0.01em; line-height: 1.2; }
+.gold-title small { display: block; margin-top: 0.15em; font: 600 clamp(1.125rem, 3.6vw, 1.75rem)/1.5 var(--font); color: var(--starlight); -webkit-text-fill-color: currentColor; filter: none; }
+html[data-lang='en'] .gold-title small { font: italic 600 clamp(1.0625rem, 3vw, 1.5rem)/1.5 Georgia, 'Times New Roman', serif; }
+.gold-title--md { font-size: clamp(2.125rem, 6.5vw, 3.5rem); }
+html[data-lang='en'] .gold-title--md { font-size: clamp(1.625rem, 4.4vw, 2.5rem); }
+.gold-title--sm { font-size: clamp(1.75rem, 5vw, 2.5rem); text-align: start; }
+html[data-lang='en'] .gold-title--sm { font-size: clamp(1.375rem, 3.6vw, 1.875rem); }
+
+/* --------------------------------------------------------------- buttons */
+.jbtn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 54px; padding: 10px 30px; border-radius: 999px;
+  font: 700 1.125rem/1.2 var(--font); color: #2a1a03; text-decoration: none; cursor: pointer; border: 0;
+  background: var(--gilt);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7), inset 0 -2px 0 rgb(120 80 20 / 0.5), 0 10px 30px rgb(243 163 58 / 0.3);
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+.jbtn:hover { transform: translateY(-1px); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7), inset 0 -2px 0 rgb(120 80 20 / 0.5), 0 14px 38px rgb(243 163 58 / 0.45); }
+.jbtn:active { transform: translateY(1px); }
+.jbtn:focus-visible { outline: 3px solid var(--starlight); outline-offset: 3px; }
+.jbtn--sm { min-height: 40px; padding: 6px 18px; font-size: 0.9375rem; }
+.jbtn--ghost { background: transparent; color: var(--gold-leaf); box-shadow: inset 0 0 0 1.5px var(--gold-leaf); }
+.jbtn--ghost:hover { background: rgb(232 192 104 / 0.1); box-shadow: inset 0 0 0 1.5px var(--gold-hi); }
+
+/* ------------------------------------------------------------------ bar */
+.jbar { position: absolute; inset: 0 0 auto; z-index: 20; padding-top: 10px; }
+.jbar__in { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; }
+.jbar .brand { color: #fff; }
+.jbar .brand__name small { color: var(--gold-leaf); }
+.jbar .bar__actions { display: flex; align-items: center; gap: 8px; }
+@media (max-width: 520px) { .jbar .brand__name small { display: none; } .jbar .jbtn--sm { display: none; } }
+
+/* --------------------------------------------------------------- the stage */
+.stage {
+  position: relative; isolation: isolate; overflow: hidden;
+  min-height: 100svh;
+  padding: 104px 0 clamp(150px, 22vw, 260px);
+  background:
+    radial-gradient(120% 60% at 50% 100%, rgb(243 163 58 / 0.55), rgb(243 163 58 / 0.12) 40%, transparent 65%),
+    radial-gradient(80% 50% at 50% 38%, rgb(60 90 200 / 0.35), transparent 70%),
+    linear-gradient(180deg, #050a24 0%, var(--midnight) 35%, var(--navy) 72%, #3a2f63 100%);
+}
+.stage__sky { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.stage__in { position: relative; z-index: 2; display: grid; justify-items: center; text-align: center; gap: 14px; }
+.stage__copy { display: grid; justify-items: center; gap: 14px; }
+/* keep the words clear of the drawn-back curtains on narrow screens */
+@media (max-width: 999px) { .stage__in { padding-inline: max(0px, calc(clamp(34px, 11vw, 180px) - 10px)); } }
+/* wide screens: medallion beside the words, as on the printed ticket */
+@media (min-width: 1000px) {
+  .stage { display: grid; align-content: center; padding-top: 112px; }
+  .stage__in { grid-template-columns: minmax(0, 1fr) auto; column-gap: clamp(32px, 4vw, 64px); align-items: center; max-width: 1080px;
+    padding-inline: max(0px, calc(11vw - (100vw - 1080px) / 2 + 16px)); }
+  .medal { grid-column: 2; grid-row: 1; width: clamp(320px, min(32vw, 58svh), 440px); margin: 0; }
+  .stage__copy { grid-column: 1; grid-row: 1; }
+  .stage .gold-title { font-size: clamp(3.5rem, 5.4vw, 5rem); }
+  html[data-lang='en'] .stage .gold-title { font-size: clamp(2.25rem, 3.6vw, 3.25rem); }
+}
+
+.wordmark {
+  margin: 0; font: 700 clamp(2rem, 7vw, 3.5rem)/1 var(--roman); letter-spacing: 0.02em;
+  background: var(--gilt); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 #4d2f08) drop-shadow(0 0 18px rgb(247 200 100 / 0.3));
+}
+
+/* medallion inside a turning clock ring */
+.medal { position: relative; width: clamp(236px, min(64vw, 44svh), 380px); aspect-ratio: 1; margin: 14px 0 4px; }
+.medal::before { /* halo */
+  content: ''; position: absolute; inset: -18%; border-radius: 50%; z-index: -1;
+  background: radial-gradient(circle, rgb(255 214 120 / 0.5), rgb(243 163 58 / 0.18) 42%, transparent 68%);
+}
+.medal__art { position: absolute; inset: 7%; width: 86%; height: 86%; border-radius: 50%; box-shadow: 0 0 0 3px rgb(232 192 104 / 0.7), 0 20px 60px rgb(0 0 0 / 0.55); }
+.medal__ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; animation: ring-turn 240s linear infinite; }
+.medal__ring circle { fill: none; }
+.ring-a { stroke: var(--gold-leaf); stroke-width: 2.5; }
+.ring-b { stroke: rgb(232 192 104 / 0.45); stroke-width: 1; }
+.tick { stroke: rgb(232 192 104 / 0.55); stroke-width: 1.2; }
+.tick--h { stroke: var(--gold-hi); stroke-width: 2.2; }
+.numeral { fill: var(--gold-leaf); font: 700 15px var(--roman); text-anchor: middle; }
+@keyframes ring-turn { to { transform: rotate(360deg); } }
+
+.stage__lead { max-width: 34ch; margin: 2px auto 0; color: rgb(255 246 220 / 0.86); font-size: clamp(1rem, 2.6vw, 1.1875rem); line-height: 1.8; }
+.when { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 26px; }
+.when li { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; color: var(--starlight); font-size: clamp(1rem, 2.6vw, 1.125rem); }
+.when svg { color: var(--gold-leaf); flex-shrink: 0; }
+.when a { color: inherit; text-decoration-color: rgb(232 192 104 / 0.6); text-underline-offset: 4px; }
+.when small { display: none; }
+
+/* countdown as four small clock faces */
+.dials { display: flex; gap: clamp(6px, 2.4vw, 12px); justify-content: center; margin-top: 6px; }
+.dials div { width: clamp(58px, 17vw, 70px); aspect-ratio: 1; border-radius: 50%; display: grid; place-content: center; text-align: center;
+  background: radial-gradient(circle at 50% 35%, #213b8f, #0c1747 70%);
+  box-shadow: inset 0 0 0 2px var(--gold-leaf), inset 0 0 0 6px rgb(10 19 56 / 0.9), inset 0 0 0 7px rgb(232 192 104 / 0.45), 0 8px 20px rgb(0 0 0 / 0.4); }
+.dials b { font: 700 1.5rem/1 var(--roman); color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+.dials small { font-size: 0.6875rem; color: rgb(255 246 220 / 0.75); margin-top: 2px; }
+@media (max-width: 380px) { .dials b { font-size: 1.3rem; } }
+
+.stage__cta { display: grid; justify-items: center; gap: 8px; margin-top: 14px; }
+.stage__price { color: rgb(255 246 220 / 0.75); font-size: 0.9375rem; }
+
+/* curtains drawn back at the edges, with a scalloped valance */
+.drape { position: absolute; top: 0; z-index: 3; width: clamp(34px, 11vw, 180px); height: 74%; background: var(--velvet-folds); pointer-events: none;
+  filter: drop-shadow(0 10px 18px rgb(0 0 0 / 0.55)); }
+.drape--l { left: 0; border-bottom-right-radius: 100% 72%; }
+.drape--r { right: 0; border-bottom-left-radius: 100% 72%; }
+.drape i { position: absolute; top: 58%; width: 18px; height: 34px; border-radius: 50% 50% 40% 40%; background: radial-gradient(circle at 40% 30%, var(--gold-hi), var(--gold-deep) 70%); box-shadow: 0 4px 8px rgb(0 0 0 / 0.5); }
+.drape--l i { right: 18%; }
+.drape--r i { left: 18%; }
+.valance { position: absolute; inset: 0 0 auto; height: 38px; z-index: 4; pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 0, #b3201a 0 64%, transparent 65%) 0 0 / 64px 38px repeat-x,
+    linear-gradient(180deg, var(--velvet-dark), #7d1210) 0 0 / 100% 14px no-repeat;
+  filter: drop-shadow(0 3px 0 var(--gold-deep)) drop-shadow(0 8px 10px rgb(0 0 0 / 0.45)); }
+.jbar { top: 24px; }
+
+.guide-star { position: absolute; z-index: 1; top: clamp(70px, 14vw, 120px); inset-inline-end: clamp(46px, 16vw, 230px); width: clamp(30px, 6vw, 56px); fill: var(--starlight);
+  filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px rgb(255 214 120 / 0.9)); animation: star-breathe 5s ease-in-out infinite; }
+@keyframes star-breathe { 50% { transform: scale(0.82); opacity: 0.85; } }
+
+/* Bethlehem at the horizon */
+.skyline { position: absolute; inset: auto 0 0; width: 100%; height: clamp(150px, 22vw, 260px); z-index: 1; }
+.sk-far { fill: #121d52; }
+.sk-town, .sk-palms { fill: #0a1236; }
+.sk-lights rect { fill: #ffc861; opacity: 0.85; }
+.stable-wall { fill: #1a1430; }
+.stable-roof { fill: #0a1236; }
+.stable-light { fill: #ffbf5a; opacity: 0.88; }
+.stable-fig { fill: #2a1607; stroke: #2a1607; stroke-width: 2; }
+.stable-babe { fill: #fff3cf; }
+.sk-near { fill: var(--midnight); }
+
+/* ---------------------------------------------------- opening curtain */
+.curtain { display: none; }
+html.intro .curtain { display: block; position: fixed; inset: 0; z-index: 100; pointer-events: auto; cursor: pointer; }
+.curtain__panel { position: absolute; top: 0; bottom: 0; width: 50.5%; background: var(--velvet-folds); transition: transform 1.7s cubic-bezier(0.7, 0, 0.2, 1); }
+.curtain__panel::after { content: ''; position: absolute; inset: auto 0 0; height: 18px; background: repeating-linear-gradient(90deg, var(--gold-leaf) 0 3px, var(--gold-deep) 3px 6px); opacity: 0.9; }
+.curtain__panel--l { left: 0; transform-origin: left; }
+.curtain__panel--r { right: 0; transform-origin: right; }
+.curtain__seal { position: absolute; left: 50%; top: 50%; width: 132px; height: 132px; margin: -66px 0 0 -66px; border-radius: 50%; display: grid; place-content: center; text-align: center;
+  background: radial-gradient(circle at 40% 30%, var(--gold-hi), var(--gold-leaf) 45%, var(--gold-deep) 90%);
+  box-shadow: 0 0 0 4px rgb(77 47 8 / 0.6), 0 0 0 9px rgb(232 192 104 / 0.5), 0 20px 50px rgb(0 0 0 / 0.6);
+  color: #3b2405; transition: opacity 0.5s ease, transform 0.5s ease; }
+.curtain__seal span { font: 700 1rem/1 var(--roman); letter-spacing: 0.1em; }
+.curtain__seal b { font: 700 3.25rem/1 var(--roman); }
+html.intro.curtain-open .curtain__panel--l { transform: translateX(-100%) scaleX(0.6); }
+html.intro.curtain-open .curtain__panel--r { transform: translateX(100%) scaleX(0.6); }
+html.intro.curtain-open .curtain__seal { opacity: 0; transform: scale(1.3); }
+html.intro.curtain-open .curtain { pointer-events: none; }
+/* The stage lights come up behind the curtain. */
+html.intro .medal, html.intro .stage__copy > * { opacity: 0; transform: translateY(14px); }
+html.intro.curtain-open .medal, html.intro.curtain-open .stage__copy > * { opacity: 1; transform: none; transition: opacity 0.9s ease-out, transform 0.9s ease-out; }
+html.intro.curtain-open .medal { transition-delay: 0.35s; }
+html.intro.curtain-open .stage__copy > :nth-child(1) { transition-delay: 0.7s; }
+html.intro.curtain-open .stage__copy > :nth-child(n + 2) { transition-delay: 1s; }
+
+/* ------------------------------------------------------------ sections */
+.invite, .journey-sec, .playbill-sec, .box, .partners-sec { position: relative; padding: clamp(56px, 8vw, 96px) 0; }
+.partners-sec { padding-top: 0; }
+.invite, .playbill-sec, .partners-sec {
+  background:
+    radial-gradient(1px 1px at 12% 20%, rgb(255 255 255 / 0.6), transparent),
+    radial-gradient(1px 1px at 76% 12%, rgb(255 255 255 / 0.5), transparent),
+    radial-gradient(1.5px 1.5px at 44% 70%, rgb(255 255 255 / 0.45), transparent),
+    radial-gradient(1px 1px at 90% 62%, rgb(255 255 255 / 0.5), transparent),
+    radial-gradient(1px 1px at 24% 86%, rgb(255 255 255 / 0.4), transparent),
+    var(--midnight);
+}
+.journey-sec, .box { background: linear-gradient(180deg, var(--midnight), #101d50 50%, var(--midnight)); }
+.sec-head { display: grid; justify-items: center; gap: 10px; text-align: center; margin-bottom: clamp(32px, 5vw, 48px); }
+.sec-head p { max-width: 56ch; color: rgb(255 246 220 / 0.78); }
+
+/* the invitation, framed like the printed card */
+.scroll { position: relative; max-width: 760px; margin-inline: auto; padding: clamp(36px, 6vw, 60px) clamp(22px, 5vw, 56px); text-align: center; display: grid; gap: 12px; justify-items: center;
+  border-radius: 6px;
+  background: radial-gradient(90% 70% at 50% 0, rgb(60 90 200 / 0.28), transparent 70%), linear-gradient(180deg, #13225f, #0c1747);
+  box-shadow: inset 0 0 0 2px var(--gold-leaf), inset 0 0 0 9px #0f1b52, inset 0 0 0 10px rgb(232 192 104 / 0.55), 0 30px 80px rgb(0 0 0 / 0.5); }
+.fleur { width: 46px; fill: var(--gold-leaf); filter: drop-shadow(0 0 10px rgb(247 200 100 / 0.45)); }
+.scroll__from { font-weight: 700; font-size: clamp(1.0625rem, 2.8vw, 1.3125rem); color: var(--gold-hi); max-width: 30ch; }
+.scroll__line { color: rgb(255 246 220 / 0.85); font-size: 1.0625rem; }
+.scroll__note { max-width: 44ch; color: var(--starlight); font-size: clamp(1rem, 2.4vw, 1.125rem); line-height: 1.9; }
+.ribbon { position: relative; margin-top: 14px; padding: 0 30px; }
+.ribbon span { position: relative; z-index: 1; display: inline-block; padding: 10px 26px; font-weight: 700; color: #3b2405; background: var(--gilt);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), 0 6px 16px rgb(0 0 0 / 0.35); }
+.ribbon::before, .ribbon::after { content: ''; position: absolute; top: 10px; bottom: -8px; width: 44px; background: var(--gold-deep);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 26% 50%); }
+.ribbon::before { left: 0; }
+.ribbon::after { right: 0; transform: scaleX(-1); }
+
+/* the journey: six scenes joined by a golden thread of time */
+.scenes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 18px; position: relative; }
+.scenes::before { content: ''; position: absolute; top: 60px; inset-inline: 8%; height: 2px; z-index: 0;
+  background: repeating-linear-gradient(90deg, var(--gold-leaf) 0 10px, transparent 10px 18px); opacity: 0.7; }
+.scene { position: relative; z-index: 1; display: grid; justify-items: center; text-align: center; gap: 6px; }
+.scene__img { width: 120px; height: 120px; border-radius: 50%; overflow: hidden; display: block; background: var(--navy);
+  box-shadow: 0 0 0 3px var(--gold-leaf), 0 0 0 7px var(--midnight), 0 0 0 8px rgb(232 192 104 / 0.5), 0 12px 30px rgb(0 0 0 / 0.5); }
+.scene__img img { width: 100%; height: 100%; object-fit: cover; }
+.scene__no { margin-top: 10px; font-size: 0.875rem; font-weight: 700; color: var(--gold-leaf); }
+.scene h3 { font: 700 1.375rem/1.4 var(--ruqaa); color: var(--gold-hi); }
+html[data-lang='en'] .scene h3 { font: 700 1.0625rem/1.35 var(--roman); }
+.scene p { font-size: 0.9375rem; line-height: 1.75; color: rgb(255 246 220 / 0.78); max-width: 26ch; }
+.scene:last-child .scene__img { box-shadow: 0 0 0 3px var(--gold-hi), 0 0 0 7px var(--midnight), 0 0 0 8px var(--gold-leaf), 0 0 40px rgb(255 214 120 / 0.55); }
+@media (max-width: 1000px) {
+  .scenes { grid-template-columns: 1fr; gap: 26px; max-width: 520px; margin-inline: auto; }
+  .scenes::before { top: 40px; bottom: 40px; inset-inline: 40px auto; width: 2px; height: auto; background: repeating-linear-gradient(180deg, var(--gold-leaf) 0 10px, transparent 10px 18px); }
+  .scene { grid-template-columns: 82px 1fr; justify-items: start; text-align: start; column-gap: 18px; row-gap: 2px; align-items: start; }
+  .scene__img { width: 82px; height: 82px; grid-row: span 3; }
+  .scene__no { margin-top: 4px; }
+  .scene p { max-width: none; }
+}
+
+/* tonight's programme, set like a theatre playbill */
+.playbill { max-width: 720px; margin-inline: auto; text-align: center; display: grid; justify-items: center; gap: 8px; }
+.playbill__date { color: var(--gold-leaf); font-weight: 700; }
+.acts { list-style: none; margin: 18px 0 8px; padding: 0; width: 100%; }
+.acts li { padding: 22px 0; display: grid; gap: 4px; justify-items: center; }
+.acts li + li { border-top: 1px solid transparent; border-image: linear-gradient(90deg, transparent, rgb(232 192 104 / 0.6), transparent) 1; }
+.acts h3 { font: 700 clamp(1.625rem, 4.4vw, 2.125rem)/1.35 var(--ruqaa); color: var(--gold-hi); }
+html[data-lang='en'] .acts h3 { font: 700 clamp(1.25rem, 3.2vw, 1.5rem)/1.35 var(--roman); }
+.acts p { color: rgb(255 246 220 / 0.82); max-width: 46ch; }
+.units-row { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 22px; }
+.units-row li { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--starlight); font-size: 0.9375rem; }
+.units-row img { width: 44px; height: 44px; border-radius: 50%; background: #fff; padding: 3px; box-shadow: 0 0 0 2px var(--c); }
+.playbill__foot { color: rgb(255 246 220 / 0.7); font-size: 0.9375rem; max-width: 52ch; }
+
+/* box office: the existing booking flow in the night palette */
+.journey .box .theatre { --seat: #22356f; --seat-hover: #2f4790; background: #0b1546; box-shadow: inset 0 0 0 1px rgb(232 192 104 / 0.35); }
+.journey .box .theatre__row { background: #0b1546; }
+.journey .box .theatre__stage { background: linear-gradient(180deg, #c3261e, var(--velvet-dark)); color: var(--gold-hi); box-shadow: 0 2px 0 var(--gold-leaf), 0 10px 30px rgb(195 38 30 / 0.35); }
+.journey .box .picker__head h3 { font-family: var(--ruqaa); font-size: 1.75rem; color: var(--gold-hi); }
+html[data-lang='en'] .journey .box .picker__head h3 { font-family: var(--roman); font-size: 1.25rem; }
+.journey .box .card { box-shadow: 0 0 0 2px var(--gold-leaf), 0 30px 80px rgb(0 0 0 / 0.5); }
+.journey .box .card h3 { font-family: var(--ruqaa); font-size: 1.875rem; color: var(--ink); }
+html[data-lang='en'] .journey .box .card h3 { font-family: var(--roman); font-size: 1.375rem; }
+.journey .box .steps li::before { background: var(--gilt); color: #3b2405; }
+.journey .box .pay-box { background: rgb(232 192 104 / 0.08); border-color: rgb(232 192 104 / 0.55); }
+.journey .box .btn--gold { --bg: var(--gold-leaf); }
+.journey .box .picker__bar { background: rgb(232 192 104 / 0.1); }
+.journey #mine a { background: rgb(255 255 255 / 0.06); }
+
+.j-partners { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px 32px; padding: clamp(22px, 4vw, 34px); border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgb(232 192 104 / 0.5); background: linear-gradient(180deg, #13225f, #0c1747); }
+.j-partners p { color: rgb(255 246 220 / 0.78); max-width: 52ch; margin-top: 6px; }
+.jfoot { background: #060c28; }
+
+/* ------------------------------------------------------- reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .medal__ring, .guide-star { animation: none; }
+  .jbtn, .jbtn:hover { transition: none; transform: none; }
+}
+
+/* Failsafe: if the script never runs, the curtain lifts by itself. */
+html.intro .curtain { animation: curtain-failsafe 0.6s ease 6s forwards; }
+html.intro .medal, html.intro .stage__copy > * { animation: stage-failsafe 0.6s ease 6s forwards; }
+html.intro.curtain-open .curtain, html.intro.curtain-open .medal, html.intro.curtain-open .stage__copy > * { animation: none; }
+@keyframes curtain-failsafe { to { opacity: 0; visibility: hidden; } }
+@keyframes stage-failsafe { to { opacity: 1; transform: none; } }

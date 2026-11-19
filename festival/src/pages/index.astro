@@ -1,95 +1,221 @@
 ---
+import '@fontsource/aref-ruqaa/arabic-700.css';
+import '@fontsource/aref-ruqaa/latin-700.css';
+import '@fontsource/cinzel/latin-600.css';
+import '@fontsource/cinzel/latin-700.css';
+import '../styles/journey.css';
 import Base from '../layouts/Base.astro';
 import T from '../components/T.astro';
 import Icon from '../components/Icon.astro';
-import { UNITS, FOUNDED, YEARS, XI_SITE, SPONSORS_URL, FACEBOOK, INSTAGRAM } from '../lib/site';
+import { UNITS, XI_SITE, SPONSORS_URL, FACEBOOK, INSTAGRAM } from '../lib/site';
+
+// The clock ring around the medallion: 60 ticks and twelve Roman numerals.
+const NUMERALS = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+const ticks = Array.from({ length: 60 }, (_, i) => i);
+
+const SCENES = [
+  { img: '/img/journey/v-1952.webp', year: '1952', ar: 'حيث بدأت الحكاية', en: 'Where the story began',
+    tar: 'أسّس القائد جاك العيسي المجموعة باسم «مجموعة الحبل بلا دنس»، ضمن حركة كشافة ومرشدات وادي النيل.',
+    ten: 'Leader Jacques El-Eissi founded the group as the “Immaculate Conception Group”, part of the Wadi El Nil Scouts & Guides.' },
+  { img: '/img/journey/v-camp.webp', ar: 'حول نار المخيم', en: 'Around the campfire',
+    tar: 'خيام تحت القمر وأناشيد حتى الفجر: هنا تعلّمت أجيال أن تخدم وأن تقود.',
+    ten: 'Tents under the moon and songs until dawn: where generations learned to serve and to lead.' },
+  { img: '/img/journey/v-street.webp', ar: 'ميلاد في شوارع المدينة', en: 'Christmas in the city streets',
+    tar: 'زينة وأجراس وشجرة في كل بيت، والمجموعة تحمل فرحة العيد إلى الجيران.',
+    ten: 'Lights, bells and a tree in every home, with the group carrying the joy of the feast next door.' },
+  { img: '/img/journey/v-kahk.webp', ar: 'على مائدة العيد', en: 'At the feast table',
+    tar: 'صواني الكحك ودفء العائلة: التقاليد التي يسلّمها جيل لجيل.',
+    ten: 'Trays of kahk and the warmth of family: traditions handed from one generation to the next.' },
+  { img: '/img/journey/v-today.webp', ar: 'جيل اليوم', en: 'Today’s generation',
+    tar: 'الحكاية نفسها بلغة جديدة: صور وفيديوهات وقصص يرويها الأعضاء الجدد.',
+    ten: 'The same story in a new language: photos, videos and stories told by the newest members.' },
+  { img: '/img/journey/medallion.webp', year: '2026', ar: 'الليلة الكبيرة', en: 'The big night',
+    tar: 'نلتقي كلنا لنحتفل بـ74 عاماً، ولنكتشف معاً المعنى الحقيقي للميلاد.',
+    ten: 'All of us together, celebrating 74 years and discovering the true meaning of Christmas.' },
+];
+
+const PROGRAMME = [
+  { ar: 'عرض الطبول', en: 'The drumline', tar: 'فرقة الطبول تفتتح الليلة بإيقاع يعرفه كل من مرّ بالمجموعة.', ten: 'The drumline opens the night with a beat everyone who has been part of the group will know.' },
+  { ar: 'مسرحية «رحلة عبر الزمن»', en: 'The play: “A Journey Through Time”', tar: 'رحلة عبر العصور لاكتشاف المعنى الحقيقي للميلاد.', ten: 'A journey across the ages to discover the true meaning of Christmas.' },
+  { ar: 'حفل تسليم القيادة', en: 'The leadership handover', tar: 'التسليم الرسمي لقيادة المجموعة الحادية عشر إلى جيلها الجديد.', ten: 'The official handover of the XI Group’s leadership to its new generation.' },
+];
 ---
-<Base title="المجموعة الحادية عشر · 74 عاماً | احجز تذكرتك">
-  <header class="bar">
-    <div class="wrap bar__in">
+<Base title="رحلة عبر الزمن · عيد الـ74 للمجموعة الحادية عشر | احجز مقعدك" description="المجموعة الحادية عشر لكشافة ومرشدات وادي النيل تدعوكم لعيدها الـ74 وحفل تسليم القيادة: رحلة عبر الزمن لاكتشاف المعنى الحقيقي للميلاد. الجمعة 4 ديسمبر 2026، كلية دي لا سال بالظاهر. اختر مقعدك واحجز الآن." theme="#0a1338" bodyClass="journey">
+  <script is:inline>
+    // The curtain opening plays once per visit, not when coming back to book or with reduced motion.
+    try {
+      if (!location.hash && !sessionStorage.getItem('xi74-curtain') && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('intro');
+    } catch (e) {}
+  </script>
+  <div class="curtain" id="curtain" aria-hidden="true">
+    <div class="curtain__panel curtain__panel--l"></div>
+    <div class="curtain__panel curtain__panel--r"></div>
+    <div class="curtain__seal"><span>XI</span><b>74</b></div>
+  </div>
+
+  <header class="jbar">
+    <div class="wrap jbar__in">
       <a class="brand" href="/">
         <span class="brand__mark"><img src="/img/xi-logo.webp" alt="" width="32" height="32" /></span>
-        <span class="brand__name"><T ar="المجموعة الحادية عشر" en="XI Group" /><small><T ar="عيد الـ74" en="74th anniversary" /></small></span>
+        <span class="brand__name"><T ar="المجموعة الحادية عشر" en="XI Group" /><small><T ar="كشافة ومرشدات وادي النيل" en="Wadi El Nil Scouts & Guides" /></small></span>
       </a>
       <div class="bar__actions">
-        <a class="btn btn--gold btn--sm" href="#ticket"><Icon name="ticket" size={18} /><T ar="احجز تذكرتك" en="Get a ticket" /></a>
+        <a class="jbtn jbtn--sm" href="#ticket"><T ar="احجز مقعدك" en="Book a seat" /></a>
         <button class="lang-toggle" type="button" data-lang-toggle><span class="ar" lang="en">EN</span><span class="en">عربي</span></button>
       </div>
     </div>
   </header>
 
   <main id="main">
-    <section class="hero" aria-labelledby="hero-title">
-      <div class="hero__photo" style="--photo:url('/img/archive.webp')"></div>
-      <div class="wrap hero__in">
-        <p class="hero__years num">{FOUNDED} — {FOUNDED + YEARS}</p>
-        <p class="big74" aria-hidden="true"><span>7</span><span>4</span></p>
-        <h1 id="hero-title"><T ar="أربعة وسبعون عاماً من الكشافة والمحبة" en="Seventy-four years of scouting and friendship" /></h1>
-        <p class="hero__lead">
-          <T ar="المجموعة الحادية عشر، كشافة ومرشدات وادي النيل في القاهرة، تدعوكم للاحتفال معنا بعيدها الـ74. قادة وأعضاء قدامى وعائلات وأصدقاء: يوم واحد يجمع أجيال المجموعة كلها." en="The XI Group of Wadi El Nil Scouts & Guides in Cairo invites you to celebrate its 74th anniversary with us. Leaders, alumni, families and friends: one day for every generation of the group." />
-        </p>
-        <ul class="facts" role="list">
-          <li><Icon name="calendar" size={18} /><span id="fact-date"><T ar="الموعد يُعلن قريباً" en="Date to be announced" /></span></li>
-          <li><Icon name="pin" size={18} /><span id="fact-venue"><T ar="المكان يُعلن قريباً" en="Venue to be announced" /></span></li>
-          <li><Icon name="ticket" size={18} /><span><span class="num" data-price>100</span> <T ar="جنيه للمقعد" en="EGP per seat" /></span></li>
-        </ul>
-        <div class="countdown" id="countdown" hidden aria-live="off">
-          <div><b data-cd="d">0</b><small><T ar="يوم" en="days" /></small></div>
-          <div><b data-cd="h">0</b><small><T ar="ساعة" en="hours" /></small></div>
-          <div><b data-cd="m">0</b><small><T ar="دقيقة" en="min" /></small></div>
-          <div><b data-cd="s">0</b><small><T ar="ثانية" en="sec" /></small></div>
+    <section class="stage" aria-labelledby="hero-title">
+      <canvas class="stage__sky" id="sky" aria-hidden="true"></canvas>
+      <div class="valance" aria-hidden="true"></div>
+      <div class="drape drape--l" aria-hidden="true"><i></i></div>
+      <div class="drape drape--r" aria-hidden="true"><i></i></div>
+      <svg class="guide-star" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 0 L56 44 L100 50 L56 56 L50 100 L44 56 L0 50 L44 44 Z" /></svg>
+
+      <div class="wrap stage__in">
+        <div class="medal">
+          <svg class="medal__ring" viewBox="0 0 400 400" aria-hidden="true">
+            <circle cx="200" cy="200" r="197" class="ring-a" />
+            <circle cx="200" cy="200" r="186" class="ring-b" />
+            {ticks.map((i) => <line x1="200" y1="6" x2="200" y2={i % 5 === 0 ? 20 : 13} transform={`rotate(${i * 6} 200 200)`} class={i % 5 === 0 ? 'tick tick--h' : 'tick'} />)}
+            {NUMERALS.map((n, i) => <text x="200" y="38" transform={`rotate(${i * 30} 200 200)`} class="numeral">{n}</text>)}
+          </svg>
+          <img class="medal__art" src="/img/journey/medallion.webp" width="512" height="512" alt="شعار عيد الـ74: صبي برداء أحمر يسافر عبر الزمن، حوله مشاهد المخيم والميلاد والكحك وجيل اليوم، وفرقة الطبول والمسرح" fetchpriority="high" />
         </div>
-        <div class="hero__cta">
-          <a class="btn btn--gold" href="#ticket"><Icon name="ticket" /><T ar="احجز تذكرتك الآن" en="Get your ticket" /></a>
-          <a class="btn btn--ghost" href="#story" style="color:#fff"><T ar="حكاية الـ74 عاماً" en="Our story" /></a>
+        <div class="stage__copy">
+          <h1 id="hero-title" class="gold-title">
+            <span class="ar">رحلة عبر الزمن…</span><span class="en" lang="en">A Journey Through Time…</span>
+            <small><T ar="لاكتشاف المعنى الحقيقي للميلاد" en="to discover the true meaning of Christmas" /></small>
+          </h1>
+          <p class="stage__lead"><T ar="المجموعة الحادية عشر تحتفل بعيدها الـ74، وتسلّم قيادتها لجيل جديد." en="The XI Group celebrates its 74th anniversary and hands its leadership to a new generation." /></p>
+          <ul class="when" role="list">
+            <li><Icon name="calendar" size={22} /><span id="fact-date"><T ar="الجمعة 4 ديسمبر 2026 · 1:00 ظهراً" en="Friday 4 December 2026 · 1:00 pm" /></span></li>
+            <li><Icon name="pin" size={22} /><span id="fact-venue"><T ar="كلية دي لا سال (الفرير) · الظاهر" en="Collège De La Salle · Daher" /></span></li>
+          </ul>
+          <div class="dials" id="countdown" hidden aria-live="off">
+            <div><b data-cd="d">0</b><small><T ar="يوم" en="days" /></small></div>
+            <div><b data-cd="h">0</b><small><T ar="ساعة" en="hours" /></small></div>
+            <div><b data-cd="m">0</b><small><T ar="دقيقة" en="min" /></small></div>
+            <div><b data-cd="s">0</b><small><T ar="ثانية" en="sec" /></small></div>
+          </div>
+          <div class="stage__cta">
+            <a class="jbtn" href="#ticket"><Icon name="ticket" size={20} /><T ar="اختر مقعدك واحجز" en="Choose your seat" /></a>
+            <span class="stage__price"><span class="num" data-price>100</span> <T ar="جنيه للمقعد" en="EGP a seat" /></span>
+          </div>
         </div>
       </div>
-      <div class="bunting" aria-hidden="true"></div>
+
+      <svg class="skyline" viewBox="0 0 1440 240" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+        <defs>
+          <radialGradient id="glow" cx="50%" cy="80%" r="45%">
+            <stop offset="0" stop-color="#ffd27a" stop-opacity=".95" />
+            <stop offset=".35" stop-color="#f3a33a" stop-opacity=".45" />
+            <stop offset="1" stop-color="#f3a33a" stop-opacity="0" />
+          </radialGradient>
+          <symbol id="palm" viewBox="0 0 100 160">
+            <path d="M47 160C45 120 51 80 50 44h5c1 36-3 76-1 116z" />
+            <path d="M52 44C36 26 16 30 2 50c16-12 32-12 48-2zM53 44C70 24 90 28 100 48 86 37 70 37 54 48zM52 42C44 22 28 10 10 12c18 4 30 14 40 32zM53 42C62 20 78 8 96 12 78 15 66 25 55 44zM52 41C52 24 50 12 42 2c14 8 16 22 12 40z" />
+          </symbol>
+        </defs>
+        <rect x="420" y="40" width="600" height="200" fill="url(#glow)" />
+        <path class="sk-far" d="M0 170 Q 180 140 360 160 T 720 150 T 1080 158 T 1440 150 V240 H0Z" />
+        <g class="sk-town">
+          <rect x="60" y="150" width="70" height="60" /><circle cx="95" cy="150" r="26" />
+          <rect x="150" y="120" width="16" height="90" /><path d="M150 120 l8 -18 l8 18z" />
+          <rect x="185" y="160" width="110" height="50" /><rect x="215" y="135" width="50" height="30" /><circle cx="240" cy="134" r="18" />
+          <rect x="320" y="150" width="80" height="60" /><rect x="410" y="168" width="60" height="42" />
+          <rect x="980" y="160" width="80" height="50" /><circle cx="1020" cy="160" r="24" />
+          <rect x="1075" y="125" width="14" height="85" /><path d="M1075 125 l7 -16 l7 16z" />
+          <rect x="1100" y="150" width="120" height="60" /><rect x="1135" y="128" width="50" height="26" /><circle cx="1160" cy="127" r="17" />
+          <rect x="1240" y="165" width="90" height="45" /><rect x="1345" y="150" width="70" height="60" />
+        </g>
+        <g class="sk-lights">
+          <rect x="78" y="175" width="5" height="8" /><rect x="105" y="182" width="5" height="8" /><rect x="200" y="178" width="5" height="8" /><rect x="262" y="182" width="5" height="8" />
+          <rect x="340" y="172" width="5" height="8" /><rect x="372" y="186" width="5" height="8" /><rect x="430" y="185" width="5" height="8" />
+          <rect x="1000" y="182" width="5" height="8" /><rect x="1120" y="170" width="5" height="8" /><rect x="1190" y="178" width="5" height="8" />
+          <rect x="1262" y="184" width="5" height="8" /><rect x="1365" y="172" width="5" height="8" />
+        </g>
+        <g class="sk-palms">
+          <use href="#palm" x="10" y="80" width="80" height="130" /><use href="#palm" x="470" y="70" width="90" height="145" />
+          <use href="#palm" x="545" y="105" width="60" height="100" /><use href="#palm" x="880" y="90" width="80" height="125" />
+          <use href="#palm" x="930" y="120" width="55" height="90" /><use href="#palm" x="1380" y="85" width="80" height="130" />
+        </g>
+        <g class="sk-stable">
+          <path d="M630 210 V150 L720 108 L810 150 V210 Z" class="stable-wall" />
+          <path d="M612 152 L720 98 L828 152 L818 158 L720 110 L622 158 Z" class="stable-roof" />
+          <path d="M650 210 V160 H790 V210 Z" class="stable-light" />
+          <path d="M676 210 c0-22 6-34 14-36 6-1 10 4 10 12 0 6-3 9-1 14 4 2 6 6 6 10z" class="stable-fig" />
+          <path d="M752 210 c-2-20 0-46 8-52 7-5 14 2 13 10l-1 10c6 6 8 18 8 32z M782 150 v60" class="stable-fig" />
+          <path d="M704 210 l6-14 h20 l6 14z" class="stable-fig" />
+          <ellipse cx="720" cy="194" rx="9" ry="4" class="stable-babe" />
+        </g>
+        <path class="sk-near" d="M0 214 Q 360 200 720 212 T 1440 206 V240 H0Z" />
+      </svg>
     </section>
 
-    <section class="section" aria-labelledby="units-title">
+    <section class="invite" aria-labelledby="invite-title">
       <div class="wrap">
-        <div class="section__head">
-          <span class="eyebrow"><T ar="أربع مراحل، عائلة واحدة" en="Four sections, one family" /></span>
-          <h2 id="units-title"><T ar="من البراعم إلى الجوالة" en="From Buds to Rovers" /></h2>
-          <p><T ar="كل مرحلة من مراحل المجموعة لها لونها وطريقتها، وكلها تحتفل معاً في هذا اليوم." en="Every section of the group has its own colour and way of doing things, and all of them celebrate together on this day." /></p>
+        <div class="scroll">
+          <svg class="fleur" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4c-6 8-8 16-4 24-6-4-14-4-18 2 4-1 8 0 10 4-6 2-8 8-6 12 3-4 8-6 12-4l-2 6h16l-2-6c4-2 9 0 12 4 2-4 0-10-6-12 2-4 6-5 10-4-4-6-12-6-18-2 4-8 2-16-4-24zM24 52h16v4H24z" /></svg>
+          <p class="scroll__from"><T ar="المجموعة الحادية عشر لكشافة ومرشدات وادي النيل" en="The Eleventh Group of Scouts & Guides, Wadi El Nil" /></p>
+          <p class="scroll__line"><T ar="تتشرف بدعوتكم للاحتفال" en="is honoured to invite you to celebrate the" /></p>
+          <h2 id="invite-title" class="gold-title gold-title--md"><span class="ar">بالعيد الـ74 لتأسيسها</span><span class="en" lang="en">74th Anniversary of its founding</span></h2>
+          <p class="scroll__note"><T ar="ويشهد هذا اليوم أيضاً حفل تسليم القيادة الرسمي للمجموعة الحادية عشر." en="This special occasion will also mark the official Leadership Handover Ceremony of the XI Group." /></p>
+          <p class="ribbon"><span><T ar="74 عاماً من الكشافة والقيادة والأخوّة" en="74 years of scouting, leadership and brotherhood" /></span></p>
         </div>
-        <ul class="units" role="list">
-          {UNITS.map((u) => (
-            <li class="unit" style={`--c:${u.color}`}>
-              <img src={`/img/${u.key}.webp`} alt="" loading="lazy" decoding="async" />
-              <div class="unit__txt">
-                <span class="unit__logo"><img src={`/img/logo-${u.key}.webp`} alt="" loading="lazy" /></span>
-                <span><strong><T ar={u.ar} en={u.en} /></strong><small><T ar={u.agesAr} en={u.agesEn} /></small></span>
-              </div>
+      </div>
+    </section>
+
+    <section class="journey-sec" aria-labelledby="journey-title">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2 id="journey-title" class="gold-title gold-title--md"><T ar="رحلة 74 عاماً" en="A 74-year journey" /></h2>
+          <p><T ar="ست محطات من حكاية المجموعة، من أول مخيم إلى ليلة الاحتفال." en="Six stops in the group’s story, from the first camp to the night of the celebration." /></p>
+        </div>
+        <ol class="scenes" role="list">
+          {SCENES.map((s, i) => (
+            <li class="scene">
+              <span class="scene__img"><img src={s.img} alt="" width="120" height="120" loading="lazy" decoding="async" /></span>
+              <span class="scene__no"><T ar={`المشهد ${'١٢٣٤٥٦'[i]}`} en={`Scene ${i + 1}`} />{s.year && <span class="num"> · {s.year}</span>}</span>
+              <h3><T ar={s.ar} en={s.en} /></h3>
+              <p><T ar={s.tar} en={s.ten} /></p>
             </li>
           ))}
-        </ul>
+        </ol>
       </div>
     </section>
 
-    <section class="section" id="story" aria-labelledby="story-title" style="padding-top:0">
-      <div class="wrap story">
-        <div class="story__text">
-          <span class="eyebrow"><T ar="منذ 1952" en="Since 1952" /></span>
-          <h2 id="story-title"><T ar="حكاية بدأت قبل 74 عاماً" en="A story that began 74 years ago" /></h2>
-          <p style="margin-top:14px"><T ar="تأسست المجموعة الحادية عشر عام 1952 على يد القائد جاك العيسي تحت اسم «مجموعة الحبل بلا دنس»، ضمن حركة كشافة ومرشدات وادي النيل." en="The XI Group was founded in 1952, first under the name “Immaculate Conception Group”, as part of the Wadi El Nil Scouts & Guides movement." /></p>
-          <p><T ar="ومن يومها مرّت أجيال كثيرة بخيامها ونيرانها وأناشيدها، وما زالت المجموعة تكبر بأعضائها وقادتها وعائلاتهم. هذا العيد لكل من مرّ بها." en="Generations have passed through its camps, campfires and songs since then, and the group keeps growing with its members, leaders and their families. This anniversary is for everyone who has been part of it." /></p>
-          <p style="margin-top:20px"><a class="btn btn--ghost" href={XI_SITE} target="_blank" rel="noopener"><T ar="موقع المجموعة" en="The group’s website" /><Icon name="external" size={16} /></a></p>
-        </div>
-        <div class="stats">
-          <div class="stat" style="--c:var(--gold)"><b class="num">{FOUNDED}</b><span><T ar="سنة التأسيس" en="Founded" /></span></div>
-          <div class="stat" style="--c:var(--scouts)"><b class="num">{YEARS}</b><span><T ar="عاماً من العطاء" en="Years" /></span></div>
-          <div class="stat" style="--c:var(--rovers)"><b class="num">4</b><span><T ar="مراحل" en="Sections" /></span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section--dark" id="ticket" aria-labelledby="ticket-title">
+    <section class="playbill-sec" aria-labelledby="programme-title">
       <div class="wrap">
-        <span class="eyebrow"><T ar="التذاكر" en="Tickets" /></span>
-        <h2 id="ticket-title"><T ar="اختر مقعدك واحجز في أربع خطوات" en="Pick your seats and book in four steps" /></h2>
-        <p style="margin:12px 0 0;color:rgb(255 255 255 / .75);max-width:62ch"><T ar="اختر مقاعدك من خريطة المسرح، ادفع ثمنها بإنستاباي، ارفع صورة إيصال التحويل، وتصلك تذكرة برمز QR لكل مقعد بعد التحقق." en="Choose your seats on the theatre plan, pay for them with InstaPay, upload the transfer screenshot and get a QR ticket for every seat once it is checked." /></p>
+        <div class="playbill">
+          <p class="playbill__date" id="programme-date"><T ar="الجمعة 4 ديسمبر 2026" en="Friday 4 December 2026" /></p>
+          <h2 id="programme-title" class="gold-title gold-title--md"><T ar="برنامج الليلة" en="Tonight’s programme" /></h2>
+          <ul class="acts" role="list">
+            {PROGRAMME.map((p) => (
+              <li>
+                <h3><T ar={p.ar} en={p.en} /></h3>
+                <p><T ar={p.tar} en={p.ten} /></p>
+              </li>
+            ))}
+          </ul>
+          <ul class="units-row" role="list" aria-label="مراحل المجموعة">
+            {UNITS.map((u) => (
+              <li style={`--c:${u.color}`}><img src={`/img/logo-${u.key}.webp`} alt="" width="44" height="44" loading="lazy" /><span><T ar={u.ar} en={u.en} /></span></li>
+            ))}
+          </ul>
+          <p class="playbill__foot"><T ar="أربع مراحل، عائلة واحدة: البراعم والأشبال والكشافة والجوالة، مع القادة والقدامى والأسر." en="Four sections, one family: Buds, Cubs, Scouts and Rovers, with leaders, alumni and families." /></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="box" id="ticket" aria-labelledby="ticket-title">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2 id="ticket-title" class="gold-title gold-title--md"><T ar="شبّاك التذاكر" en="Box office" /></h2>
+          <p><T ar="اختر مقاعدك من خريطة المسرح، ادفع ثمنها بإنستاباي، ارفع صورة الإيصال، وتصلك تذكرة برمز QR لكل مقعد بعد التحقق." en="Choose your seats on the theatre plan, pay for them with InstaPay, upload the screenshot and get a QR ticket for every seat once it is checked." /></p>
+        </div>
 
         <div class="picker" id="picker">
           <div class="picker__head">
@@ -208,23 +334,19 @@ import { UNITS, FOUNDED, YEARS, XI_SITE, SPONSORS_URL, FACEBOOK, INSTAGRAM } fro
       </div>
     </section>
 
-    <section class="section" aria-labelledby="partners-title">
-      <div class="wrap">
-        <div class="partners">
-          <div>
-            <span class="eyebrow"><T ar="شركاء الاحتفال" en="Festival partners" /></span>
-            <h2 id="partners-title" style="font-size:clamp(1.5rem,3.6vw,2rem)"><T ar="عروض حصرية لحاملي التذاكر" en="Exclusive offers for ticket holders" /></h2>
-            <p><T ar="رعاة الاحتفال يقدّمون عروضاً لأصحاب التذاكر. وإن كنت صاحب نشاط وتحب أن تكون شريكاً في عيد الـ74، فباقات الرعاية متاحة." en="Our sponsors have offers for ticket holders. If you run a business and would like to partner with the 74th anniversary, sponsorship packages are open." /></p>
-          </div>
-          <div class="partners__cta">
-            <a class="btn" href={SPONSORS_URL} id="sponsors-link"><Icon name="gift" size={18} /><T ar="العروض والرعاة" en="Offers & sponsors" /></a>
-          </div>
+
+    <section class="partners-sec" aria-labelledby="partners-title">
+      <div class="wrap j-partners">
+        <div>
+          <h2 id="partners-title" class="gold-title gold-title--sm"><T ar="عروض لحاملي التذاكر" en="Offers for ticket holders" /></h2>
+          <p><T ar="رعاة الاحتفال يقدّمون عروضاً لأصحاب التذاكر. ولأصحاب الأنشطة: باقات الرعاية متاحة." en="Our sponsors have offers for ticket holders. Run a business? Sponsorship packages are open." /></p>
         </div>
+        <a class="jbtn jbtn--ghost" href={SPONSORS_URL} id="sponsors-link"><Icon name="gift" size={18} /><T ar="العروض والرعاة" en="Offers & sponsors" /></a>
       </div>
     </section>
   </main>
 
-  <footer class="foot">
+  <footer class="foot jfoot">
     <div class="wrap foot__in">
       <p><T ar="المجموعة الحادية عشر · كشافة ومرشدات وادي النيل · القاهرة" en="XI Group · Wadi El Nil Scouts & Guides · Cairo" /></p>
       <nav class="foot__links" aria-label="روابط">
@@ -251,6 +373,7 @@ import { UNITS, FOUNDED, YEARS, XI_SITE, SPONSORS_URL, FACEBOOK, INSTAGRAM } fro
   </div>
 
   <script>
+    import '../scripts/journey';
     import '../scripts/invite';
   </script>
 </Base>
