@@ -62,7 +62,7 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
   const states = new Map<string, SeatState>();
   const notes = new Map<string, string>();
   for (let r = 1; r <= ROWS; r++) {
-    grid.append(cell('theatre__row', String(r)));
+    grid.append(cell('theatre__row theatre__row--start', String(r)));
     SECTIONS.forEach((s, i) => {
       if (i) grid.append(cell('theatre__aisle'));
       for (let n = 1; n <= s.count; n++) {
@@ -77,11 +77,30 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
         grid.append(b);
       }
     });
-    grid.append(cell('theatre__row', String(r)));
+    grid.append(cell('theatre__row theatre__row--end', String(r)));
   }
   inner.append(grid);
   scroller.append(inner);
   host.append(scroller);
+
+  // On narrow screens part of the theatre is off to the side: say so.
+  const hint = document.createElement('p');
+  hint.className = 'theatre__hint';
+  hint.innerHTML = '<span class="ar">اسحب يميناً ويساراً لرؤية كل المقاعد</span><span class="en">Swipe sideways to see every seat</span>';
+  hint.hidden = true;
+  host.append(hint);
+
+  // The whole map is one Tab stop; arrow keys move between seats inside it.
+  const ids = [...buttons.keys()];
+  let rover = '';
+  let syncQueued = false;
+  const syncTab = () => {
+    syncQueued = false;
+    const ok = (id: string) => !!id && !buttons.get(id)!.disabled;
+    if (!ok(rover)) rover = ids.find((id) => states.get(id) === 'selected') ?? ids.find(ok) ?? ids[0];
+    buttons.forEach((b, id) => (b.tabIndex = id === rover ? 0 : -1));
+  };
+  const queueSync = () => { if (!syncQueued) { syncQueued = true; queueMicrotask(syncTab); } };
 
   const paint = (id: string) => {
     const b = buttons.get(id)!;
@@ -92,12 +111,40 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
     const note = notes.get(id);
     b.setAttribute('aria-label', `${seatLabel(id, lang())}، ${t(...STATE_TEXT[st])}${note ? ` · ${note}` : ''}`);
     b.title = b.getAttribute('aria-label')!;
+    queueSync();
   };
   buttons.forEach((_, id) => paint(id));
+  syncTab();
 
   grid.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.seat');
-    if (b && !b.disabled) onPick(b.dataset.seat!);
+    if (!b || b.disabled) return;
+    rover = b.dataset.seat!;
+    syncTab();
+    onPick(rover);
+  });
+
+  // ← → within a row, ↑ ↓ between rows, Home / End to the ends of the row. Taken seats are skipped.
+  const PER_ROW = SECTIONS.reduce((n, s) => n + s.count, 0);
+  grid.addEventListener('keydown', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.seat');
+    if (!b) return;
+    const i = ids.indexOf(b.dataset.seat!);
+    const rowStart = i - (i % PER_ROW);
+    let candidates: number[] = [];
+    if (e.key === 'ArrowRight') candidates = Array.from({ length: rowStart + PER_ROW - i - 1 }, (_, k) => i + 1 + k);
+    else if (e.key === 'ArrowLeft') candidates = Array.from({ length: i - rowStart }, (_, k) => i - 1 - k);
+    else if (e.key === 'ArrowDown') candidates = Array.from({ length: Math.floor((ids.length - 1 - i) / PER_ROW) }, (_, k) => i + PER_ROW * (k + 1));
+    else if (e.key === 'ArrowUp') candidates = Array.from({ length: Math.floor(i / PER_ROW) }, (_, k) => i - PER_ROW * (k + 1));
+    else if (e.key === 'Home') candidates = Array.from({ length: PER_ROW }, (_, k) => rowStart + k);
+    else if (e.key === 'End') candidates = Array.from({ length: PER_ROW }, (_, k) => rowStart + PER_ROW - 1 - k);
+    else return;
+    e.preventDefault();
+    const next = candidates.map((j) => ids[j]).find((id) => !buttons.get(id)!.disabled);
+    if (!next) return;
+    rover = next;
+    syncTab();
+    buttons.get(next)!.focus();
   });
   document.addEventListener('langchange', () => buttons.forEach((_, id) => paint(id)));
 
@@ -105,7 +152,10 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
   const centre = () => { scroller.scrollLeft = (scroller.scrollWidth - scroller.clientWidth) / 2; };
   requestAnimationFrame(centre);
   // Keep it centred (e.g. when a hidden panel opens) until the person scrolls it themselves.
-  new ResizeObserver(() => { if (!scroller.dataset.moved) centre(); }).observe(scroller);
+  new ResizeObserver(() => {
+    if (!scroller.dataset.moved) centre();
+    hint.hidden = scroller.scrollWidth <= scroller.clientWidth + 1;
+  }).observe(scroller);
   for (const ev of ['pointerdown', 'wheel', 'touchstart', 'keydown']) scroller.addEventListener(ev, () => { scroller.dataset.moved = '1'; }, { once: true, passive: true });
 
   return {
