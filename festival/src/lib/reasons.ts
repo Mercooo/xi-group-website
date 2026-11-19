@@ -11,7 +11,7 @@ export const REASONS: Record<string, { ar: string; en: string }> = {
   status_unclear: { ar: 'لا يظهر في الصورة تأكيد نجاح التحويل.', en: 'The screenshot does not show the transfer succeeded.' },
   transfer_failed: { ar: 'الإيصال يُظهر أن التحويل لم يتم.', en: 'The receipt shows the transfer failed.' },
   amount_unreadable: { ar: 'تعذرت قراءة المبلغ.', en: 'The amount could not be read.' },
-  wrong_amount: { ar: 'المبلغ في الإيصال لا يساوي ثمن التذكرة.', en: 'The amount is not the ticket price.' },
+  wrong_amount: { ar: 'المبلغ في الإيصال لا يساوي إجمالي ثمن المقاعد التي اخترتها.', en: 'The amount is not the total for your chosen seats.' },
   currency_unclear: { ar: 'العملة غير واضحة.', en: 'The currency is unclear.' },
   wrong_recipient: { ar: 'التحويل ليس إلى حساب المجموعة.', en: 'The transfer was not made to the group’s account.' },
   recipient_address_differs: { ar: 'نحتاج إلى التأكد من حساب المستلم.', en: 'The receiving account needs checking.' },
