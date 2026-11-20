@@ -3,7 +3,7 @@
 //   undo_checkin { id } | issue { name, phone, note? } | settings_get | settings_set { ...fields } | scans
 //   set_passcode { role: admin | gate, passcode } | delete { id } | seat_map
 //   leaders_list | leader_save { id?, name, unit, passcode?, seat_quota?, active? }
-import { authorize, BROKEN_HOLD, BUCKET, claimSeats, isVipId, reserveVip, VIP_HOLD, cleanSeats, db, forgetLeaders, forgetPasscodes, getSettings, hashPasscode, json, newSalt, normPhone, seatLabel, CORS, PASS_ITERATIONS } from "../_shared/shared.ts";
+import { authorize, BROKEN_HOLD, NOT_IN_PLAN, BUCKET, claimSeats, isVipId, reserveVip, VIP_HOLD, cleanSeats, db, forgetLeaders, forgetPasscodes, getSettings, hashPasscode, json, newSalt, normPhone, seatLabel, CORS, PASS_ITERATIONS } from "../_shared/shared.ts";
 
 const PAGE = 50;
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -38,6 +38,7 @@ Deno.serve(async (req) => {
       for (const r of seatRows ?? []) {
         // deno-lint-ignore no-explicit-any
         const o = (r as any).fest_orders;
+        if (r.hold_token === NOT_IN_PLAN && !r.order_id) continue; // not part of the hall
         if (r.hold_token === BROKEN_HOLD) { blocked++; continue; }
         if (isVipId(r.id)) { vipTotal++; if (r.order_id) vipBooked++; }
         else if (!r.order_id) open++;
@@ -46,7 +47,7 @@ Deno.serve(async (req) => {
         if (o.status === "review") seatsReview++;
         if (r.checked_in_at) seatsIn++;
       }
-      const seatsTotal = (seatRows ?? []).length - blocked;
+      const seatsTotal = (seatRows ?? []).filter((r) => r.hold_token !== NOT_IN_PLAN || r.order_id).length - blocked;
       return json({
         verified, review, rejected, admitted: admitted + seatsIn, auto, price: s.price_egp,
         revenue: paidSeats * s.price_egp,
@@ -151,7 +152,7 @@ Deno.serve(async (req) => {
       const { data } = await db.from("fest_seats").select("id,held_until,hold_token,checked_in_at,fest_orders(code,name,status,source)").order("id");
       const now = Date.now();
       return json({
-        seats: (data ?? []).map((r) => {
+        seats: (data ?? []).filter((r) => r.hold_token !== NOT_IN_PLAN || r.fest_orders).map((r) => {
           // deno-lint-ignore no-explicit-any
           const o = (r as any).fest_orders;
           const kind = r.hold_token === BROKEN_HOLD ? "blocked" : isVipId(r.id) ? "vip" : "regular";

@@ -3,7 +3,7 @@
 //   POST { action: "hold", seats, token? } → holds the seats for the guest while they pay
 //   POST { action: "release", token }      → lets them go again
 // Seats are only "taken" for good when fest-buy (or a leader / admin) books them.
-import { BROKEN_HOLD, db, getSettings, HOLD_MINUTES, ipHash, json, MAX_SEATS, cleanSeats, CORS, VIP_HOLD } from "../_shared/shared.ts";
+import { BROKEN_HOLD, NOT_IN_PLAN, db, getSettings, HOLD_MINUTES, ipHash, json, MAX_SEATS, cleanSeats, CORS, VIP_HOLD } from "../_shared/shared.ts";
 
 const TOKEN_RE = /^[a-f0-9]{32}$/;
 const newToken = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -13,6 +13,7 @@ async function seatState() {
   const now = Date.now();
   const taken: string[] = [], held: string[] = [], vip: string[] = [], blocked: string[] = [];
   for (const s of data ?? []) {
+    if (s.hold_token === NOT_IN_PLAN && !s.order_id) continue; // not part of the hall
     if (s.hold_token === BROKEN_HOLD) blocked.push(s.id);
     else if (s.order_id) taken.push(s.id);
     else if (s.hold_token === VIP_HOLD) vip.push(s.id); // shown on the plan, given out by the organisers only

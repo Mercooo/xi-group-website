@@ -72,7 +72,7 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
     const r = row.row;
     if (r === 1 && VIP_ROWS) {
       const z = cell('theatre__zone theatre__zone--vip');
-      z.innerHTML = `<span>${both(`الوسط: كبار الزوار · الصفوف 1 – ${VIP_ROWS} · يحجزها المنظمون`, `Middle: VIP · rows 1 – ${VIP_ROWS} · given out by the organisers`)}</span>`;
+      z.innerHTML = `<span>${both(`الوسط: كبار الزوار · الصفوف A – ${THEATRE[VIP_ROWS - 1].label} · يحجزها المنظمون`, `Middle: VIP · rows A – ${THEATRE[VIP_ROWS - 1].label} · given out by the organisers`)}</span>`;
       grid.append(z);
     }
     if (r === VIP_ROWS + 1 && VIP_ROWS) {
@@ -80,7 +80,7 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
       z.innerHTML = `<span>${both('مقاعد الجمهور', 'Public seats')}</span>`;
       grid.append(z);
     }
-    grid.append(cell('theatre__row theatre__row--start', String(r)));
+    grid.append(cell('theatre__row theatre__row--start', row.label));
     const inRow: string[] = [];
     SECTIONS.forEach((s, i) => {
       if (i) grid.append(cell('theatre__aisle'));
@@ -100,7 +100,7 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
       grid.append(blk);
     });
     rowsOfIds.push(inRow);
-    grid.append(cell('theatre__row theatre__row--end', String(r)));
+    grid.append(cell('theatre__row theatre__row--end', row.label));
   }
   inner.append(grid);
   scroller.append(inner);

@@ -138,11 +138,15 @@ export async function getSettings() {
 // Two seat kinds are kept off sale with a hold that never runs out:
 //   VIP_HOLD    the middle block of rows 1-5: shown on the plan, given out by the organisers only
 //   BROKEN_HOLD broken seats: nobody can book them
+//   NOT_IN_PLAN seats of an earlier plan that the hall doesn't have: never shown, never booked
 // Guests hold seats with a random 32-hex token, so they can never match these.
+// Rows are lettered from the stage: row 1 is A, row 21 is U.
 export const SEAT_RE = /^(0[1-9]|1\d|2[01])-[LMR](0[1-9]|1[0-6])$/;
 export const MAX_SEATS = 10; // per booking
 export const VIP_HOLD = "organisers-vip";
 export const BROKEN_HOLD = "broken-seat";
+export const NOT_IN_PLAN = "not-in-plan";
+export const ROW_LETTERS = "ABCDEFGHIJKLMNOPQRSTU";
 const FOREVER = "2100-01-01T00:00:00Z";
 export const isVipId = (id: string) => /^0[1-5]-M/.test(id);
 
@@ -165,7 +169,7 @@ const SECTION_AR: Record<string, string> = { L: "يسار", M: "وسط", R: "ي�
 const SECTION_EN: Record<string, string> = { L: "Left", M: "Middle", R: "Right" };
 export function seatLabel(id: string, lang: "ar" | "en" = "ar") {
   const [r, s] = id.split("-");
-  const sec = s[0], n = Number(s.slice(1)), row = Number(r);
+  const sec = s[0], n = Number(s.slice(1)), row = ROW_LETTERS[Number(r) - 1] ?? r;
   return lang === "ar" ? `صف ${row} · ${SECTION_AR[sec]} ${n}` : `Row ${row} · ${SECTION_EN[sec]} ${n}`;
 }
 

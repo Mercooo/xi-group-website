@@ -12,9 +12,9 @@ The invitation website for the XI Group's 74th anniversary (1952 – 2026). Gues
 
 ## Seats
 
-The hall is drawn from the organisers' plan in `src/lib/theatre.json`: 21 rows of left, middle and right blocks whose length changes row by row, 653 seats. Seat ids look like `07-M02` (row 7, middle seat 2), counted from the left facing the stage.
+The hall is drawn from the organisers' plan in `src/lib/theatre.json`: 21 rows of left, middle and right blocks whose length changes row by row, 653 seats. Rows are lettered from the stage: A is the front row, U the back (the organisers' sheets list them bottom-up, first column then second). Seat ids look like `07-M02` (row G, the 7th from the stage, middle seat 2), counted from the left facing the stage; guests only ever see the letter.
 
-- **VIP:** the middle block of rows 1-5 (64 working seats). Everyone sees it on the plan; only the organisers give these seats out, from `/admin → إصدار تذكرة`.
+- **VIP:** the middle block of rows A–E (64 working seats). Everyone sees it on the plan; only the organisers give these seats out, from `/admin → إصدار تذكرة`.
 - **Broken seats** (31) are crossed out and can't be booked by anyone.
 - Both are kept off sale with a hold that never runs out (`organisers-vip` / `broken-seat` in `fest_seats.hold_token`); see `supabase/migrations/20261120_fest_74_theatre_plan_data.sql`.
 - Choosing seats holds them for 15 minutes (`fest-seats`), so two guests can't pay for the same seat. One device can hold at most 20 seats; a booking has at most 10.

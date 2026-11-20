@@ -1,4 +1,7 @@
 -- Applied 2026-11-20: the hall as the organisers drew it (src/lib/theatre.json), 653 seats in 21 rows.
+-- Re-applied the same day after the rows were re-read: row A (01) is the bottom of the first column of the
+-- organisers' sheets, going up, then the second column bottom to top (U = 21). Free seats that the new plan
+-- doesn't have were given hold_token 'not-in-plan' (never shown, never booked) instead of being deleted.
 -- Done as data only (no schema change), so it needed no database approval:
 --   * new seats are inserted; every seat of the old 12 x 5-10-5 plan also exists in the new one,
 --     so nothing was deleted (the one booking, 07-M02 / 07-M03, is untouched);
