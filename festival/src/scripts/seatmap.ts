@@ -1,9 +1,9 @@
 // Draws the theatre (stage, 12 rows, left 5 · centre 10 · right 5) as buttons, one per seat.
 // Used by the invitation page, the leaders' page and the admin board.
-import { ROWS, SECTIONS, seatId, seatLabel } from '../lib/seats';
+import { ROWS, SECTIONS, VIP_ROWS, seatId, seatLabel } from '../lib/seats';
 import { lang, t } from './lang';
 
-export type SeatState = 'free' | 'selected' | 'taken' | 'held' | 'review' | 'in';
+export type SeatState = 'free' | 'selected' | 'taken' | 'held' | 'review' | 'in' | 'vip' | 'blocked';
 
 const STATE_TEXT: Record<SeatState, [string, string]> = {
   free: ['متاح', 'available'],
@@ -12,6 +12,8 @@ const STATE_TEXT: Record<SeatState, [string, string]> = {
   held: ['يُحجز الآن', 'being booked'],
   review: ['قيد المراجعة', 'in review'],
   in: ['دخل صاحبه', 'checked in'],
+  vip: ['كبار الزوار، يحجزه المنظمون فقط', 'VIP, given out by the organisers'],
+  blocked: ['غير متاح', 'not available'],
 };
 
 export interface SeatMap {
@@ -21,10 +23,11 @@ export interface SeatMap {
 }
 
 /**
- * Builds the map inside `host`. `onPick` runs when a seat is tapped. Seats that are taken
- * are disabled unless `pickAny` is set (the admin uses it to see who sits where).
+ * Builds the map inside `host`. `onPick` runs when a seat is tapped. Only free (and chosen) seats can be
+ * tapped, plus any states listed in `alsoPick` (the admin's ticket form adds 'vip'); `pickAny` makes every
+ * seat tappable (the admin uses it to see who sits where).
  */
-export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, opts: { pickAny?: boolean } = {}): SeatMap {
+export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, opts: { pickAny?: boolean; alsoPick?: SeatState[] } = {}): SeatMap {
   host.classList.add('theatre');
   host.textContent = '';
   const scroller = document.createElement('div');
@@ -61,7 +64,14 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
   const buttons = new Map<string, HTMLButtonElement>();
   const states = new Map<string, SeatState>();
   const notes = new Map<string, string>();
+  const zone = (cls: string, ar: string, en: string) => {
+    const z = cell(`theatre__zone ${cls}`);
+    z.innerHTML = `<span><span class="ar">${ar}</span><span class="en">${en}</span></span>`;
+    grid.append(z);
+  };
   for (let r = 1; r <= ROWS; r++) {
+    if (r === 1 && VIP_ROWS) zone('theatre__zone--vip', `كبار الزوار · الصفوف 1 – ${VIP_ROWS} · يحجزها المنظمون`, `VIP · rows 1 – ${VIP_ROWS} · given out by the organisers`);
+    if (r === VIP_ROWS + 1) zone('theatre__zone--public', 'مقاعد الجمهور', 'Public seats');
     grid.append(cell('theatre__row theatre__row--start', String(r)));
     SECTIONS.forEach((s, i) => {
       if (i) grid.append(cell('theatre__aisle'));
@@ -107,7 +117,7 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
     const st = states.get(id)!;
     b.dataset.state = st;
     b.setAttribute('aria-pressed', String(st === 'selected'));
-    b.disabled = !opts.pickAny && st !== 'free' && st !== 'selected';
+    b.disabled = !opts.pickAny && st !== 'free' && st !== 'selected' && !(opts.alsoPick ?? []).includes(st);
     const note = notes.get(id);
     b.setAttribute('aria-label', `${seatLabel(id, lang())}، ${t(...STATE_TEXT[st])}${note ? ` · ${note}` : ''}`);
     b.title = b.getAttribute('aria-label')!;

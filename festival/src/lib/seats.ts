@@ -1,6 +1,9 @@
-// The theatre: one floor, 12 rows, each split into left (5), centre (10) and right (5) seats.
+// The theatre: one floor, 14 rows, each split into left (5), centre (10) and right (5) seats.
 // Seat ids look like "03-M07" (row 3, centre seat 7) and match fest_seats in the database.
-export const ROWS = 12;
+// Rows 1-5 are VIP: on the plan for everyone to see, given out by the organisers only.
+export const ROWS = 14;
+export const VIP_ROWS = 5;
+export const isVipRow = (id: string) => Number(id.slice(0, 2)) <= VIP_ROWS;
 export const SECTIONS = [
   { key: 'L', count: 5, ar: 'يسار', en: 'Left' },
   { key: 'M', count: 10, ar: 'وسط', en: 'Centre' },

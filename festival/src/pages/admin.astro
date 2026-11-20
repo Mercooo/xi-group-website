@@ -97,7 +97,7 @@ import Icon from '../components/Icon.astro';
           <div class="kpi" style="--c:var(--bad)"><b id="k-rejected">–</b><span>مرفوضة</span></div>
           <div class="kpi" style="--c:var(--scouts)"><b id="k-admitted">–</b><span>دخلوا الاحتفال</span></div>
           <div class="kpi" style="--c:var(--gold)"><b id="k-revenue">–</b><span>إجمالي المدفوع المؤكد (جنيه)</span></div>
-          <div class="kpi" style="--c:var(--cubs)"><b id="k-seats">–</b><span>مقاعد محجوزة من 240</span></div>
+          <div class="kpi" style="--c:var(--cubs)"><b id="k-seats">–</b><span id="k-seats-of">مقاعد محجوزة</span></div>
           <div class="kpi" style="--c:var(--buds)"><b id="k-free">–</b><span>مقاعد متاحة</span></div>
         </div>
         <div class="toolbar">
@@ -157,6 +157,8 @@ import Icon from '../components/Icon.astro';
           <span><i class="seat" data-state="review"></i>قيد المراجعة</span>
           <span><i class="seat" data-state="in"></i>دخل</span>
           <span><i class="seat" data-state="held"></i>يُحجز الآن</span>
+          <span><i class="seat" data-state="vip"></i>VIP متاح</span>
+          <span><i class="seat" data-state="blocked"></i>معطّل</span>
         </div>
         <div class="panel" id="seat-info" hidden style="margin-top:14px"></div>
       </section>

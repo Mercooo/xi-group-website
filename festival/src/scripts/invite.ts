@@ -3,7 +3,7 @@ import { API, SPONSORS_URL } from '../lib/site';
 import { getConfig, getTicket, rememberTicket, savedTickets, type PublicConfig } from './api';
 import { formatDate, formatTime, lang, t } from './lang';
 import { mountSeatMap } from './seatmap';
-import { MAX_SEATS, seatLabel, seatsSummary } from '../lib/seats';
+import { MAX_SEATS, isVipRow, seatLabel, seatsSummary } from '../lib/seats';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
 let cfg: PublicConfig | null = null;
@@ -160,7 +160,7 @@ let chosen: string[] = [];
 let hold: Hold | null = null;
 let syncing: Promise<void> | null = null;
 let syncTimer = 0;
-let seatsCache: { taken: string[]; held: string[] } = { taken: [], held: [] };
+let seatsCache: { taken: string[]; held: string[]; blocked: string[] } = { taken: [], held: [], blocked: [] };
 
 const readHold = (): Hold | null => {
   try {
@@ -209,7 +209,7 @@ async function syncHold(): Promise<void> {
       // Someone else got there first: drop those seats and show the fresh plan.
       const mine = new Set(hold?.seats ?? []);
       const lost = want.filter((id) => (j.taken ?? []).includes(id) || ((j.held ?? []).includes(id) && !mine.has(id)));
-      seatsCache = { taken: j.taken ?? [], held: j.held ?? [] };
+      seatsCache = { taken: j.taken ?? [], held: j.held ?? [], blocked: j.blocked ?? seatsCache.blocked };
       chosen = chosen.filter((id) => !lost.includes(id));
       pickerMsg(t(`سبقك أحد إلى ${lost.length > 1 ? 'هذه المقاعد' : 'هذا المقعد'}: ${lost.map((x) => seatLabel(x, 'ar')).join('، ')}. اختر غيره.`, `Someone else just took ${lost.map((x) => seatLabel(x, 'en')).join(', ')}. Please choose another.`));
       paintSeats();
@@ -231,8 +231,11 @@ function paintSeats() {
   const mine = new Set(hold?.seats ?? []);
   const taken = new Set(seatsCache.taken);
   const held = new Set(seatsCache.held);
+  const blocked = new Set(seatsCache.blocked);
   for (const id of map.ids()) {
-    if (chosen.includes(id)) map.set(id, 'selected');
+    if (blocked.has(id)) map.set(id, 'blocked');
+    else if (isVipRow(id)) map.set(id, 'vip'); // VIP rows are on the plan, but the organisers give them out
+    else if (chosen.includes(id)) map.set(id, 'selected');
     else if (taken.has(id)) map.set(id, 'taken');
     else if (held.has(id) && !mine.has(id)) map.set(id, 'held');
     else map.set(id, 'free');
@@ -244,7 +247,8 @@ async function refreshSeats() {
     const r = await fetch(`${API}/fest-seats`);
     if (!r.ok) return;
     const j = await r.json();
-    seatsCache = { taken: j.taken ?? [], held: j.held ?? [] };
+    seatsCache = { taken: j.taken ?? [], held: j.held ?? [], blocked: j.blocked ?? [] };
+    chosen = chosen.filter((id) => !isVipRow(id) && !seatsCache.blocked.includes(id));
     // A chosen seat that was bought meanwhile (only possible once a hold ran out).
     const lost = chosen.filter((id) => seatsCache.taken.includes(id));
     if (lost.length) {

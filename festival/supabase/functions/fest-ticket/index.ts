@@ -58,9 +58,9 @@ Deno.serve(async (req) => {
   const ocrGuess = data.status === "review" && data.ocr?.model === "tesseract";
   const reasons = data.status === "verified" || ocrGuess ? [] : data.reasons;
   // Each seat is its own entry ticket. Its QR code is only handed out once the booking is verified.
-  let seatTickets: { id: string; label_ar: string; label_en: string; code: string | null; checked_in_at: string | null }[] = [];
+  let seatTickets: { id: string; label_ar: string; label_en: string; code: string | null; checked_in_at: string | null; vip: boolean }[] = [];
   if ((data.seats ?? []).length) {
-    const { data: rows } = await db.from("fest_seats").select("id,ticket_code,checked_in_at").eq("order_id", data.id).order("id");
+    const { data: rows } = await db.from("fest_seats").select("id,ticket_code,checked_in_at,kind").eq("order_id", data.id).order("id");
     const held = new Map((rows ?? []).map((r) => [r.id, r]));
     seatTickets = (data.seats as string[]).map((id) => ({
       id,
@@ -68,6 +68,7 @@ Deno.serve(async (req) => {
       label_en: seatLabel(id, "en"),
       code: data.status === "verified" ? held.get(id)?.ticket_code ?? null : null,
       checked_in_at: held.get(id)?.checked_in_at ?? null,
+      vip: held.get(id)?.kind === "vip",
     }));
   }
   return json({

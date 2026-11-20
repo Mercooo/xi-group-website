@@ -275,9 +275,9 @@ Deno.serve(async (req) => {
 
   // The seats must still be free, or held by this guest, before anything is stored.
   {
-    const { data: rows } = await db.from("fest_seats").select("id,order_id,hold_token,held_until").in("id", seats);
+    const { data: rows } = await db.from("fest_seats").select("id,order_id,hold_token,held_until,kind").in("id", seats);
     const now = Date.now();
-    const blocked = (rows ?? []).filter((r) => r.order_id || (r.held_until && Date.parse(r.held_until) > now && r.hold_token !== hold));
+    const blocked = (rows ?? []).filter((r) => r.kind !== "regular" || r.order_id || (r.held_until && Date.parse(r.held_until) > now && r.hold_token !== hold));
     if (blocked.length || (rows ?? []).length !== seats.length) return json({ error: "seat_unavailable", seats: blocked.map((r) => r.id) }, 409);
   }
 

@@ -457,6 +457,17 @@ html[dir='rtl'] .input[dir='ltr'] { text-align: right; }
 .seat[data-state='in'] { background: var(--ok); color: #fff; }
 .theatre--admin .seat[data-state='taken'] { background: var(--seat-booked); color: #fff; cursor: pointer; }
 .theatre--admin .seat[data-state='held'] { cursor: pointer; }
+.seat[data-state='vip'] { background: linear-gradient(180deg, #3a2f12, #2a220d); color: var(--gold-2); box-shadow: inset 0 0 0 1.5px rgb(232 192 104 / 0.75); cursor: not-allowed; }
+.seat[data-state='blocked'] { background: transparent; color: transparent; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.18); cursor: not-allowed; position: relative; }
+.seat[data-state='blocked']::before, .seat[data-state='blocked']::after { content: ''; position: absolute; inset: 50% 22% auto; height: 2px; background: rgb(255 255 255 / 0.35); transform: rotate(45deg); }
+.seat[data-state='blocked']::after { transform: rotate(-45deg); }
+.theatre--admin .seat[data-state='vip'], .theatre--pick-vip .seat[data-state='vip'] { cursor: pointer; }
+.theatre__zone { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin: 4px 0 2px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+.theatre__zone::before, .theatre__zone::after { content: ''; flex: 1; height: 1px; }
+.theatre__zone--vip { color: var(--gold-2); }
+.theatre__zone--vip::before, .theatre__zone--vip::after { background: linear-gradient(90deg, transparent, rgb(232 192 104 / 0.7), transparent); }
+.theatre__zone--public { color: rgb(255 255 255 / 0.6); margin-top: 10px; }
+.theatre__zone--public::before, .theatre__zone--public::after { background: rgb(255 255 255 / 0.18); }
 .seat-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; margin: 12px 16px 0; font-size: 0.8125rem; color: rgb(255 255 255 / 0.75); }
 .seat-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .seat-legend .seat { --s: 16px; pointer-events: none; font-size: 0; }

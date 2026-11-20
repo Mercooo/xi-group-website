@@ -33,21 +33,25 @@ Deno.serve(async (req) => {
       ]);
       const s = await getSettings();
       // Seats: booked (verified), waiting (in review), free; money only from paid (InstaPay) seats.
-      const { data: seatRows } = await db.from("fest_seats").select("order_id,checked_in_at,fest_orders(status,source)");
-      let seatsBooked = 0, seatsReview = 0, seatsIn = 0, paidSeats = 0;
+      const { data: seatRows } = await db.from("fest_seats").select("order_id,checked_in_at,kind,fest_orders(status,source)");
+      let seatsBooked = 0, seatsReview = 0, seatsIn = 0, paidSeats = 0, vipTotal = 0, vipBooked = 0, blocked = 0, open = 0;
       for (const r of seatRows ?? []) {
         // deno-lint-ignore no-explicit-any
         const o = (r as any).fest_orders;
+        if (r.kind === "blocked") { blocked++; continue; }
+        if (r.kind === "vip") { vipTotal++; if (r.order_id) vipBooked++; }
+        if (r.kind === "regular" && !r.order_id) open++;
         if (!r.order_id || !o) continue;
         if (o.status === "verified") { seatsBooked++; if (o.source === "instapay") paidSeats++; }
         if (o.status === "review") seatsReview++;
         if (r.checked_in_at) seatsIn++;
       }
-      const seatsTotal = (seatRows ?? []).length;
+      const seatsTotal = (seatRows ?? []).length - blocked;
       return json({
         verified, review, rejected, admitted: admitted + seatsIn, auto, price: s.price_egp,
         revenue: paidSeats * s.price_egp,
-        seats_total: seatsTotal, seats_booked: seatsBooked, seats_review: seatsReview, seats_free: seatsTotal - seatsBooked - seatsReview, seats_in: seatsIn,
+        seats_total: seatsTotal, seats_booked: seatsBooked, seats_review: seatsReview, seats_free: open, seats_in: seatsIn,
+        vip_total: vipTotal, vip_booked: vipBooked, seats_blocked: blocked,
       });
     }
 
@@ -90,7 +94,7 @@ Deno.serve(async (req) => {
       } else if (cur.status === "rejected" && b.status !== "rejected" && seats.length) {
         // Un-rejecting: take the same seats back, if nobody bought them meanwhile.
         const { count } = await db.from("fest_seats").select("id", { count: "exact", head: true }).eq("order_id", cur.id);
-        if ((count ?? 0) < seats.length && !(await claimSeats(cur.id, seats, null))) return json({ error: "seats_taken" }, 409);
+        if ((count ?? 0) < seats.length && !(await claimSeats(cur.id, seats, null, true))) return json({ error: "seats_taken" }, 409);
       }
       const patch: Record<string, unknown> = { status: b.status, reviewed_at: new Date().toISOString(), reviewed_by: "admin" };
       if (typeof b.note === "string") patch.admin_note = b.note.slice(0, 300);
@@ -131,7 +135,7 @@ Deno.serve(async (req) => {
           admin_note: String(b.note || "").slice(0, 300) || null, reviewed_at: new Date().toISOString(), reviewed_by: "admin",
         }).select("id").single();
         if (error) { if (error.code === "23505") continue; return json({ error: "server" }, 500); }
-        if (seats.length && !(await claimSeats(created.id, seats, null))) {
+        if (seats.length && !(await claimSeats(created.id, seats, null, true))) { // the organisers may give out VIP seats
           await db.from("fest_orders").delete().eq("id", created.id);
           return json({ error: "seat_unavailable" }, 409);
         }
@@ -142,13 +146,13 @@ Deno.serve(async (req) => {
 
     case "seat_map": {
       // Who sits where, for the organisers.
-      const { data } = await db.from("fest_seats").select("id,held_until,checked_in_at,fest_orders(code,name,status,source)").order("id");
+      const { data } = await db.from("fest_seats").select("id,held_until,checked_in_at,kind,fest_orders(code,name,status,source)").order("id");
       const now = Date.now();
       return json({
         seats: (data ?? []).map((r) => {
           // deno-lint-ignore no-explicit-any
           const o = (r as any).fest_orders;
-          return { id: r.id, label: seatLabel(r.id), state: o ? o.status : r.held_until && Date.parse(r.held_until) > now ? "held" : "free", name: o?.name ?? null, code: o?.code ?? null, source: o?.source ?? null, in: !!r.checked_in_at };
+          return { id: r.id, label: seatLabel(r.id), kind: r.kind, state: r.kind === "blocked" ? "blocked" : o ? o.status : r.held_until && Date.parse(r.held_until) > now ? "held" : "free", name: o?.name ?? null, code: o?.code ?? null, source: o?.source ?? null, in: !!r.checked_in_at };
         }),
       });
     }

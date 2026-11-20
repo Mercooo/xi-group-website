@@ -1,5 +1,5 @@
 // Public seat map for the theatre (12 rows × 5 left, 10 centre, 5 right).
-//   GET                                   → { taken: [...ids], held: [...ids], price, max }
+//   GET                                   → { taken, held, vip, blocked: [...ids], price, max }
 //   POST { action: "hold", seats, token? } → holds the seats for the guest while they pay
 //   POST { action: "release", token }      → lets them go again
 // Seats are only "taken" for good when fest-buy (or a leader / admin) books them.
@@ -9,14 +9,16 @@ const TOKEN_RE = /^[a-f0-9]{32}$/;
 const newToken = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
 async function seatState() {
-  const { data } = await db.from("fest_seats").select("id,order_id,held_until");
+  const { data } = await db.from("fest_seats").select("id,order_id,held_until,kind");
   const now = Date.now();
-  const taken: string[] = [], held: string[] = [];
+  const taken: string[] = [], held: string[] = [], vip: string[] = [], blocked: string[] = [];
   for (const s of data ?? []) {
-    if (s.order_id) taken.push(s.id);
+    if (s.kind === "blocked") blocked.push(s.id);
+    else if (s.order_id) taken.push(s.id);
+    else if (s.kind === "vip") vip.push(s.id); // shown on the plan, given out by the organisers only
     else if (s.held_until && Date.parse(s.held_until) > now) held.push(s.id);
   }
-  return { taken, held };
+  return { taken, held, vip, blocked };
 }
 
 Deno.serve(async (req) => {

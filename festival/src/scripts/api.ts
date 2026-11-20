@@ -43,6 +43,7 @@ export interface SeatTicket {
   label_en: string;
   code: string | null;
   checked_in_at: string | null;
+  vip?: boolean;
 }
 
 export async function getConfig(): Promise<PublicConfig | null> {

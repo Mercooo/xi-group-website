@@ -3,7 +3,7 @@ import { reasonText } from '../lib/reasons';
 import { staff } from './api';
 import { formatDateTime } from './lang';
 import { mountSeatMap, type SeatMap } from './seatmap';
-import { MAX_SEATS, seatLabel, seatsSummary } from '../lib/seats';
+import { MAX_SEATS, isVipRow, seatLabel, seatsSummary } from '../lib/seats';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
 const S_KEY = 'xi74-admin-key';
@@ -65,6 +65,7 @@ function renderStats(s: any) {
   $('#k-admitted').textContent = s.admitted;
   $('#k-revenue').textContent = Number(s.revenue).toLocaleString('en');
   $('#k-seats').textContent = `${s.seats_booked ?? 0}${s.seats_review ? ` +${s.seats_review}` : ''}`;
+  $('#k-seats-of').textContent = s.seats_total ? `مقاعد محجوزة من ${s.seats_total}${s.vip_total ? ` (منها ${s.vip_booked ?? 0} من ${s.vip_total} VIP)` : ''}` : 'مقاعد محجوزة';
   $('#k-free').textContent = String(s.seats_free ?? '–');
   const b = $('#badge-review');
   b.textContent = s.review;
@@ -388,7 +389,7 @@ $('#scans-refresh').addEventListener('click', loadScans);
 // ------------------------------------------------------------------ seats
 let adminMap: SeatMap | null = null;
 let seatRows = new Map<string, any>();
-const SEAT_STATE: Record<string, string> = { verified: 'مؤكد', review: 'قيد المراجعة', rejected: 'مرفوض', held: 'يُحجز الآن (لم يكمل الدفع)', free: 'متاح' };
+const SEAT_STATE: Record<string, string> = { verified: 'مؤكد', review: 'قيد المراجعة', rejected: 'مرفوض', held: 'يُحجز الآن (لم يكمل الدفع)', free: 'متاح', blocked: 'معطّل: لا يُحجز' };
 
 async function loadSeatMap() {
   adminMap ??= mountSeatMap($('#admin-map'), showSeatInfo, { pickAny: true });
@@ -396,7 +397,8 @@ async function loadSeatMap() {
   if (!r.ok) return;
   seatRows = new Map(r.data.seats.map((x: any) => [x.id, x]));
   for (const x of r.data.seats) {
-    const st = x.in ? 'in' : x.state === 'verified' ? 'taken' : x.state === 'review' ? 'review' : x.state === 'held' ? 'held' : 'free';
+    const vip = x.kind ? x.kind === 'vip' : isVipRow(x.id);
+    const st = x.state === 'blocked' ? 'blocked' : x.in ? 'in' : x.state === 'verified' ? 'taken' : x.state === 'review' ? 'review' : x.state === 'held' ? 'held' : vip ? 'vip' : 'free';
     adminMap.set(x.id, st, x.name ? `${x.name}${x.source === 'leader' ? ' · قائد' : x.source === 'admin' ? ' · يدوي' : ''}` : undefined);
   }
 }
@@ -411,6 +413,7 @@ function showSeatInfo(id: string) {
   const dl = el('dl', 'dl');
   const add = (k: string, v: string) => { dl.append(el('dt', '', k), el('dd', '', v)); };
   add('الحالة', x?.in ? 'دخل صاحبه' : SEAT_STATE[x?.state ?? 'free'] ?? x?.state);
+  if (x?.kind === 'vip' || (!x?.kind && isVipRow(id))) add('القسم', 'كبار الزوار (VIP): يُعطى من «إصدار تذكرة» فقط');
   if (x?.name) add('الاسم', x.name);
   if (x?.source) add('المصدر', SOURCE[x.source] ?? x.source);
   box.append(dl);
@@ -438,9 +441,10 @@ function showSeatInfo(id: string) {
 let issueMap: SeatMap | null = null;
 let issueSeats: string[] = [];
 let issueTaken = new Set<string>();
+let issueBlocked = new Set<string>();
 function paintIssue() {
   if (!issueMap) return;
-  for (const id of issueMap.ids()) issueMap.set(id, issueSeats.includes(id) ? 'selected' : issueTaken.has(id) ? 'taken' : 'free');
+  for (const id of issueMap.ids()) issueMap.set(id, issueSeats.includes(id) ? 'selected' : issueBlocked.has(id) ? 'blocked' : issueTaken.has(id) ? 'taken' : isVipRow(id) ? 'vip' : 'free');
   $('#issue-seats').textContent = issueSeats.length ? `${issueSeats.length}: ${seatsSummary(issueSeats, 'ar')}` : 'لم تُختر مقاعد.';
 }
 async function loadIssueMap() {
@@ -448,10 +452,12 @@ async function loadIssueMap() {
     if (issueSeats.includes(id)) issueSeats = issueSeats.filter((x) => x !== id);
     else if (issueSeats.length < MAX_SEATS) issueSeats = [...issueSeats, id].sort();
     paintIssue();
-  });
+  }, { alsoPick: ['vip'] }); // the organisers can give out VIP seats
+  $('#issue-map').classList.add('theatre--pick-vip');
   const r = await api({ action: 'seat_map' });
   if (!r.ok) return;
-  issueTaken = new Set(r.data.seats.filter((x: any) => x.state !== 'free').map((x: any) => x.id));
+  issueBlocked = new Set(r.data.seats.filter((x: any) => x.state === 'blocked').map((x: any) => x.id));
+  issueTaken = new Set(r.data.seats.filter((x: any) => x.state !== 'free' && x.state !== 'blocked').map((x: any) => x.id));
   issueSeats = issueSeats.filter((id) => !issueTaken.has(id));
   paintIssue();
 }

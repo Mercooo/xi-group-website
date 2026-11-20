@@ -132,9 +132,10 @@ export async function getSettings() {
 }
 
 // ------------------------------------------------------------------ seating
-// One floor, 12 rows; each row has 5 left (L), 10 centre (M) and 5 right (R) seats.
-// Seat ids look like "03-M07": row 3, centre seat 7.
-export const SEAT_RE = /^(0[1-9]|1[0-2])-(L0[1-5]|M(0[1-9]|10)|R0[1-5])$/;
+// One floor, 14 rows; each row has 5 left (L), 10 centre (M) and 5 right (R) seats.
+// Seat ids look like "03-M07": row 3, centre seat 7. Rows 1-5 are VIP (only the organisers give them out),
+// and broken seats are marked blocked; see fest_seats.kind.
+export const SEAT_RE = /^(0[1-9]|1[0-4])-(L0[1-5]|M(0[1-9]|10)|R0[1-5])$/;
 export const MAX_SEATS = 10; // per booking
 export const HOLD_MINUTES = 15;
 
@@ -156,9 +157,9 @@ export function seatLabel(id: string, lang: "ar" | "en" = "ar") {
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
 export const newCode = (len = 12) => [...crypto.getRandomValues(new Uint8Array(len))].map((x) => CODE_ALPHABET[x % 32]).join("");
 
-/** Gives seats to an order, one ticket code each. All or nothing. */
-export async function claimSeats(orderId: string, seats: string[], holdToken: string | null) {
-  const { error } = await db.rpc("fest_claim_seats", { p_order: orderId, p_seats: seats, p_codes: seats.map(() => newCode(10)), p_token: holdToken });
+/** Gives seats to an order, one ticket code each. All or nothing. VIP seats only when `allowVip` (the organisers). */
+export async function claimSeats(orderId: string, seats: string[], holdToken: string | null, allowVip = false) {
+  const { error } = await db.rpc("fest_claim_seats", { p_order: orderId, p_seats: seats, p_codes: seats.map(() => newCode(10)), p_token: holdToken, p_allow_vip: allowVip });
   return !error;
 }
 

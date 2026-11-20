@@ -262,7 +262,7 @@ async function drawTicket(tk: Ticket, seat: SeatTicket | null): Promise<HTMLCanv
   g.direction = ar ? 'rtl' : 'ltr';
   g.fillStyle = gold;
   g.font = '800 34px "Cairo Variable", Cairo, sans-serif';
-  g.fillText(seat ? seatName(seat) : t('دخول شخص واحد', 'Admit one'), cx, py + ph - 22, pw - 30);
+  g.fillText(seat ? `${seat.vip ? 'VIP · ' : ''}${seatName(seat)}` : t('دخول شخص واحد', 'Admit one'), cx, py + ph - 22, pw - 30);
 
   // Holder and code where the barcode was.
   const bx = 1587, by = 597, bw = 290, bh = 96;
