@@ -56,7 +56,7 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
     d.textContent = text;
     return d;
   };
-  const both = (ar: string, en: string) => `<span class="ar">${ar}</span><span class="en">${en}</span>`;
+  const both = (ar: string, en: string) => `<span class="ar" dir="rtl">${ar}</span><span class="en" dir="ltr">${en}</span>`; // the map itself is laid out left to right
   // Block headings.
   grid.append(cell('theatre__corner'));
   SECTIONS.forEach((s, i) => {
