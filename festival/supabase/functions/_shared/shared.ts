@@ -134,10 +134,24 @@ export async function getSettings() {
 // ------------------------------------------------------------------ seating
 // One floor, 21 rows of left (L), middle (M) and right (R) blocks whose length changes row by row, as the
 // organisers drew it (festival/src/lib/theatre.json). Seat ids look like "07-M02": row 7, middle seat 2,
-// counted from the left facing the stage. fest_seats holds exactly the seats that exist; its `kind` marks
-// the middle VIP block of rows 1-5 (given out by the organisers only) and broken seats (blocked).
+// counted from the left facing the stage. fest_seats holds exactly the seats that exist.
+// Two seat kinds are kept off sale with a hold that never runs out:
+//   VIP_HOLD    the middle block of rows 1-5: shown on the plan, given out by the organisers only
+//   BROKEN_HOLD broken seats: nobody can book them
+// Guests hold seats with a random 32-hex token, so they can never match these.
 export const SEAT_RE = /^(0[1-9]|1\d|2[01])-[LMR](0[1-9]|1[0-6])$/;
 export const MAX_SEATS = 10; // per booking
+export const VIP_HOLD = "organisers-vip";
+export const BROKEN_HOLD = "broken-seat";
+const FOREVER = "2100-01-01T00:00:00Z";
+export const isVipId = (id: string) => /^0[1-5]-M/.test(id);
+
+/** Puts free VIP seats back on the organisers' hold (after a VIP booking is rejected, deleted or cancelled). */
+export async function reserveVip() {
+  await db.from("fest_seats").update({ hold_token: VIP_HOLD, held_until: FOREVER, hold_ip: null })
+    .is("order_id", null).is("hold_token", null)
+    .or("id.like.01-M*,id.like.02-M*,id.like.03-M*,id.like.04-M*,id.like.05-M*");
+}
 export const HOLD_MINUTES = 15;
 
 export function cleanSeats(v: unknown): string[] | null {
@@ -160,7 +174,7 @@ export const newCode = (len = 12) => [...crypto.getRandomValues(new Uint8Array(l
 
 /** Gives seats to an order, one ticket code each. All or nothing. VIP seats only when `allowVip` (the organisers). */
 export async function claimSeats(orderId: string, seats: string[], holdToken: string | null, allowVip = false) {
-  const { error } = await db.rpc("fest_claim_seats", { p_order: orderId, p_seats: seats, p_codes: seats.map(() => newCode(10)), p_token: holdToken, p_allow_vip: allowVip });
+  const { error } = await db.rpc("fest_claim_seats", { p_order: orderId, p_seats: seats, p_codes: seats.map(() => newCode(10)), p_token: allowVip ? VIP_HOLD : holdToken });
   return !error;
 }
 

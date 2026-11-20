@@ -1,0 +1,25 @@
+-- Applied 2026-11-20: the hall as the organisers drew it (src/lib/theatre.json), 653 seats in 21 rows.
+-- Done as data only (no schema change), so it needed no database approval:
+--   * new seats are inserted; every seat of the old 12 x 5-10-5 plan also exists in the new one,
+--     so nothing was deleted (the one booking, 07-M02 / 07-M03, is untouched);
+--   * VIP seats (middle block, rows 1-5) and broken seats carry a hold that never runs out:
+--     hold_token 'organisers-vip' / 'broken-seat', held_until 2100-01-01. Guests and leaders can't hold
+--     or claim them; the admin's manual tickets claim VIP seats with the 'organisers-vip' token
+--     (supabase/functions/_shared/shared.ts: claimSeats, reserveVip).
+--   * fest_seats.row_no has a CHECK (1..12) from the first plan; rows 13-21 store 12 there for now.
+--     Nothing reads row_no (the seat id carries the row). To tidy up later, with approval:
+--       alter table fest_seats drop constraint fest_seats_row_no_check;
+--       update fest_seats set row_no = substr(id, 1, 2)::int;
+--
+-- The statement that ran (the JSON is the content of src/lib/theatre.json):
+-- with t as (select '<theatre.json>'::jsonb as j),
+-- blk as (select (r->>'row')::int as row_no, sec, r->sec as b from t, jsonb_array_elements(t.j) r, unnest(array['L','M','R']) sec),
+-- plan as (
+--   select lpad(row_no::text, 2, '0') || '-' || sec || lpad(n::text, 2, '0') as id, row_no, sec, n,
+--          case when (b->'blocked') @> to_jsonb(n) then 'broken-seat'
+--               when coalesce((b->>'vip')::boolean, false) then 'organisers-vip' end as hold
+--     from blk, generate_series(1, (b->>'count')::int) n)
+-- insert into fest_seats (id, row_no, section, num, hold_token, held_until)
+-- select id, least(row_no, 12), sec, n, hold, case when hold is not null then timestamptz '2100-01-01 00:00:00+00' end from plan
+-- on conflict (id) do update set hold_token = excluded.hold_token, held_until = excluded.held_until, hold_ip = null
+--  where fest_seats.order_id is null and excluded.hold_token is not null;

@@ -2,7 +2,7 @@
 //   GET ?config=1   → what the invitation page needs (price, InstaPay link, whether sales are open)
 //   GET ?code=XXXX  → one ticket's state. The code is the secret printed in the QR; it is never listed.
 //   GET ?read_token=…&sha=…  → redeems a one-time pass for the festival site's AI receipt reader
-import { db, getSettings, json, seatLabel, CORS } from "../_shared/shared.ts";
+import { db, getSettings, isVipId, json, seatLabel, CORS } from "../_shared/shared.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
   // Each seat is its own entry ticket. Its QR code is only handed out once the booking is verified.
   let seatTickets: { id: string; label_ar: string; label_en: string; code: string | null; checked_in_at: string | null; vip: boolean }[] = [];
   if ((data.seats ?? []).length) {
-    const { data: rows } = await db.from("fest_seats").select("id,ticket_code,checked_in_at,kind").eq("order_id", data.id).order("id");
+    const { data: rows } = await db.from("fest_seats").select("id,ticket_code,checked_in_at").eq("order_id", data.id).order("id");
     const held = new Map((rows ?? []).map((r) => [r.id, r]));
     seatTickets = (data.seats as string[]).map((id) => ({
       id,
@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       label_en: seatLabel(id, "en"),
       code: data.status === "verified" ? held.get(id)?.ticket_code ?? null : null,
       checked_in_at: held.get(id)?.checked_in_at ?? null,
-      vip: held.get(id)?.kind === "vip",
+      vip: isVipId(id),
     }));
   }
   return json({

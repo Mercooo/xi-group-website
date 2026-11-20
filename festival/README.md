@@ -12,15 +12,16 @@ The invitation website for the XI Group's 74th anniversary (1952 – 2026). Gues
 
 ## Seats
 
-The theatre has one floor of 12 rows, each split into left 5 · centre 10 · right 5 (240 seats). Seat ids look like `03-M07` (row 3, centre seat 7).
+The hall is drawn from the organisers' plan in `src/lib/theatre.json`: 21 rows of left, middle and right blocks whose length changes row by row, 653 seats. Seat ids look like `07-M02` (row 7, middle seat 2), counted from the left facing the stage.
 
+- **VIP:** the middle block of rows 1-5 (64 working seats). Everyone sees it on the plan; only the organisers give these seats out, from `/admin → إصدار تذكرة`.
+- **Broken seats** (31) are crossed out and can't be booked by anyone.
+- Both are kept off sale with a hold that never runs out (`organisers-vip` / `broken-seat` in `fest_seats.hold_token`); see `supabase/migrations/20261120_fest_74_theatre_plan_data.sql`.
 - Choosing seats holds them for 15 minutes (`fest-seats`), so two guests can't pay for the same seat. One device can hold at most 20 seats; a booking has at most 10.
 - The amount due is **seats × price**: 3 seats at 100 EGP need one transfer of exactly 300 EGP. Any other amount is `wrong_amount`.
-- When the booking is accepted, the seats are claimed all at once and each gets its own ticket code. A rejected booking gives its seats back; un-rejecting takes them again if nobody bought them meanwhile.
+- When the booking is accepted, the seats are claimed all at once and each gets its own ticket code. A rejected booking gives its seats back (VIP seats go back to the organisers); un-rejecting takes them again if nobody bought them meanwhile.
 - Each seat's QR holds `/t/<booking>?seat=<seat code>`. The gate admits each seat once and shows its row and number. Scanning the booking's own code returns `seat_ticket_required`.
 - Leaders (`fest_leaders`, managed in `/admin → القادة`) book through `fest-leader`. Their bookings are verified at once, marked with the leader, and don't count as revenue. A leader can have a seat quota.
-
-The sponsors and offers page is part of the group website: `/sponsors`, driven by `src/data/sponsors.json` in the parent project.
 
 ## How a ticket is checked
 
