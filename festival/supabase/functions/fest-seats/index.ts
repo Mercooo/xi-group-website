@@ -1,9 +1,9 @@
 // Public seat map for the theatre: 21 rows of left, middle and right blocks (festival/src/lib/theatre.json).
-//   GET                                   → { taken, held, vip, blocked: [...ids], price, max }
+//   GET                                   → { taken, held, vip, blocked, locked: [...ids], phase, price, max }
 //   POST { action: "hold", seats, token? } → holds the seats for the guest while they pay
 //   POST { action: "release", token }      → lets them go again
 // Seats are only "taken" for good when fest-buy (or a leader / admin) books them.
-import { BROKEN_HOLD, NOT_IN_PLAN, db, getSettings, HOLD_MINUTES, ipHash, json, MAX_SEATS, cleanSeats, CORS, VIP_HOLD } from "../_shared/shared.ts";
+import { BROKEN_HOLD, NOT_IN_PLAN, PHASE_HOLD, PHASES, db, getSettings, HOLD_MINUTES, ipHash, json, MAX_SEATS, cleanSeats, CORS, VIP_HOLD } from "../_shared/shared.ts";
 
 const TOKEN_RE = /^[a-f0-9]{32}$/;
 const newToken = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -11,15 +11,19 @@ const newToken = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) =
 async function seatState() {
   const { data } = await db.from("fest_seats").select("id,order_id,held_until,hold_token");
   const now = Date.now();
-  const taken: string[] = [], held: string[] = [], vip: string[] = [], blocked: string[] = [];
+  const taken: string[] = [], held: string[] = [], vip: string[] = [], blocked: string[] = [], locked: string[] = [];
   for (const s of data ?? []) {
     if (s.hold_token === NOT_IN_PLAN && !s.order_id) continue; // not part of the hall
     if (s.hold_token === BROKEN_HOLD) blocked.push(s.id);
     else if (s.order_id) taken.push(s.id);
     else if (s.hold_token === VIP_HOLD) vip.push(s.id); // shown on the plan, given out by the organisers only
+    else if (s.hold_token === PHASE_HOLD) locked.push(s.id); // a phase that hasn't opened yet
     else if (s.held_until && Date.parse(s.held_until) > now) held.push(s.id);
   }
-  return { taken, held, vip, blocked };
+  // Open phases: those before the first locked seat's phase.
+  const first = locked.length ? Math.min(...locked.map((id) => Number(id.slice(0, 2)))) : 0;
+  const phase = first ? Math.max(1, PHASES.findIndex((p) => first >= p.from && first <= p.to)) : PHASES.length;
+  return { taken, held, vip, blocked, locked, phase, phases: PHASES };
 }
 
 Deno.serve(async (req) => {

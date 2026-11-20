@@ -1,9 +1,9 @@
 // Draws the theatre from the organisers' plan (stage, 21 rows of left, middle and right blocks) as buttons, one per seat.
 // Used by the invitation page, the leaders' page and the admin board.
-import { SECTIONS, THEATRE, VIP_ROWS, WIDEST, seatId, seatLabel } from '../lib/seats';
+import { PHASES, SECTIONS, THEATRE, VIP_ROWS, WIDEST, rowLetter, seatId, seatLabel } from '../lib/seats';
 import { lang, t } from './lang';
 
-export type SeatState = 'free' | 'selected' | 'taken' | 'held' | 'review' | 'in' | 'vip' | 'blocked';
+export type SeatState = 'free' | 'selected' | 'taken' | 'held' | 'review' | 'in' | 'vip' | 'blocked' | 'locked';
 
 const STATE_TEXT: Record<SeatState, [string, string]> = {
   free: ['متاح', 'available'],
@@ -14,12 +14,15 @@ const STATE_TEXT: Record<SeatState, [string, string]> = {
   in: ['دخل صاحبه', 'checked in'],
   vip: ['كبار الزوار، يحجزه المنظمون فقط', 'VIP, given out by the organisers'],
   blocked: ['غير متاح', 'not available'],
+  locked: ['يفتح في مرحلة قادمة', 'opens in a later phase'],
 };
 
 export interface SeatMap {
   set(id: string, state: SeatState, note?: string): void;
   state(id: string): SeatState;
   ids(): string[];
+  /** How many of the PHASES are open; updates the phase headings on the plan. */
+  setPhase(open: number): void;
 }
 
 /**
@@ -68,8 +71,19 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
   const states = new Map<string, SeatState>();
   const notes = new Map<string, string>();
   const rowsOfIds: string[][] = [];
+  const phaseZones: HTMLElement[] = [];
+  const rowsText = (p: { from: number; to: number }) => `${rowLetter(p.from)} – ${rowLetter(p.to)}`;
   for (const row of THEATRE) {
     const r = row.row;
+    // A heading where each phase after the first starts; setPhase() says whether it is open.
+    const pi = PHASES.findIndex((p) => p.from === r);
+    if (pi > 0) {
+      const z = cell('theatre__zone theatre__zone--phase');
+      z.dataset.phase = String(pi + 1);
+      z.innerHTML = `<span>${both(`المرحلة ${pi + 1} · الصفوف ${rowsText(PHASES[pi])}`, `Phase ${pi + 1} · rows ${rowsText(PHASES[pi])}`)}</span>`;
+      grid.append(z);
+      phaseZones.push(z);
+    }
     if (r === 1 && VIP_ROWS) {
       const z = cell('theatre__zone theatre__zone--vip');
       z.innerHTML = `<span>${both(`الوسط: كبار الزوار · الصفوف A – ${THEATRE[VIP_ROWS - 1].label} · يحجزها المنظمون`, `Middle: VIP · rows A – ${THEATRE[VIP_ROWS - 1].label} · given out by the organisers`)}</span>`;
@@ -104,7 +118,11 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
   }
   inner.append(grid);
   scroller.append(inner);
-  host.append(scroller);
+  const phaseNote = document.createElement('p');
+  phaseNote.className = 'theatre__phase';
+  phaseNote.setAttribute('role', 'status');
+  phaseNote.hidden = true;
+  host.append(phaseNote, scroller);
 
   // On narrow screens part of the theatre is off to the side: say so.
   const hint = document.createElement('p');
@@ -196,5 +214,20 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
     },
     state: (id) => states.get(id) ?? 'free',
     ids: () => [...buttons.keys()],
+    setPhase(open) {
+      for (const z of phaseZones) {
+        const n = Number(z.dataset.phase), p = PHASES[n - 1], isOpen = n <= open;
+        z.classList.toggle('theatre__zone--locked', !isOpen);
+        z.innerHTML = `<span>${isOpen
+          ? both(`المرحلة ${n} · الصفوف ${rowsText(p)} · مفتوحة`, `Phase ${n} · rows ${rowsText(p)} · open`)
+          : both(`المرحلة ${n} · الصفوف ${rowsText(p)} · تفتح بعد اكتمال المرحلة ${n - 1}`, `Phase ${n} · rows ${rowsText(p)} · opens when phase ${n - 1} is full`)}</span>`;
+      }
+      phaseNote.hidden = false;
+      const p = PHASES[open - 1];
+      phaseNote.innerHTML = open >= PHASES.length
+        ? both('كل المراحل مفتوحة: اختر من أي صف.', 'Every phase is open: choose from any row.')
+        : both(`الحجز الآن في المرحلة ${open} من ${PHASES.length}: الصفوف A – ${rowLetter(p.to)}. تفتح الصفوف التالية عندما تكتمل هذه المرحلة.`,
+            `Booking is in phase ${open} of ${PHASES.length}: rows A – ${rowLetter(p.to)}. The next rows open when this phase is full.`);
+    },
   };
 }

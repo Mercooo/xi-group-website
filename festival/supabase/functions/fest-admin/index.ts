@@ -2,8 +2,8 @@
 //   stats | list { status?, q?, page? } | receipt { id } | set_status { id, status, note? }
 //   undo_checkin { id } | issue { name, phone, note? } | settings_get | settings_set { ...fields } | scans
 //   set_passcode { role: admin | gate, passcode } | delete { id } | seat_map
-//   leaders_list | leader_save { id?, name, unit, passcode?, seat_quota?, active? }
-import { authorize, BROKEN_HOLD, NOT_IN_PLAN, BUCKET, claimSeats, isVipId, reserveVip, VIP_HOLD, cleanSeats, db, forgetLeaders, forgetPasscodes, getSettings, hashPasscode, json, newSalt, normPhone, seatLabel, CORS, PASS_ITERATIONS } from "../_shared/shared.ts";
+//   leaders_list | leader_save { id?, name, unit, passcode?, seat_quota?, active? } | open_phase
+import { authorize, BROKEN_HOLD, NOT_IN_PLAN, PHASE_HOLD, PHASES, openNextPhase, openPhases, BUCKET, claimSeats, isVipId, reserveVip, VIP_HOLD, cleanSeats, db, forgetLeaders, forgetPasscodes, getSettings, hashPasscode, json, newSalt, normPhone, seatLabel, CORS, PASS_ITERATIONS } from "../_shared/shared.ts";
 
 const PAGE = 50;
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -53,6 +53,7 @@ Deno.serve(async (req) => {
         revenue: paidSeats * s.price_egp,
         seats_total: seatsTotal, seats_booked: seatsBooked, seats_review: seatsReview, seats_free: open, seats_in: seatsIn,
         vip_total: vipTotal, vip_booked: vipBooked, seats_blocked: blocked,
+        phase_open: await openPhases(), phases: PHASES.length,
       });
     }
 
@@ -138,8 +139,11 @@ Deno.serve(async (req) => {
           admin_note: String(b.note || "").slice(0, 300) || null, reviewed_at: new Date().toISOString(), reviewed_by: "admin",
         }).select("id").single();
         if (error) { if (error.code === "23505") continue; return json({ error: "server" }, 500); }
-        if (seats.length && !(await claimSeats(created.id, seats, null, true))) { // the organisers may give out VIP seats
+        // The organisers may give out VIP seats, and seats of a phase that hasn't opened yet.
+        if (seats.length) await db.from("fest_seats").update({ hold_token: null, held_until: null }).in("id", seats).eq("hold_token", PHASE_HOLD).is("order_id", null);
+        if (seats.length && !(await claimSeats(created.id, seats, null, true))) {
           await db.from("fest_orders").delete().eq("id", created.id);
+          await reserveVip(); // lock again what was unlocked above
           return json({ error: "seat_unavailable" }, 409);
         }
         return json({ ok: true, code });
@@ -156,10 +160,16 @@ Deno.serve(async (req) => {
           // deno-lint-ignore no-explicit-any
           const o = (r as any).fest_orders;
           const kind = r.hold_token === BROKEN_HOLD ? "blocked" : isVipId(r.id) ? "vip" : "regular";
-          const held = r.hold_token !== VIP_HOLD && r.held_until && Date.parse(r.held_until) > now;
-          return { id: r.id, label: seatLabel(r.id), kind, state: kind === "blocked" ? "blocked" : o ? o.status : held ? "held" : "free", name: o?.name ?? null, code: o?.code ?? null, source: o?.source ?? null, in: !!r.checked_in_at };
+          const locked = !o && r.hold_token === PHASE_HOLD;
+          const held = r.hold_token !== VIP_HOLD && !locked && r.held_until && Date.parse(r.held_until) > now;
+          return { id: r.id, label: seatLabel(r.id), kind, state: kind === "blocked" ? "blocked" : o ? o.status : locked ? "locked" : held ? "held" : "free", name: o?.name ?? null, code: o?.code ?? null, source: o?.source ?? null, in: !!r.checked_in_at };
         }),
       });
+    }
+
+    case "open_phase": {
+      // Open the next phase now, without waiting for the current ones to fill.
+      return json({ ok: true, phase_open: await openNextPhase(), phases: PHASES.length });
     }
 
     case "leaders_list": {

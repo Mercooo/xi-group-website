@@ -221,7 +221,7 @@ const PROGRAMME = [
           <div class="picker__head">
             <div>
               <h3><span class="num">1</span> · <T ar="اختر مقاعدك" en="Choose your seats" /></h3>
-              <p><T ar="اضغط على المقاعد المتاحة، حتى 10 مقاعد في الحجز الواحد. نحجزها لك 15 دقيقة حتى تكمل الدفع." en="Tap the free seats, up to 10 per booking. We keep them for you for 15 minutes while you pay." /></p>
+              <p><T ar="اضغط على المقاعد المتاحة، حتى 10 مقاعد في الحجز الواحد. نحجزها لك 7 دقائق حتى تكمل الدفع. تفتح الصفوف على 3 مراحل من الأمام إلى الخلف." en="Tap the free seats, up to 10 per booking. We keep them for you for 7 minutes while you pay. Rows open in 3 phases, front to back." /></p>
             </div>
           </div>
           <div id="seatmap" aria-label="خريطة مقاعد المسرح" data-aria-ar="خريطة مقاعد المسرح" data-aria-en="Theatre seating plan" role="group"></div>
@@ -232,6 +232,7 @@ const PROGRAMME = [
             <span><i class="seat" data-state="taken"></i><T ar="محجوز" en="Booked" /></span>
             <span><i class="seat" data-state="vip"></i><T ar="كبار الزوار (بدعوة)" en="VIP (by invitation)" /></span>
             <span><i class="seat" data-state="blocked"></i><T ar="غير متاح" en="Not available" /></span>
+            <span><i class="seat" data-state="locked"></i><T ar="يفتح في مرحلة قادمة" en="Opens in a later phase" /></span>
           </div>
           <div class="picker__bar" id="picker-bar">
             <span class="picker__seats" id="picker-seats"><T ar="لم تختر مقاعد بعد." en="No seats chosen yet." /></span>

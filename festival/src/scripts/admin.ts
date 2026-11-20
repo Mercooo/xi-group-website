@@ -3,7 +3,7 @@ import { reasonText } from '../lib/reasons';
 import { staff } from './api';
 import { formatDateTime } from './lang';
 import { mountSeatMap, type SeatMap } from './seatmap';
-import { MAX_SEATS, isBlockedSeat, isVipSeat, seatLabel, seatsSummary } from '../lib/seats';
+import { openPhasesFrom, MAX_SEATS, isBlockedSeat, isVipSeat, seatLabel, seatsSummary } from '../lib/seats';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
 const S_KEY = 'xi74-admin-key';
@@ -67,6 +67,10 @@ function renderStats(s: any) {
   $('#k-seats').textContent = `${s.seats_booked ?? 0}${s.seats_review ? ` +${s.seats_review}` : ''}`;
   $('#k-seats-of').textContent = s.seats_total ? `مقاعد محجوزة من ${s.seats_total}${s.vip_total ? ` (منها ${s.vip_booked ?? 0} من ${s.vip_total} VIP)` : ''}` : 'مقاعد محجوزة';
   $('#k-free').textContent = String(s.seats_free ?? '–');
+  if (s.phases) {
+    $('#k-phase').textContent = `${s.phase_open} / ${s.phases}`;
+    $<HTMLButtonElement>('#open-phase').hidden = s.phase_open >= s.phases;
+  }
   const b = $('#badge-review');
   b.textContent = s.review;
   b.hidden = !s.review;
@@ -389,20 +393,30 @@ $('#scans-refresh').addEventListener('click', loadScans);
 // ------------------------------------------------------------------ seats
 let adminMap: SeatMap | null = null;
 let seatRows = new Map<string, any>();
-const SEAT_STATE: Record<string, string> = { verified: 'مؤكد', review: 'قيد المراجعة', rejected: 'مرفوض', held: 'يُحجز الآن (لم يكمل الدفع)', free: 'متاح', blocked: 'معطّل: لا يُحجز' };
+const SEAT_STATE: Record<string, string> = { verified: 'مؤكد', review: 'قيد المراجعة', rejected: 'مرفوض', held: 'يُحجز الآن (لم يكمل الدفع)', free: 'متاح', blocked: 'معطّل: لا يُحجز', locked: 'في مرحلة لم تُفتح بعد' };
 
 async function loadSeatMap() {
   adminMap ??= mountSeatMap($('#admin-map'), showSeatInfo, { pickAny: true });
   const r = await api({ action: 'seat_map' });
   if (!r.ok) return;
   seatRows = new Map(r.data.seats.map((x: any) => [x.id, x]));
+  adminMap.setPhase(openPhasesFrom(r.data.seats.filter((x: any) => x.state === 'locked').map((x: any) => x.id)));
   for (const x of r.data.seats) {
     const vip = x.kind ? x.kind === 'vip' : isVipSeat(x.id);
-    const st = x.state === 'blocked' || isBlockedSeat(x.id) ? 'blocked' : x.in ? 'in' : x.state === 'verified' ? 'taken' : x.state === 'review' ? 'review' : x.state === 'held' ? 'held' : vip ? 'vip' : 'free';
+    const st = x.state === 'blocked' || isBlockedSeat(x.id) ? 'blocked' : x.in ? 'in' : x.state === 'verified' ? 'taken' : x.state === 'review' ? 'review' : x.state === 'held' ? 'held' : vip ? 'vip' : x.state === 'locked' ? 'locked' : 'free';
     adminMap.set(x.id, st, x.name ? `${x.name}${x.source === 'leader' ? ' · قائد' : x.source === 'admin' ? ' · يدوي' : ''}` : undefined);
   }
 }
 $('#seats-refresh').addEventListener('click', loadSeatMap);
+$('#open-phase').addEventListener('click', async () => {
+  const b = $<HTMLButtonElement>('#open-phase');
+  if (!confirm('فتح المرحلة التالية الآن، قبل اكتمال المرحلة الحالية؟')) return;
+  b.disabled = true;
+  const r = await api({ action: 'open_phase' });
+  b.disabled = false;
+  if (!r.ok) return alert('حدث خطأ.');
+  await Promise.all([loadStats(), loadSeatMap()]);
+});
 
 function showSeatInfo(id: string) {
   const x = seatRows.get(id);
@@ -442,9 +456,10 @@ let issueMap: SeatMap | null = null;
 let issueSeats: string[] = [];
 let issueTaken = new Set<string>();
 let issueBlocked = new Set<string>();
+let issueLocked = new Set<string>();
 function paintIssue() {
   if (!issueMap) return;
-  for (const id of issueMap.ids()) issueMap.set(id, issueSeats.includes(id) ? 'selected' : issueBlocked.has(id) || isBlockedSeat(id) ? 'blocked' : issueTaken.has(id) ? 'taken' : isVipSeat(id) ? 'vip' : 'free');
+  for (const id of issueMap.ids()) issueMap.set(id, issueSeats.includes(id) ? 'selected' : issueBlocked.has(id) || isBlockedSeat(id) ? 'blocked' : issueTaken.has(id) ? 'taken' : isVipSeat(id) ? 'vip' : issueLocked.has(id) ? 'locked' : 'free');
   $('#issue-seats').textContent = issueSeats.length ? `${issueSeats.length}: ${seatsSummary(issueSeats, 'ar')}` : 'لم تُختر مقاعد.';
 }
 async function loadIssueMap() {
@@ -452,12 +467,14 @@ async function loadIssueMap() {
     if (issueSeats.includes(id)) issueSeats = issueSeats.filter((x) => x !== id);
     else if (issueSeats.length < MAX_SEATS) issueSeats = [...issueSeats, id].sort();
     paintIssue();
-  }, { alsoPick: ['vip'] }); // the organisers can give out VIP seats
+  }, { alsoPick: ['vip', 'locked'] }); // the organisers can give out VIP seats and seats of phases not yet open
   $('#issue-map').classList.add('theatre--pick-vip');
   const r = await api({ action: 'seat_map' });
   if (!r.ok) return;
   issueBlocked = new Set(r.data.seats.filter((x: any) => x.state === 'blocked').map((x: any) => x.id));
-  issueTaken = new Set(r.data.seats.filter((x: any) => x.state !== 'free' && x.state !== 'blocked').map((x: any) => x.id));
+  issueLocked = new Set(r.data.seats.filter((x: any) => x.state === 'locked').map((x: any) => x.id));
+  issueMap.setPhase(openPhasesFrom([...issueLocked]));
+  issueTaken = new Set(r.data.seats.filter((x: any) => !['free', 'blocked', 'locked'].includes(x.state)).map((x: any) => x.id));
   issueSeats = issueSeats.filter((id) => !issueTaken.has(id));
   paintIssue();
 }

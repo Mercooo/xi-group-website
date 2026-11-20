@@ -18,6 +18,14 @@ export const SECTIONS = [
 export type SectionKey = (typeof SECTIONS)[number]['key'];
 export const MAX_SEATS = 10;
 export const VIP_ROWS = THEATRE.filter((r) => r.M.vip).length;
+/** The hall opens in three phases from the stage back (rows, 1 = A). Keep in sync with PHASES in _shared/shared.ts. */
+export const PHASES = [{ from: 1, to: 7 }, { from: 8, to: 14 }, { from: 15, to: 21 }];
+/** How many phases are open, given the seats that are still locked. */
+export function openPhasesFrom(locked: string[]) {
+  if (!locked.length) return PHASES.length;
+  const first = Math.min(...locked.map((id) => Number(id.slice(0, 2))));
+  return Math.max(1, PHASES.findIndex((p) => first >= p.from && first <= p.to));
+}
 /** The widest row of each block, so the blocks line up along the aisles. */
 export const WIDEST = { L: Math.max(...THEATRE.map((r) => r.L.count)), M: Math.max(...THEATRE.map((r) => r.M.count)), R: Math.max(...THEATRE.map((r) => r.R.count)) };
 

@@ -12,7 +12,7 @@ const api = (body: Record<string, unknown>) => staff('fest-leader', key, body);
 
 let me: { name: string; unit: string; quota: number | null; used: number } | null = null;
 let chosen: string[] = [];
-let state: { taken: string[]; held: string[]; blocked: string[] } = { taken: [], held: [], blocked: [] };
+let state: { taken: string[]; held: string[]; blocked: string[]; locked: string[] } = { taken: [], held: [], blocked: [], locked: [] };
 
 const ERR: Record<string, string> = {
   unauthorized: 'كلمة السر غير صحيحة.',
@@ -61,8 +61,8 @@ const map = mountSeatMap($('#seatmap'), (id) => {
 });
 
 function paint() {
-  const taken = new Set(state.taken), held = new Set(state.held), blocked = new Set(state.blocked);
-  for (const id of map.ids()) map.set(id, blocked.has(id) || isBlockedSeat(id) ? 'blocked' : isVipSeat(id) ? 'vip' : chosen.includes(id) ? 'selected' : taken.has(id) ? 'taken' : held.has(id) ? 'held' : 'free');
+  const taken = new Set(state.taken), held = new Set(state.held), blocked = new Set(state.blocked), locked = new Set(state.locked);
+  for (const id of map.ids()) map.set(id, blocked.has(id) || isBlockedSeat(id) ? 'blocked' : isVipSeat(id) ? 'vip' : locked.has(id) ? 'locked' : chosen.includes(id) ? 'selected' : taken.has(id) ? 'taken' : held.has(id) ? 'held' : 'free');
 }
 
 async function refreshSeats() {
@@ -70,8 +70,9 @@ async function refreshSeats() {
     const r = await fetch(`${API}/fest-seats`);
     if (!r.ok) return;
     const j = await r.json();
-    state = { taken: j.taken ?? [], held: j.held ?? [], blocked: j.blocked ?? [] };
-    chosen = chosen.filter((id) => !state.taken.includes(id) && !state.blocked.includes(id) && !isBlockedSeat(id) && !isVipSeat(id));
+    state = { taken: j.taken ?? [], held: j.held ?? [], blocked: j.blocked ?? [], locked: j.locked ?? [] };
+    if (j.phase) map.setPhase(j.phase);
+    chosen = chosen.filter((id) => !state.taken.includes(id) && !state.blocked.includes(id) && !state.locked.includes(id) && !isBlockedSeat(id) && !isVipSeat(id));
     paint();
     renderChosen();
   } catch {}

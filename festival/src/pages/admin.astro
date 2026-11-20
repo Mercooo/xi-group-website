@@ -99,6 +99,7 @@ import Icon from '../components/Icon.astro';
           <div class="kpi" style="--c:var(--gold)"><b id="k-revenue">–</b><span>إجمالي المدفوع المؤكد (جنيه)</span></div>
           <div class="kpi" style="--c:var(--cubs)"><b id="k-seats">–</b><span id="k-seats-of">مقاعد محجوزة</span></div>
           <div class="kpi" style="--c:var(--buds)"><b id="k-free">–</b><span>مقاعد متاحة</span></div>
+          <div class="kpi" style="--c:var(--gold)"><b id="k-phase">–</b><span>المراحل المفتوحة</span></div>
         </div>
         <div class="toolbar">
           <input class="input" id="q" type="search" placeholder="بحث بالاسم أو الموبايل أو الرمز أو المرجع" aria-label="بحث" />
@@ -148,6 +149,7 @@ import Icon from '../components/Icon.astro';
         <div class="toolbar">
           <p style="color:var(--muted);margin:0">اضغط على أي مقعد لمعرفة صاحبه. تتحدث الخريطة كل 30 ثانية.</p>
           <span style="flex:1"></span>
+          <button class="btn btn--sm" id="open-phase" type="button" hidden>فتح المرحلة التالية الآن</button>
           <button class="btn btn--sm btn--ghost" id="seats-refresh" type="button"><Icon name="refresh" size={16} />تحديث</button>
         </div>
         <div id="admin-map" class="theatre--admin"></div>
@@ -159,6 +161,7 @@ import Icon from '../components/Icon.astro';
           <span><i class="seat" data-state="held"></i>يُحجز الآن</span>
           <span><i class="seat" data-state="vip"></i>VIP متاح</span>
           <span><i class="seat" data-state="blocked"></i>معطّل</span>
+          <span><i class="seat" data-state="locked"></i>مرحلة لم تُفتح</span>
         </div>
         <div class="panel" id="seat-info" hidden style="margin-top:14px"></div>
       </section>

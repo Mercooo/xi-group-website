@@ -139,6 +139,9 @@ export async function getSettings() {
 //   VIP_HOLD    the middle block of rows 1-5: shown on the plan, given out by the organisers only
 //   BROKEN_HOLD broken seats: nobody can book them
 //   NOT_IN_PLAN seats of an earlier plan that the hall doesn't have: never shown, never booked
+//   PHASE_HOLD  seats of a phase that hasn't opened yet: shown on the plan, nobody can book them
+// The hall opens in PHASES from the stage back. The next phase opens by itself once every public seat
+// (not VIP, not broken) of the open phases is booked or waiting for review; the organisers can also open it.
 // Guests hold seats with a random 32-hex token, so they can never match these.
 // Rows are lettered from the stage: row 1 is A, row 21 is U.
 export const SEAT_RE = /^(0[1-9]|1\d|2[01])-[LMR](0[1-9]|1[0-6])$/;
@@ -146,17 +149,59 @@ export const MAX_SEATS = 10; // per booking
 export const VIP_HOLD = "organisers-vip";
 export const BROKEN_HOLD = "broken-seat";
 export const NOT_IN_PLAN = "not-in-plan";
+export const PHASE_HOLD = "phase-locked";
+/** Rows of each phase (1 = A). Keep in sync with PHASES in festival/src/lib/seats.ts. */
+export const PHASES = [{ from: 1, to: 7 }, { from: 8, to: 14 }, { from: 15, to: 21 }];
 export const ROW_LETTERS = "ABCDEFGHIJKLMNOPQRSTU";
 const FOREVER = "2100-01-01T00:00:00Z";
 export const isVipId = (id: string) => /^0[1-5]-M/.test(id);
 
-/** Puts free VIP seats back on the organisers' hold (after a VIP booking is rejected, deleted or cancelled). */
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const rowsLike = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => `id.like.${pad2(from + i)}-*`).join(",");
+
+/** How many phases are open (1-3): those before the first phase that still has locked seats. */
+export async function openPhases(): Promise<number> {
+  const { data } = await db.from("fest_seats").select("id").eq("hold_token", PHASE_HOLD).order("id").limit(1);
+  if (!data?.length) return PHASES.length;
+  const row = Number(data[0].id.slice(0, 2));
+  return Math.max(1, PHASES.findIndex((p) => row >= p.from && row <= p.to));
+}
+
+/** Opens the next phase now. Returns how many phases are open afterwards. */
+export async function openNextPhase(): Promise<number> {
+  const open = await openPhases();
+  if (open >= PHASES.length) return open;
+  const p = PHASES[open];
+  await db.from("fest_seats").update({ hold_token: null, held_until: null, hold_ip: null }).eq("hold_token", PHASE_HOLD).or(rowsLike(p.from, p.to));
+  return open + 1;
+}
+
+/** Opens the next phase once no public seat of the open phases is left free (or held by a guest who is paying). */
+export async function advancePhase(): Promise<number> {
+  const open = await openPhases();
+  if (open >= PHASES.length) return open;
+  const { count, error } = await db.from("fest_seats").select("id", { count: "exact", head: true })
+    .is("order_id", null).lte("id", `${pad2(PHASES[open - 1].to)}-Z`)
+    .or(`hold_token.is.null,hold_token.not.in.("${VIP_HOLD}","${BROKEN_HOLD}","${NOT_IN_PLAN}","${PHASE_HOLD}")`);
+  if (error || count === null) return open; // never open a phase on a failed count
+  return count > 0 ? open : openNextPhase();
+}
+
+/**
+ * Puts freed seats back where they belong (after a booking is rejected, deleted or cancelled):
+ * VIP seats to the organisers, seats of a phase that hasn't opened yet back behind the lock.
+ */
 export async function reserveVip() {
   await db.from("fest_seats").update({ hold_token: VIP_HOLD, held_until: FOREVER, hold_ip: null })
     .is("order_id", null).is("hold_token", null)
     .or("id.like.01-M*,id.like.02-M*,id.like.03-M*,id.like.04-M*,id.like.05-M*");
+  const open = await openPhases();
+  for (const p of PHASES.slice(open)) {
+    await db.from("fest_seats").update({ hold_token: PHASE_HOLD, held_until: FOREVER, hold_ip: null })
+      .is("order_id", null).is("hold_token", null).or(rowsLike(p.from, p.to));
+  }
 }
-export const HOLD_MINUTES = 15;
+export const HOLD_MINUTES = 7;
 
 export function cleanSeats(v: unknown): string[] | null {
   const list = (Array.isArray(v) ? v : String(v ?? "").split(",")).map((s) => String(s).trim().toUpperCase()).filter(Boolean);
@@ -179,6 +224,7 @@ export const newCode = (len = 12) => [...crypto.getRandomValues(new Uint8Array(l
 /** Gives seats to an order, one ticket code each. All or nothing. VIP seats only when `allowVip` (the organisers). */
 export async function claimSeats(orderId: string, seats: string[], holdToken: string | null, allowVip = false) {
   const { error } = await db.rpc("fest_claim_seats", { p_order: orderId, p_seats: seats, p_codes: seats.map(() => newCode(10)), p_token: allowVip ? VIP_HOLD : holdToken });
+  if (!error) await advancePhase().catch((e) => console.error("advancePhase", e));
   return !error;
 }
 

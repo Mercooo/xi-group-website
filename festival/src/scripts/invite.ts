@@ -151,7 +151,7 @@ function toast(msg: string) {
 }
 
 // ------------------------------------------------------------ seat picker
-// Chosen seats are held on the server for 15 minutes under a token kept in this tab,
+// Chosen seats are held on the server for 7 minutes under a token kept in this tab,
 // so a reload keeps them. The hold is renewed each time the choice changes.
 const HOLD_KEY = 'xi74-hold';
 type Hold = { token: string; seats: string[]; expires: string };
@@ -160,7 +160,7 @@ let chosen: string[] = [];
 let hold: Hold | null = null;
 let syncing: Promise<void> | null = null;
 let syncTimer = 0;
-let seatsCache: { taken: string[]; held: string[]; blocked: string[] } = { taken: [], held: [], blocked: [] };
+let seatsCache: { taken: string[]; held: string[]; blocked: string[]; locked: string[] } = { taken: [], held: [], blocked: [], locked: [] };
 
 const readHold = (): Hold | null => {
   try {
@@ -209,7 +209,7 @@ async function syncHold(): Promise<void> {
       // Someone else got there first: drop those seats and show the fresh plan.
       const mine = new Set(hold?.seats ?? []);
       const lost = want.filter((id) => (j.taken ?? []).includes(id) || ((j.held ?? []).includes(id) && !mine.has(id)));
-      seatsCache = { taken: j.taken ?? [], held: j.held ?? [], blocked: j.blocked ?? seatsCache.blocked };
+      seatsCache = { taken: j.taken ?? [], held: j.held ?? [], blocked: j.blocked ?? seatsCache.blocked, locked: j.locked ?? seatsCache.locked };
       chosen = chosen.filter((id) => !lost.includes(id));
       pickerMsg(t(`سبقك أحد إلى ${lost.length > 1 ? 'هذه المقاعد' : 'هذا المقعد'}: ${lost.map((x) => seatLabel(x, 'ar')).join('، ')}. اختر غيره.`, `Someone else just took ${lost.map((x) => seatLabel(x, 'en')).join(', ')}. Please choose another.`));
       paintSeats();
@@ -232,9 +232,11 @@ function paintSeats() {
   const taken = new Set(seatsCache.taken);
   const held = new Set(seatsCache.held);
   const blocked = new Set(seatsCache.blocked);
+  const locked = new Set(seatsCache.locked);
   for (const id of map.ids()) {
     if (blocked.has(id) || isBlockedSeat(id)) map.set(id, 'blocked');
     else if (isVipSeat(id)) map.set(id, 'vip'); // VIP rows are on the plan, but the organisers give them out
+    else if (locked.has(id)) map.set(id, 'locked'); // a phase that hasn't opened yet
     else if (chosen.includes(id)) map.set(id, 'selected');
     else if (taken.has(id)) map.set(id, 'taken');
     else if (held.has(id) && !mine.has(id)) map.set(id, 'held');
@@ -247,8 +249,9 @@ async function refreshSeats() {
     const r = await fetch(`${API}/fest-seats`);
     if (!r.ok) return;
     const j = await r.json();
-    seatsCache = { taken: j.taken ?? [], held: j.held ?? [], blocked: j.blocked ?? [] };
-    chosen = chosen.filter((id) => !isVipSeat(id) && !isBlockedSeat(id) && !seatsCache.blocked.includes(id));
+    seatsCache = { taken: j.taken ?? [], held: j.held ?? [], blocked: j.blocked ?? [], locked: j.locked ?? [] };
+    if (j.phase) map.setPhase(j.phase);
+    chosen = chosen.filter((id) => !isVipSeat(id) && !isBlockedSeat(id) && !seatsCache.blocked.includes(id) && !seatsCache.locked.includes(id));
     // A chosen seat that was bought meanwhile (only possible once a hold ran out).
     const lost = chosen.filter((id) => seatsCache.taken.includes(id));
     if (lost.length) {
@@ -275,7 +278,7 @@ function renderTimer() {
       writeHold(null);
       chosen = [];
       box.hidden = true;
-      pickerMsg(t('انتهت مهلة الـ15 دقيقة وأُتيحت المقاعد لغيرك. اختر مقاعدك مرة أخرى.', 'The 15 minutes ran out and the seats were released. Please choose again.'));
+      pickerMsg(t('انتهت مهلة الـ7 دقائق وأُتيحت المقاعد لغيرك. اختر مقاعدك مرة أخرى.', 'The 7 minutes ran out and the seats were released. Please choose again.'));
       renderChosen();
       refreshSeats();
       return;
