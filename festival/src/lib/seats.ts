@@ -1,36 +1,49 @@
-// The theatre: one floor, 14 rows, each split into left (5), centre (10) and right (5) seats.
-// Seat ids look like "03-M07" (row 3, centre seat 7) and match fest_seats in the database.
-// Rows 1-5 are VIP: on the plan for everyone to see, given out by the organisers only.
-export const ROWS = 14;
-export const VIP_ROWS = 5;
-export const isVipRow = (id: string) => Number(id.slice(0, 2)) <= VIP_ROWS;
+// The theatre: one floor, 21 rows, each split into left (L), middle (M) and right (R) blocks whose
+// length changes from row to row. The plan lives in theatre.json, drawn by the organisers:
+// seat numbers run from the left, as seen facing the stage; `blocked` seats are broken.
+// The first five middle rows are VIP: on the plan for everyone, given out by the organisers only.
+// Seat ids look like "07-M02" (row 7, middle seat 2) and match fest_seats in the database.
+import PLAN from './theatre.json';
+
+export interface Block { count: number; blocked: number[]; vip?: boolean }
+export interface Row { row: number; L: Block; M: Block; R: Block }
+export const THEATRE = PLAN as Row[];
+export const ROWS = THEATRE.length;
 export const SECTIONS = [
-  { key: 'L', count: 5, ar: 'يسار', en: 'Left' },
-  { key: 'M', count: 10, ar: 'وسط', en: 'Centre' },
-  { key: 'R', count: 5, ar: 'يمين', en: 'Right' },
+  { key: 'L', ar: 'يسار', en: 'Left' },
+  { key: 'M', ar: 'وسط', en: 'Middle' },
+  { key: 'R', ar: 'يمين', en: 'Right' },
 ] as const;
+export type SectionKey = (typeof SECTIONS)[number]['key'];
 export const MAX_SEATS = 10;
+export const VIP_ROWS = THEATRE.filter((r) => r.M.vip).length;
+/** The widest row of each block, so the blocks line up along the aisles. */
+export const WIDEST = { L: Math.max(...THEATRE.map((r) => r.L.count)), M: Math.max(...THEATRE.map((r) => r.M.count)), R: Math.max(...THEATRE.map((r) => r.R.count)) };
 
 const pad = (n: number) => String(n).padStart(2, '0');
 export const seatId = (row: number, sec: string, n: number) => `${pad(row)}-${sec}${pad(n)}`;
+const parse = (id: string) => ({ row: Number(id.slice(0, 2)), sec: id[3] as SectionKey, n: Number(id.slice(4)) });
+export const isVipSeat = (id: string) => { const p = parse(id); return !!THEATRE[p.row - 1]?.[p.sec]?.vip; };
+export const isBlockedSeat = (id: string) => { const p = parse(id); return !!THEATRE[p.row - 1]?.[p.sec]?.blocked.includes(p.n); };
+/** Kept for older callers: VIP is a middle block, not a whole row. */
+export const isVipRow = isVipSeat;
 
 export function seatLabel(id: string, lang: 'ar' | 'en') {
-  const [r, s] = id.split('-');
-  const sec = SECTIONS.find((x) => x.key === s[0])!;
-  return lang === 'ar' ? `صف ${Number(r)} · ${sec.ar} ${Number(s.slice(1))}` : `Row ${Number(r)} · ${sec.en} ${Number(s.slice(1))}`;
+  const { row, sec, n } = parse(id);
+  const S = SECTIONS.find((x) => x.key === sec)!;
+  return lang === 'ar' ? `صف ${row} · ${S.ar} ${n}` : `Row ${row} · ${S.en} ${n}`;
 }
 
 /** "صف 3: وسط 5، 6، 7" — seats grouped by row and section, for summaries. */
 export function seatsSummary(ids: string[], lang: 'ar' | 'en') {
   const groups = new Map<string, number[]>();
   for (const id of [...ids].sort()) {
-    const [r, s] = id.split('-');
-    const k = `${r}-${s[0]}`;
-    groups.set(k, [...(groups.get(k) ?? []), Number(s.slice(1))]);
+    const k = id.slice(0, 4);
+    groups.set(k, [...(groups.get(k) ?? []), Number(id.slice(4))]);
   }
   return [...groups].map(([k, ns]) => {
-    const [r, sec] = k.split('-');
-    const S = SECTIONS.find((x) => x.key === sec)!;
-    return lang === 'ar' ? `صف ${Number(r)}: ${S.ar} ${ns.join('، ')}` : `Row ${Number(r)}: ${S.en} ${ns.join(', ')}`;
-  }).join(lang === 'ar' ? ' · ' : ' · ');
+    const S = SECTIONS.find((x) => x.key === k[3])!;
+    const r = Number(k.slice(0, 2));
+    return lang === 'ar' ? `صف ${r}: ${S.ar} ${ns.join('، ')}` : `Row ${r}: ${S.en} ${ns.join(', ')}`;
+  }).join(' · ');
 }

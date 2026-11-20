@@ -1,6 +1,6 @@
-// Draws the theatre (stage, 12 rows, left 5 · centre 10 · right 5) as buttons, one per seat.
+// Draws the theatre from the organisers' plan (stage, 21 rows of left, middle and right blocks) as buttons, one per seat.
 // Used by the invitation page, the leaders' page and the admin board.
-import { ROWS, SECTIONS, VIP_ROWS, seatId, seatLabel } from '../lib/seats';
+import { SECTIONS, THEATRE, VIP_ROWS, WIDEST, seatId, seatLabel } from '../lib/seats';
 import { lang, t } from './lang';
 
 export type SeatState = 'free' | 'selected' | 'taken' | 'held' | 'review' | 'in' | 'vip' | 'blocked';
@@ -44,19 +44,22 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
 
   const grid = document.createElement('div');
   grid.className = 'theatre__grid';
+  grid.style.setProperty('--wl', String(WIDEST.L));
+  grid.style.setProperty('--wm', String(WIDEST.M));
+  grid.style.setProperty('--wr', String(WIDEST.R));
   const cell = (cls: string, text = '') => {
     const d = document.createElement('div');
     d.className = cls;
     d.textContent = text;
     return d;
   };
-  // Section headings.
+  const both = (ar: string, en: string) => `<span class="ar">${ar}</span><span class="en">${en}</span>`;
+  // Block headings.
   grid.append(cell('theatre__corner'));
   SECTIONS.forEach((s, i) => {
     if (i) grid.append(cell('theatre__aisle'));
     const h = cell(`theatre__sec theatre__sec--${s.key}`);
-    h.style.gridColumn = `span ${s.count}`;
-    h.innerHTML = `<span class="ar">${s.ar}</span><span class="en">${s.en}</span>`;
+    h.innerHTML = both(s.ar, s.en);
     grid.append(h);
   });
   grid.append(cell('theatre__corner'));
@@ -64,18 +67,25 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
   const buttons = new Map<string, HTMLButtonElement>();
   const states = new Map<string, SeatState>();
   const notes = new Map<string, string>();
-  const zone = (cls: string, ar: string, en: string) => {
-    const z = cell(`theatre__zone ${cls}`);
-    z.innerHTML = `<span><span class="ar">${ar}</span><span class="en">${en}</span></span>`;
-    grid.append(z);
-  };
-  for (let r = 1; r <= ROWS; r++) {
-    if (r === 1 && VIP_ROWS) zone('theatre__zone--vip', `كبار الزوار · الصفوف 1 – ${VIP_ROWS} · يحجزها المنظمون`, `VIP · rows 1 – ${VIP_ROWS} · given out by the organisers`);
-    if (r === VIP_ROWS + 1) zone('theatre__zone--public', 'مقاعد الجمهور', 'Public seats');
+  const rowsOfIds: string[][] = [];
+  for (const row of THEATRE) {
+    const r = row.row;
+    if (r === 1 && VIP_ROWS) {
+      const z = cell('theatre__zone theatre__zone--vip');
+      z.innerHTML = `<span>${both(`الوسط: كبار الزوار · الصفوف 1 – ${VIP_ROWS} · يحجزها المنظمون`, `Middle: VIP · rows 1 – ${VIP_ROWS} · given out by the organisers`)}</span>`;
+      grid.append(z);
+    }
+    if (r === VIP_ROWS + 1 && VIP_ROWS) {
+      const z = cell('theatre__zone theatre__zone--public');
+      z.innerHTML = `<span>${both('مقاعد الجمهور', 'Public seats')}</span>`;
+      grid.append(z);
+    }
     grid.append(cell('theatre__row theatre__row--start', String(r)));
+    const inRow: string[] = [];
     SECTIONS.forEach((s, i) => {
       if (i) grid.append(cell('theatre__aisle'));
-      for (let n = 1; n <= s.count; n++) {
+      const blk = cell(`theatre__blk theatre__blk--${s.key}${row[s.key].vip ? ' theatre__blk--vip' : ''}`);
+      for (let n = 1; n <= row[s.key].count; n++) {
         const id = seatId(r, s.key, n);
         const b = document.createElement('button');
         b.type = 'button';
@@ -84,9 +94,12 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
         b.textContent = String(n);
         buttons.set(id, b);
         states.set(id, 'free');
-        grid.append(b);
+        inRow.push(id);
+        blk.append(b);
       }
+      grid.append(blk);
     });
+    rowsOfIds.push(inRow);
     grid.append(cell('theatre__row theatre__row--end', String(r)));
   }
   inner.append(grid);
@@ -134,23 +147,29 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
     onPick(rover);
   });
 
-  // ← → within a row, ↑ ↓ between rows, Home / End to the ends of the row. Taken seats are skipped.
-  const PER_ROW = SECTIONS.reduce((n, s) => n + s.count, 0);
+  // ← → within a row, ↑ ↓ to the nearest seat in the next row, Home / End to the ends of the row.
+  // Seats that can't be picked are skipped.
+  const rowOf = new Map<string, number>();
+  rowsOfIds.forEach((ids, r) => ids.forEach((id) => rowOf.set(id, r)));
+  const usable = (id: string) => !buttons.get(id)!.disabled;
+  const centreX = (id: string) => { const b = buttons.get(id)!.getBoundingClientRect(); return b.left + b.width / 2; };
   grid.addEventListener('keydown', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.seat');
     if (!b) return;
-    const i = ids.indexOf(b.dataset.seat!);
-    const rowStart = i - (i % PER_ROW);
-    let candidates: number[] = [];
-    if (e.key === 'ArrowRight') candidates = Array.from({ length: rowStart + PER_ROW - i - 1 }, (_, k) => i + 1 + k);
-    else if (e.key === 'ArrowLeft') candidates = Array.from({ length: i - rowStart }, (_, k) => i - 1 - k);
-    else if (e.key === 'ArrowDown') candidates = Array.from({ length: Math.floor((ids.length - 1 - i) / PER_ROW) }, (_, k) => i + PER_ROW * (k + 1));
-    else if (e.key === 'ArrowUp') candidates = Array.from({ length: Math.floor(i / PER_ROW) }, (_, k) => i - PER_ROW * (k + 1));
-    else if (e.key === 'Home') candidates = Array.from({ length: PER_ROW }, (_, k) => rowStart + k);
-    else if (e.key === 'End') candidates = Array.from({ length: PER_ROW }, (_, k) => rowStart + PER_ROW - 1 - k);
-    else return;
+    const id = b.dataset.seat!, r = rowOf.get(id)!, inRow = rowsOfIds[r], i = inRow.indexOf(id);
+    let next: string | undefined;
+    if (e.key === 'ArrowRight') next = inRow.slice(i + 1).find(usable);
+    else if (e.key === 'ArrowLeft') next = inRow.slice(0, i).reverse().find(usable);
+    else if (e.key === 'Home') next = inRow.find(usable);
+    else if (e.key === 'End') next = [...inRow].reverse().find(usable);
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const x = centreX(id), step = e.key === 'ArrowDown' ? 1 : -1;
+      for (let k = r + step; k >= 0 && k < rowsOfIds.length && !next; k += step) {
+        const options = rowsOfIds[k].filter(usable);
+        if (options.length) next = options.reduce((best, o) => (Math.abs(centreX(o) - x) < Math.abs(centreX(best) - x) ? o : best));
+      }
+    } else return;
     e.preventDefault();
-    const next = candidates.map((j) => ids[j]).find((id) => !buttons.get(id)!.disabled);
     if (!next) return;
     rover = next;
     syncTab();

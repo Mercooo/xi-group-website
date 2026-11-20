@@ -435,18 +435,25 @@ html[dir='rtl'] .input[dir='ltr'] { text-align: right; }
 .mine a > span:first-child { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 /* ------------------------------------------------------------------ theatre
-   One floor facing the stage: left 5 · centre 10 · right 5, twelve rows. */
-.theatre { --s: 28px; --g: 4px; --aisle: 16px; background: var(--night-2); color: #fff; border-radius: var(--r); padding: 16px 0 12px; }
+   One floor facing the stage: 21 rows of left, middle and right blocks whose length changes row by row
+   (src/lib/theatre.json). Blocks hug the aisles: left ends at the left aisle, right starts at the right one. */
+.theatre { --s: 22px; --g: 3px; --aisle: 18px; background: var(--night-2); color: #fff; border-radius: var(--r); padding: 16px 0 12px; }
 .theatre__scroll { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; padding: 0 16px; }
 .theatre__in { width: max-content; margin-inline: auto; }
 .theatre__stage { margin: 0 calc(var(--s) + var(--g)) 16px; padding: 8px 0 14px; text-align: center; font: 700 0.875rem/1 var(--display); letter-spacing: 0.08em; color: var(--night); background: linear-gradient(180deg, var(--gold-2), var(--gold)); border-radius: 6px 6px 50% 50% / 6px 6px 22px 22px; box-shadow: 0 10px 30px rgb(201 169 97 / 0.25); }
-.theatre__grid { display: grid; grid-template-columns: var(--s) repeat(5, var(--s)) var(--aisle) repeat(10, var(--s)) var(--aisle) repeat(5, var(--s)) var(--s); gap: var(--g); align-items: center; }
+.theatre__grid { --blk: calc(var(--s) + var(--g)); display: grid; gap: calc(var(--g) + 1px) var(--g); align-items: center;
+  grid-template-columns: var(--s) calc(var(--wl) * var(--blk) - var(--g)) var(--aisle) calc(var(--wm) * var(--blk) - var(--g)) var(--aisle) calc(var(--wr) * var(--blk) - var(--g)) var(--s); }
+.theatre__blk { display: flex; gap: var(--g); min-height: var(--s); }
+.theatre__blk--L { justify-content: flex-end; }
+.theatre__blk--M { justify-content: center; }
+.theatre__blk--R { justify-content: flex-start; }
+.theatre__blk--vip { border-radius: 8px; box-shadow: 0 0 0 3px rgb(232 192 104 / 0.12); background: rgb(232 192 104 / 0.06); }
 .theatre__sec { text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--gold-2); border-bottom: 1px solid rgb(232 215 168 / 0.35); line-height: 1.6; padding-bottom: 2px; }
 .theatre__row { position: sticky; z-index: 1; align-self: stretch; display: grid; place-items: center; font: 600 0.75rem/1 var(--font); color: var(--on-dark-dim); background: var(--night-2); }
 .theatre__row--start { left: 0; box-shadow: 6px 0 8px -6px rgb(0 0 0 / 0.6); }
 .theatre__row--end { right: 0; box-shadow: -6px 0 8px -6px rgb(0 0 0 / 0.6); }
 .theatre__hint { text-align: center; font-size: 0.8125rem; color: var(--gold-2); margin: 8px 16px 0; }
-.seat { all: unset; box-sizing: border-box; width: var(--s); height: var(--s); display: grid; place-items: center; border-radius: 9px 9px 5px 5px; font: 600 0.6875rem/1 var(--font); cursor: pointer; background: var(--seat); color: var(--on-dark); box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.25); transition: transform 0.12s ease-out, background 0.12s ease-out; }
+.seat { all: unset; box-sizing: border-box; width: var(--s); height: var(--s); display: grid; place-items: center; border-radius: 8px 8px 4px 4px; font: 600 0.625rem/1 var(--font); cursor: pointer; background: var(--seat); color: var(--on-dark); box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.25); transition: transform 0.12s ease-out, background 0.12s ease-out; }
 .seat[data-state='free']:hover:not(:disabled) { background: var(--seat-hover); transform: translateY(-1px); }
 .seat:active:not(:disabled) { transform: scale(0.94); }
 .seat:focus-visible { outline: 2px solid var(--gold-2); outline-offset: 2px; }
@@ -471,8 +478,7 @@ html[dir='rtl'] .input[dir='ltr'] { text-align: right; }
 .seat-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; margin: 12px 16px 0; font-size: 0.8125rem; color: rgb(255 255 255 / 0.75); }
 .seat-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .seat-legend .seat { --s: 16px; pointer-events: none; font-size: 0; }
-@media (max-width: 860px) { .theatre { --s: 26px; } }
-@media (max-width: 560px) { .theatre { --s: 25px; --aisle: 14px; } .seat { font-size: 0.6875rem; } }
+@media (max-width: 560px) { .theatre { --aisle: 14px; } }
 @media (prefers-reduced-motion: reduce) { .seat { transition: none; } .seat:hover, .seat:active { transform: none !important; } }
 
 /* seat picker on the invitation page */

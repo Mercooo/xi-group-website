@@ -1,7 +1,7 @@
 // Leaders' booking page (/leader): seats for a unit's members and families, without InstaPay.
 // Each leader signs in with their own passcode; bookings are verified at once.
 import { API } from '../lib/site';
-import { MAX_SEATS, isVipRow, seatLabel } from '../lib/seats';
+import { MAX_SEATS, isBlockedSeat, isVipSeat, seatLabel } from '../lib/seats';
 import { staff } from './api';
 import { mountSeatMap } from './seatmap';
 
@@ -62,7 +62,7 @@ const map = mountSeatMap($('#seatmap'), (id) => {
 
 function paint() {
   const taken = new Set(state.taken), held = new Set(state.held), blocked = new Set(state.blocked);
-  for (const id of map.ids()) map.set(id, blocked.has(id) ? 'blocked' : isVipRow(id) ? 'vip' : chosen.includes(id) ? 'selected' : taken.has(id) ? 'taken' : held.has(id) ? 'held' : 'free');
+  for (const id of map.ids()) map.set(id, blocked.has(id) || isBlockedSeat(id) ? 'blocked' : isVipSeat(id) ? 'vip' : chosen.includes(id) ? 'selected' : taken.has(id) ? 'taken' : held.has(id) ? 'held' : 'free');
 }
 
 async function refreshSeats() {
@@ -71,7 +71,7 @@ async function refreshSeats() {
     if (!r.ok) return;
     const j = await r.json();
     state = { taken: j.taken ?? [], held: j.held ?? [], blocked: j.blocked ?? [] };
-    chosen = chosen.filter((id) => !state.taken.includes(id) && !state.blocked.includes(id) && !isVipRow(id));
+    chosen = chosen.filter((id) => !state.taken.includes(id) && !state.blocked.includes(id) && !isBlockedSeat(id) && !isVipSeat(id));
     paint();
     renderChosen();
   } catch {}

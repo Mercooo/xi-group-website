@@ -132,10 +132,11 @@ export async function getSettings() {
 }
 
 // ------------------------------------------------------------------ seating
-// One floor, 14 rows; each row has 5 left (L), 10 centre (M) and 5 right (R) seats.
-// Seat ids look like "03-M07": row 3, centre seat 7. Rows 1-5 are VIP (only the organisers give them out),
-// and broken seats are marked blocked; see fest_seats.kind.
-export const SEAT_RE = /^(0[1-9]|1[0-4])-(L0[1-5]|M(0[1-9]|10)|R0[1-5])$/;
+// One floor, 21 rows of left (L), middle (M) and right (R) blocks whose length changes row by row, as the
+// organisers drew it (festival/src/lib/theatre.json). Seat ids look like "07-M02": row 7, middle seat 2,
+// counted from the left facing the stage. fest_seats holds exactly the seats that exist; its `kind` marks
+// the middle VIP block of rows 1-5 (given out by the organisers only) and broken seats (blocked).
+export const SEAT_RE = /^(0[1-9]|1\d|2[01])-[LMR](0[1-9]|1[0-6])$/;
 export const MAX_SEATS = 10; // per booking
 export const HOLD_MINUTES = 15;
 
@@ -147,7 +148,7 @@ export function cleanSeats(v: unknown): string[] | null {
 }
 
 const SECTION_AR: Record<string, string> = { L: "يسار", M: "وسط", R: "يمين" };
-const SECTION_EN: Record<string, string> = { L: "Left", M: "Centre", R: "Right" };
+const SECTION_EN: Record<string, string> = { L: "Left", M: "Middle", R: "Right" };
 export function seatLabel(id: string, lang: "ar" | "en" = "ar") {
   const [r, s] = id.split("-");
   const sec = s[0], n = Number(s.slice(1)), row = Number(r);
