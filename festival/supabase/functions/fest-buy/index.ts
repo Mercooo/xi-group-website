@@ -6,9 +6,9 @@
 //   2. Gemini (vision)   when GEMINI_API_KEY is set (free tier)
 //   3. the festival site's /api/ocr: Gemini when GEMINI_API_KEY is set in its Vercel project,
 //      otherwise Tesseract OCR (free, no key, no AI)
-// Whatever reads it, fixed rules in ../_shared/rules.ts decide: price × seats, paid to the configured
-// receiver, successful, unique reference, sensible date. Clear passes get a ticket at once;
-// anything uncertain goes to review. Plain OCR never rejects on its own.
+// Whatever reads it, fixed rules in ../_shared/rules.ts check it: price × seats, paid to the configured
+// receiver, successful, unique reference, sensible date. Those checks are only notes for the organisers:
+// every InstaPay booking waits in review, its seats kept, until a person approves or rejects it in /admin.
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { GoogleGenAI } from "npm:@google/genai@2.29.1";
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
   // The same screenshot twice: the same guest retrying gets their ticket back; anyone else is refused.
   const { data: dupe } = await db.from("fest_orders").select("code,phone,status,reasons").eq("receipt_sha256", sha).maybeSingle();
   if (dupe) {
-    if (dupe.phone === phone) return json({ ok: true, code: dupe.code, status: dupe.status, reasons: dupe.reasons, repeat: true });
+    if (dupe.phone === phone) return json({ ok: true, code: dupe.code, status: dupe.status, reasons: [], repeat: true });
     return json({ error: "duplicate_receipt" }, 409);
   }
 
@@ -288,37 +288,42 @@ Deno.serve(async (req) => {
 
   const recipient = { handles: settings.recipient_handles, names: settings.recipient_names, phones: settings.recipient_phones };
   const read = await readReceipt(bytes, kind.type, sha, recipient);
-  let status: "verified" | "review" | "rejected" = "review";
+  // A person always decides. The reader's verdict is kept as a note ("reader_ok" when every check
+  // passed, "reader_suggests_reject" when it would have refused) next to the reasons it found.
+  const status = "review" as const;
+  let suggested: "verified" | "review" | "rejected" | null = null;
   let reasons: string[] = [];
   let reference: string | null = null;
   if (read.ok) {
     const v = judge(read.ocr, { price: settings.price_egp * seats.length, recipient, salesStart: settings.sales_start, strict: read.strict });
-    status = v.status;
+    suggested = v.status;
     reasons = v.reasons;
     reference = normReference(read.ocr.reference);
     if (reference) {
       // One live ticket per InstaPay transaction.
-      const { data: used } = await db.from("fest_orders").select("code,phone,status,reasons").eq("reference", reference).neq("status", "rejected").maybeSingle();
+      const { data: used } = await db.from("fest_orders").select("code,phone,status").eq("reference", reference).neq("status", "rejected").maybeSingle();
       if (used) {
         if (used.phone === phone) {
           await db.storage.from(BUCKET).remove([receipt_path]);
-          return json({ ok: true, code: used.code, status: used.status, reasons: used.reasons, repeat: true });
+          return json({ ok: true, code: used.code, status: used.status, reasons: [], repeat: true });
         }
-        status = "rejected";
+        suggested = "rejected";
         reasons = ["reference_used", ...reasons];
       }
     }
+    if (suggested === "verified") reasons = ["reader_ok", ...reasons];
+    else if (suggested === "rejected") reasons = ["reader_suggests_reject", ...reasons];
   } else {
     reasons = [read.reason];
   }
 
-  const ocr = read.ok ? { ...read.ocr, model: read.model } : { error: read.reason, detail: read.ok ? undefined : read.detail };
+  const ocr = read.ok ? { ...read.ocr, model: read.model, suggested } : { error: read.reason, detail: read.ok ? undefined : read.detail };
   const row = {
     name, phone, email: email || null, affiliation, lang, status,
-    auto_verified: status === "verified",
+    auto_verified: false,
     reasons, receipt_path, receipt_sha256: sha, ocr,
     amount: read.ok ? read.ocr.amount : null,
-    reference: status === "rejected" && reasons.includes("reference_used") ? null : reference,
+    reference: reasons.includes("reference_used") ? null : reference,
     recipient: read.ok ? [read.ocr.recipient_name, read.ocr.recipient_address].filter(Boolean).join(" · ") || null : null,
     paid_at: read.ok ? [read.ocr.date_iso, read.ocr.time].filter(Boolean).join(" ") || null : null,
     ip_hash: who,
@@ -329,14 +334,13 @@ Deno.serve(async (req) => {
     const code = newCode();
     const { data: created, error } = await db.from("fest_orders").insert({ ...row, code }).select("id").single();
     if (!error) {
-      // A rejected booking doesn't keep seats. Otherwise the seats become this booking's, all or nothing.
-      if (status !== "rejected" && !(await claimSeats(created.id, seats, hold))) {
+      // The seats become this booking's while it waits for review, all or nothing.
+      if (!(await claimSeats(created.id, seats, hold))) {
         await db.from("fest_orders").delete().eq("id", created.id);
         await db.storage.from(BUCKET).remove([receipt_path]);
         return json({ error: "seat_unavailable" }, 409);
       }
-      // A rejected booking keeps the guest's hold until it runs out, so they can send the right screenshot.
-      return json({ ok: true, code, status, reasons, seats });
+      return json({ ok: true, code, status, reasons: [], seats }); // the reader's notes are for the organisers
     }
     if (error.code === "23505" && /code/.test(error.message)) continue; // code collision: draw again
     await db.storage.from(BUCKET).remove([receipt_path]);

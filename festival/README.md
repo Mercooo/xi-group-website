@@ -35,16 +35,14 @@ The hall is drawn from the organisers' plan in `src/lib/theatre.json`: 21 rows o
    | Tesseract OCR (English + Arabic), `/api/ocr` on this site | Always | Free, no key, no AI |
 
    If an AI reader fails, the next one is used.
-3. Fixed rules decide the outcome. They live in `supabase/functions/_shared/rules.ts`, with OCR text parsing in `textparse.ts`.
+3. Fixed rules check it and leave notes for the organisers. They live in `supabase/functions/_shared/rules.ts`, with OCR text parsing in `textparse.ts`.
    - The amount must equal the price × the number of seats.
    - The receiver must match the InstaPay address, phone or name set in `/admin`.
    - The transfer must show as successful.
    - The reference must not have been used for another ticket.
    - The date must not be before sales opened.
-4. The result is one of three:
-   - **verified**: the QR appears at once.
-   - **review**: an organiser approves it in `/admin`, and the ticket page updates by itself.
-   - **rejected**: clearly wrong. Only the AI readers can reject; plain OCR can misread, so it sends doubtful receipts to review instead.
+4. **A person always decides.** Every InstaPay booking is saved as **review** with its seats kept for it, never approved or rejected automatically. The reader's verdict shows in `/admin` as a note: «القارئ الآلي: الإيصال يبدو سليماً» when every check passed, «يقترح الرفض» with its reasons otherwise. An organiser approves (the QR appears and the ticket page updates by itself) or rejects (the seats go back on sale). Guests never see the reader's notes, only the reasons once a booking is rejected.
+5. The same screenshot twice: from the same phone it returns the existing booking; from any other phone it is refused (`duplicate_receipt`). A reused InstaPay reference from another phone still goes to review, flagged «هذا التحويل استُخدم من قبل».
 
 At the gate, `fest_check_in()` admits a verified ticket exactly once, in a single database statement. Every scan is logged.
 

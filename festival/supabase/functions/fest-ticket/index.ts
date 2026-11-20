@@ -53,10 +53,8 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (!data) return json({ error: "not_found" }, 404);
   const s = await getSettings();
-  // Free OCR can misread, so its guesses ("wrong amount"…) aren't shown to the guest while
-  // a person reviews; the organisers still see them. Decisions the organisers made are shown.
-  const ocrGuess = data.status === "review" && data.ocr?.model === "tesseract";
-  const reasons = data.status === "verified" || ocrGuess ? [] : data.reasons;
+  // The receipt reader's notes are for the organisers. The guest only sees reasons once a person rejected the booking.
+  const reasons = data.status === "rejected" ? (data.reasons ?? []).filter((r: string) => !r.startsWith("reader_")) : [];
   // Each seat is its own entry ticket. Its QR code is only handed out once the booking is verified.
   let seatTickets: { id: string; label_ar: string; label_en: string; code: string | null; checked_in_at: string | null; vip: boolean }[] = [];
   if ((data.seats ?? []).length) {

@@ -23,6 +23,8 @@ export const REASONS: Record<string, { ar: string; en: string }> = {
   transfer_before_sales: { ar: 'تاريخ التحويل قبل فتح الحجز.', en: 'The transfer is dated before ticket sales opened.' },
   not_a_receipt: { ar: 'الصورة ليست إيصال تحويل.', en: 'The image is not a payment receipt.' },
   unknown_receipt_type: { ar: 'نوع الإيصال غير معتاد، وسيراجعه المنظمون.', en: 'Unusual receipt; an organiser will check it.' },
+  reader_ok: { ar: 'القارئ الآلي: الإيصال يبدو سليماً. راجعه ثم اقبله.', en: 'Receipt reader: looks right. Check it, then approve.' },
+  reader_suggests_reject: { ar: 'القارئ الآلي يقترح الرفض. راجع الأسباب.', en: 'Receipt reader suggests rejecting. See why.' },
   issued_by_admin: { ar: 'تذكرة صادرة من المنظمين.', en: 'Issued by the organisers.' },
 };
 export const reasonText = (code: string, lang: 'ar' | 'en') => REASONS[code]?.[lang] ?? code;
