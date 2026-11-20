@@ -210,89 +210,71 @@ function setupCalendar(tk: Ticket) {
   a.hidden = false;
 }
 
-/** The printable ticket design for one seat (or the whole booking when it has no seats). */
+// The festival's own ticket artwork (1925 × 817). The main part is printed as designed;
+// the stub on the right becomes the admission part: the seat's QR, its seat and the holder.
+const ART = '/img/journey/ticket-art.jpg';
+const ART_W = 1925, ART_H = 817;
+let artImg: Promise<HTMLImageElement> | null = null;
+const loadArt = () => (artImg ??= new Promise((resolve, reject) => {
+  const im = new Image();
+  im.onload = () => resolve(im);
+  im.onerror = () => { artImg = null; reject(new Error('art')); };
+  im.src = ART;
+}));
+
+function roundRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  g.beginPath(); g.roundRect(x, y, w, h, r);
+}
+
+/** The printable ticket for one seat (or the whole booking when it has no seats). */
 async function drawTicket(tk: Ticket, seat: SeatTicket | null): Promise<HTMLCanvasElement> {
   await document.fonts.ready;
-  const W = 1240, H = 1754; // A5 at 150 dpi
+  const art = await loadArt();
   const c = document.createElement('canvas');
-  c.width = W; c.height = H;
+  c.width = ART_W; c.height = ART_H;
   const g = c.getContext('2d')!;
+  g.drawImage(art, 0, 0, ART_W, ART_H);
   const ar = lang() === 'ar';
-  const dir = ar ? 'rtl' : 'ltr';
-  g.direction = dir;
-  // paper
-  g.fillStyle = '#f5f2ea'; g.fillRect(0, 0, W, H);
-  // header band
-  g.fillStyle = '#0d1611'; g.fillRect(0, 0, W, 420);
-  g.globalAlpha = 0.07; g.fillStyle = '#c9a961';
-  g.font = '800 520px "Cairo Variable"'; g.direction = 'ltr'; g.textAlign = 'left';
-  g.fillText('74', -30, 470);
-  g.globalAlpha = 1;
-  const colors = ['#f47b20', '#f2c230', '#4fae3a', '#c8322f'];
-  colors.forEach((col, i) => { g.fillStyle = col; g.fillRect(i * (W / 4), 420, W / 4, 14); });
-  // logo
-  try {
-    const logo = new Image();
-    logo.src = '/img/xi-logo.webp';
-    await logo.decode();
-    const cx = ar ? 150 : W - 150;
-    g.save();
-    g.beginPath(); g.arc(cx, 150, 74, 0, Math.PI * 2); g.fillStyle = '#ffffff'; g.fill(); g.clip();
-    g.drawImage(logo, cx - 66, 84, 132, 132);
-    g.restore();
-  } catch {}
-  g.direction = dir; g.textAlign = ar ? 'right' : 'left';
-  const x0 = ar ? W - 90 : 90;
-  g.fillStyle = '#e8d7a8'; g.font = '600 40px "Tajawal"';
-  g.fillText(t('كشافة ومرشدات وادي النيل · المجموعة الحادية عشر', 'Wadi El Nil Scouts & Guides · XI Group'), x0, 130, W - 340);
-  g.fillStyle = '#ffffff'; g.font = '800 92px "Cairo Variable"';
-  g.fillText(t('عيد الـ74', '74th anniversary'), x0, 250, W - 340);
-  g.fillStyle = '#c9a961'; g.font = '600 40px "Tajawal"';
-  const when = whenText(tk);
-  g.fillText(when ?? t('الموعد يُعلن قريباً', 'Date to be announced'), x0, 330, W - 200);
-  if (tk.venue_name) { g.fillStyle = 'rgba(255,255,255,.75)'; g.font = '400 34px "Tajawal"'; g.fillText([tk.venue_name, tk.venue_detail].filter(Boolean).join(' · '), x0, 385, W - 200); }
+  const cx = 1732; // centre of the stub
 
-  // seat block
-  g.textAlign = 'center';
-  let y = 520;
-  if (seat) {
-    const [r, sCode] = seat.id.split('-');
-    const parts = [
-      [t('الصف', 'Row'), String(Number(r))],
-      [t('القسم', 'Section'), t({ L: 'يسار', M: 'وسط', R: 'يمين' }[sCode[0]]!, { L: 'Left', M: 'Centre', R: 'Right' }[sCode[0]]!)],
-      [t('المقعد', 'Seat'), String(Number(sCode.slice(1)))],
-    ];
-    const bw = 300, gap = 30, total = bw * 3 + gap * 2;
-    parts.forEach(([k, v], i) => {
-      const idx = ar ? 2 - i : i;
-      const bx = (W - total) / 2 + idx * (bw + gap);
-      g.fillStyle = '#ffffff'; g.beginPath(); g.roundRect(bx, y, bw, 170, 24); g.fill();
-      g.strokeStyle = '#e2ddd0'; g.lineWidth = 3; g.stroke();
-      g.fillStyle = '#75602c'; g.font = '600 32px "Tajawal"'; g.fillText(k, bx + bw / 2, y + 55);
-      g.fillStyle = '#0d1611'; g.font = '800 72px "Cairo Variable"'; g.fillText(v, bx + bw / 2, y + 140, bw - 30);
-    });
-    y += 210;
-  }
+  // Admission panel over the stub's small medallion.
+  const px = 1562, py = 186, pw = 340, ph = 338;
+  const panel = g.createLinearGradient(0, py, 0, py + ph);
+  panel.addColorStop(0, '#13246a'); panel.addColorStop(1, '#0a1442');
+  g.save();
+  g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 18; g.shadowOffsetY = 6;
+  roundRect(g, px, py, pw, ph, 26); g.fillStyle = panel; g.fill();
+  g.restore();
+  const gold = g.createLinearGradient(px, py, px + pw, py + ph);
+  gold.addColorStop(0, '#fff1c2'); gold.addColorStop(0.45, '#e8c068'); gold.addColorStop(0.75, '#a8792a'); gold.addColorStop(1, '#f2d27e');
+  roundRect(g, px, py, pw, ph, 26); g.lineWidth = 5; g.strokeStyle = gold; g.stroke();
+  roundRect(g, px + 9, py + 9, pw - 18, ph - 18, 19); g.lineWidth = 1.5; g.strokeStyle = 'rgba(232,192,104,.55)'; g.stroke();
 
-  // QR
+  // The QR the gate scans.
+  const qs = 232;
   const q = document.createElement('canvas');
-  const qs = seat ? 600 : 680;
-  await QRCode.toCanvas(q, seatUrl(seat), { width: qs, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#0d1611', light: '#ffffff' } });
-  g.fillStyle = '#ffffff'; g.beginPath(); g.roundRect((W - qs - 60) / 2, y, qs + 60, qs + 60, 32); g.fill();
-  g.drawImage(q, (W - qs) / 2, y + 30, qs, qs);
-  y += qs + 60;
-  g.fillStyle = '#16241d'; g.font = '700 58px "Cairo Variable"';
-  g.fillText(tk.name, W / 2, y + 80, W - 200);
-  g.fillStyle = '#5d685f'; g.font = '600 38px ui-monospace, Menlo, monospace'; g.direction = 'ltr';
-  g.fillText((seat?.code ?? tk.code).replace(/(.{4})(?=.)/g, '$1 '), W / 2, y + 140);
-  g.direction = dir;
-  // footer: dashed tear line and instructions
-  g.strokeStyle = '#c9b98f'; g.lineWidth = 3; g.setLineDash([16, 12]);
-  g.beginPath(); g.moveTo(60, H - 190); g.lineTo(W - 60, H - 190); g.stroke(); g.setLineDash([]);
-  g.fillStyle = '#16241d'; g.font = '600 34px "Tajawal"';
-  g.fillText(t('قدّم هذه التذكرة على البوابة · تُستخدم مرة واحدة لشخص واحد', 'Show this ticket at the gate · one person, one entry'), W / 2, H - 120, W - 160);
-  g.fillStyle = '#75602c'; g.font = '400 30px "Tajawal"';
-  g.fillText(t(`رمز الحجز ${tk.code}`, `Booking ${tk.code}`), W / 2, H - 70, W - 160);
+  await QRCode.toCanvas(q, seatUrl(seat), { width: qs, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#0a1338', light: '#ffffff' } });
+  roundRect(g, cx - qs / 2 - 10, py + 20, qs + 20, qs + 20, 14); g.fillStyle = '#ffffff'; g.fill();
+  g.drawImage(q, cx - qs / 2, py + 30, qs, qs);
+
+  // The seat, in gold, under the QR.
+  g.textAlign = 'center';
+  g.direction = ar ? 'rtl' : 'ltr';
+  g.fillStyle = gold;
+  g.font = '800 34px "Cairo Variable", Cairo, sans-serif';
+  g.fillText(seat ? seatName(seat) : t('دخول شخص واحد', 'Admit one'), cx, py + ph - 22, pw - 30);
+
+  // Holder and code where the barcode was.
+  const bx = 1587, by = 597, bw = 290, bh = 96;
+  roundRect(g, bx, by, bw, bh, 10); g.fillStyle = '#fffaf0'; g.fill();
+  g.lineWidth = 2; g.strokeStyle = gold; g.stroke();
+  g.fillStyle = '#0a1338';
+  g.font = '700 28px "Cairo Variable", Cairo, sans-serif';
+  g.fillText(tk.name, cx, by + 40, bw - 24);
+  g.direction = 'ltr';
+  g.fillStyle = '#5d4a1f';
+  g.font = '600 22px ui-monospace, Menlo, Consolas, monospace';
+  g.fillText((seat?.code ?? tk.code).replace(/(.{4})(?=.)/g, '$1 '), cx, by + 76);
   return c;
 }
 
@@ -322,11 +304,12 @@ async function savePdf() {
     const { jsPDF } = await import('jspdf');
     const seats = seatsOf(current);
     const pages = seats.length ? seats : [null];
-    const pdf = new jsPDF({ unit: 'mm', format: 'a5', orientation: 'portrait', compress: true });
+    const pageW = 210, pageH = Math.round((210 * ART_H / ART_W) * 10) / 10; // ticket-sized, 210 × 89 mm
+    const pdf = new jsPDF({ unit: 'mm', format: [pageW, pageH], orientation: 'landscape', compress: true });
     for (let i = 0; i < pages.length; i++) {
-      if (i) pdf.addPage('a5', 'portrait');
+      if (i) pdf.addPage([pageW, pageH], 'landscape');
       const c = await drawTicket(current, pages[i]);
-      pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 148, 210);
+      pdf.addImage(c.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pageW, pageH);
     }
     pdf.setProperties({ title: t('تذاكر عيد الـ74', '74th anniversary tickets'), creator: 'XI Group' });
     download(pdf.output('blob'), `xi-74-${current.code}.pdf`);
