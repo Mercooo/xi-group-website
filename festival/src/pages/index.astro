@@ -13,31 +13,11 @@ import { UNITS, XI_SITE, SPONSORS_URL, FACEBOOK, INSTAGRAM } from '../lib/site';
 const NUMERALS = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
 const ticks = Array.from({ length: 60 }, (_, i) => i);
 
-const SCENES = [
-  { img: '/img/journey/v-1952.webp', year: '1952', ar: 'حيث بدأت الحكاية', en: 'Where the story began',
-    tar: 'أسّس القائد جاك العيسي المجموعة باسم «مجموعة الحبل بلا دنس»، ضمن حركة كشافة ومرشدات وادي النيل.',
-    ten: 'Leader Jacques El-Eissi founded the group as the “Immaculate Conception Group”, part of the Wadi El Nil Scouts & Guides.' },
-  { img: '/img/journey/v-camp.webp', ar: 'حول نار المخيم', en: 'Around the campfire',
-    tar: 'خيام تحت القمر وأناشيد حتى الفجر: هنا تعلّمت أجيال أن تخدم وأن تقود.',
-    ten: 'Tents under the moon and songs until dawn: where generations learned to serve and to lead.' },
-  { img: '/img/journey/v-street.webp', ar: 'ميلاد في شوارع المدينة', en: 'Christmas in the city streets',
-    tar: 'زينة وأجراس وشجرة في كل بيت، والمجموعة تحمل فرحة العيد إلى الجيران.',
-    ten: 'Lights, bells and a tree in every home, with the group carrying the joy of the feast next door.' },
-  { img: '/img/journey/v-kahk.webp', ar: 'على مائدة العيد', en: 'At the feast table',
-    tar: 'صواني الكحك ودفء العائلة: التقاليد التي يسلّمها جيل لجيل.',
-    ten: 'Trays of kahk and the warmth of family: traditions handed from one generation to the next.' },
-  { img: '/img/journey/v-today.webp', ar: 'جيل اليوم', en: 'Today’s generation',
-    tar: 'الحكاية نفسها بلغة جديدة: صور وفيديوهات وقصص يرويها الأعضاء الجدد.',
-    ten: 'The same story in a new language: photos, videos and stories told by the newest members.' },
-  { img: '/img/journey/medallion.webp', year: '2026', ar: 'الليلة الكبيرة', en: 'The big night',
-    tar: 'نلتقي كلنا لنحتفل بـ74 عاماً، ولنكتشف معاً المعنى الحقيقي للميلاد.',
-    ten: 'All of us together, celebrating 74 years and discovering the true meaning of Christmas.' },
-];
-
+// The order of the night: the march, the leadership handover, then the play.
 const PROGRAMME = [
-  { ar: 'عرض الطبول', en: 'The drumline', tar: 'فرقة الطبول تفتتح الليلة بإيقاع يعرفه كل من مرّ بالمجموعة.', ten: 'The drumline opens the night with a beat everyone who has been part of the group will know.' },
-  { ar: 'مسرحية «رحلة عبر الزمن»', en: 'The play: “A Journey Through Time”', tar: 'رحلة عبر العصور لاكتشاف المعنى الحقيقي للميلاد.', ten: 'A journey across the ages to discover the true meaning of Christmas.' },
+  { ar: 'المارش', en: 'The march', tar: 'المجموعة تفتتح الليلة بالمارش على إيقاع فرقة الطبول.', ten: 'The group opens the night with the march, to the beat of the drumline.' },
   { ar: 'حفل تسليم القيادة', en: 'The leadership handover', tar: 'التسليم الرسمي لقيادة المجموعة الحادية عشر إلى جيلها الجديد.', ten: 'The official handover of the XI Group’s leadership to its new generation.' },
+  { ar: 'مسرحية «رحلة عبر الزمن»', en: 'The play: “A Journey Through Time”', tar: 'رحلة عبر العصور لاكتشاف المعنى الحقيقي للميلاد.', ten: 'A journey across the ages to discover the true meaning of Christmas.' },
 ];
 ---
 <Base title="رحلة عبر الزمن · عيد الـ74 للمجموعة الحادية عشر | احجز مقعدك" description="المجموعة الحادية عشر لكشافة ومرشدات وادي النيل تدعوكم لعيدها الـ74 وحفل تسليم القيادة: رحلة عبر الزمن لاكتشاف المعنى الحقيقي للميلاد. الجمعة 4 ديسمبر 2026، كلية دي لا سال بالظاهر. اختر مقعدك واحجز الآن." theme="#0a1338" bodyClass="journey">
@@ -165,25 +145,6 @@ const PROGRAMME = [
           <p class="scroll__note"><T ar="ويشهد هذا اليوم أيضاً حفل تسليم القيادة الرسمي للمجموعة الحادية عشر." en="This special occasion will also mark the official Leadership Handover Ceremony of the XI Group." /></p>
           <p class="ribbon"><span><T ar="74 عاماً من الكشافة والقيادة والأخوّة" en="74 years of scouting, leadership and brotherhood" /></span></p>
         </div>
-      </div>
-    </section>
-
-    <section class="journey-sec" aria-labelledby="journey-title">
-      <div class="wrap">
-        <div class="sec-head">
-          <h2 id="journey-title" class="gold-title gold-title--md"><T ar="رحلة 74 عاماً" en="A 74-year journey" /></h2>
-          <p><T ar="ست محطات من حكاية المجموعة، من أول مخيم إلى ليلة الاحتفال." en="Six stops in the group’s story, from the first camp to the night of the celebration." /></p>
-        </div>
-        <ol class="scenes" role="list">
-          {SCENES.map((s, i) => (
-            <li class="scene">
-              <span class="scene__img"><img src={s.img} alt="" width="120" height="120" loading="lazy" decoding="async" /></span>
-              <span class="scene__no"><T ar={`المشهد ${'١٢٣٤٥٦'[i]}`} en={`Scene ${i + 1}`} />{s.year && <span class="num"> · {s.year}</span>}</span>
-              <h3><T ar={s.ar} en={s.en} /></h3>
-              <p><T ar={s.tar} en={s.ten} /></p>
-            </li>
-          ))}
-        </ol>
       </div>
     </section>
 
