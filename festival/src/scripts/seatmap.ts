@@ -72,7 +72,6 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
   const notes = new Map<string, string>();
   const rowsOfIds: string[][] = [];
   const phaseZones: HTMLElement[] = [];
-  const rowsText = (p: { from: number; to: number }) => `${rowLetter(p.from)} – ${rowLetter(p.to)}`;
   for (const row of THEATRE) {
     const r = row.row;
     // A heading where each phase after the first starts; setPhase() says whether it is open.
@@ -80,7 +79,7 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
     if (pi > 0) {
       const z = cell('theatre__zone theatre__zone--phase');
       z.dataset.phase = String(pi + 1);
-      z.innerHTML = `<span>${both(`المرحلة ${pi + 1} · الصفوف ${rowsText(PHASES[pi])}`, `Phase ${pi + 1} · rows ${rowsText(PHASES[pi])}`)}</span>`;
+      z.innerHTML = `<span>${both(`المرحلة ${pi + 1} · ${PHASES[pi].ar}`, `Phase ${pi + 1} · ${PHASES[pi].en}`)}</span>`;
       grid.append(z);
       phaseZones.push(z);
     }
@@ -219,15 +218,16 @@ export function mountSeatMap(host: HTMLElement, onPick: (id: string) => void, op
         const n = Number(z.dataset.phase), p = PHASES[n - 1], isOpen = n <= open;
         z.classList.toggle('theatre__zone--locked', !isOpen);
         z.innerHTML = `<span>${isOpen
-          ? both(`المرحلة ${n} · الصفوف ${rowsText(p)} · مفتوحة`, `Phase ${n} · rows ${rowsText(p)} · open`)
-          : both(`المرحلة ${n} · الصفوف ${rowsText(p)} · تفتح بعد اكتمال المرحلة ${n - 1}`, `Phase ${n} · rows ${rowsText(p)} · opens when phase ${n - 1} is full`)}</span>`;
+          ? both(`المرحلة ${n} · ${p.ar} · مفتوحة`, `Phase ${n} · ${p.en} · open`)
+          : both(`المرحلة ${n} · ${p.ar} · تفتح بعد اكتمال المرحلة ${n - 1}`, `Phase ${n} · ${p.en} · opens when phase ${n - 1} is full`)}</span>`;
       }
       phaseNote.hidden = false;
       const p = PHASES[open - 1];
+      const seatsAr = open === 1 ? p.ar : `الصفوف A – ${rowLetter(p.to)}`, seatsEn = open === 1 ? p.en : `rows A – ${rowLetter(p.to)}`;
       phaseNote.innerHTML = open >= PHASES.length
         ? both('كل المراحل مفتوحة: اختر من أي صف.', 'Every phase is open: choose from any row.')
-        : both(`الحجز الآن في المرحلة ${open} من ${PHASES.length}: الصفوف A – ${rowLetter(p.to)}. تفتح الصفوف التالية عندما تكتمل هذه المرحلة.`,
-            `Booking is in phase ${open} of ${PHASES.length}: rows A – ${rowLetter(p.to)}. The next rows open when this phase is full.`);
+        : both(`الحجز الآن في المرحلة ${open} من ${PHASES.length}: ${seatsAr}. تفتح المقاعد التالية عندما تكتمل هذه المرحلة.`,
+            `Booking is in phase ${open} of ${PHASES.length}: ${seatsEn}. The next seats open when this phase is full.`);
     },
   };
 }

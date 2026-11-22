@@ -3,7 +3,7 @@
 //   POST { action: "hold", seats, token? } → holds the seats for the guest while they pay
 //   POST { action: "release", token }      → lets them go again
 // Seats are only "taken" for good when fest-buy (or a leader / admin) books them.
-import { BROKEN_HOLD, NOT_IN_PLAN, PHASE_HOLD, PHASES, db, getSettings, HOLD_MINUTES, ipHash, json, MAX_SEATS, cleanSeats, CORS, VIP_HOLD } from "../_shared/shared.ts";
+import { BROKEN_HOLD, NOT_IN_PLAN, PHASE_HOLD, PHASES, phaseOf, db, getSettings, HOLD_MINUTES, ipHash, json, MAX_SEATS, cleanSeats, CORS, VIP_HOLD } from "../_shared/shared.ts";
 
 const TOKEN_RE = /^[a-f0-9]{32}$/;
 const newToken = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -20,9 +20,8 @@ async function seatState() {
     else if (s.hold_token === PHASE_HOLD) locked.push(s.id); // a phase that hasn't opened yet
     else if (s.held_until && Date.parse(s.held_until) > now) held.push(s.id);
   }
-  // Open phases: those before the first locked seat's phase.
-  const first = locked.length ? Math.min(...locked.map((id) => Number(id.slice(0, 2)))) : 0;
-  const phase = first ? Math.max(1, PHASES.findIndex((p) => first >= p.from && first <= p.to)) : PHASES.length;
+  // Open phases: those before the earliest phase that still has locked seats.
+  const phase = locked.length ? Math.max(1, Math.min(...locked.map(phaseOf)) - 1) : PHASES.length;
   return { taken, held, vip, blocked, locked, phase, phases: PHASES };
 }
 

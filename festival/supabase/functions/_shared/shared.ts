@@ -150,29 +150,41 @@ export const VIP_HOLD = "organisers-vip";
 export const BROKEN_HOLD = "broken-seat";
 export const NOT_IN_PLAN = "not-in-plan";
 export const PHASE_HOLD = "phase-locked";
-/** Rows of each phase (1 = A). Keep in sync with PHASES in festival/src/lib/seats.ts. */
-export const PHASES = [{ from: 1, to: 7 }, { from: 8, to: 14 }, { from: 15, to: 21 }];
+/**
+ * Rows of each phase (1 = A). `plus` adds part of later rows to a phase: phase 1 also has the middle
+ * block of rows H-L, so the front side seats look close next to the middle further back.
+ * Keep in sync with PHASES in festival/src/lib/seats.ts.
+ */
+export const PHASES: { from: number; to: number; plus?: { from: number; to: number; sections: string } }[] = [
+  { from: 1, to: 7, plus: { from: 8, to: 12, sections: "M" } },
+  { from: 8, to: 14 },
+  { from: 15, to: 21 },
+];
+/** The phase (1-3) a seat opens in. */
+export function phaseOf(id: string): number {
+  const row = Number(id.slice(0, 2)), sec = id[3];
+  const early = PHASES.findIndex((p) => p.plus && row >= p.plus.from && row <= p.plus.to && p.plus.sections.includes(sec));
+  if (early >= 0) return early + 1;
+  return PHASES.findIndex((p) => row >= p.from && row <= p.to) + 1;
+}
 export const ROW_LETTERS = "ABCDEFGHIJKLMNOPQRSTU";
 const FOREVER = "2100-01-01T00:00:00Z";
 export const isVipId = (id: string) => /^0[1-5]-M/.test(id);
 
-const pad2 = (n: number) => String(n).padStart(2, "0");
-const rowsLike = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => `id.like.${pad2(from + i)}-*`).join(",");
-
 /** How many phases are open (1-3): those before the first phase that still has locked seats. */
 export async function openPhases(): Promise<number> {
-  const { data } = await db.from("fest_seats").select("id").eq("hold_token", PHASE_HOLD).order("id").limit(1);
+  const { data } = await db.from("fest_seats").select("id").eq("hold_token", PHASE_HOLD);
   if (!data?.length) return PHASES.length;
-  const row = Number(data[0].id.slice(0, 2));
-  return Math.max(1, PHASES.findIndex((p) => row >= p.from && row <= p.to));
+  return Math.max(1, Math.min(...data.map((r) => phaseOf(r.id))) - 1);
 }
 
 /** Opens the next phase now. Returns how many phases are open afterwards. */
 export async function openNextPhase(): Promise<number> {
   const open = await openPhases();
   if (open >= PHASES.length) return open;
-  const p = PHASES[open];
-  await db.from("fest_seats").update({ hold_token: null, held_until: null, hold_ip: null }).eq("hold_token", PHASE_HOLD).or(rowsLike(p.from, p.to));
+  const { data } = await db.from("fest_seats").select("id").eq("hold_token", PHASE_HOLD);
+  const ids = (data ?? []).map((r) => r.id).filter((id) => phaseOf(id) === open + 1);
+  if (ids.length) await db.from("fest_seats").update({ hold_token: null, held_until: null, hold_ip: null }).eq("hold_token", PHASE_HOLD).in("id", ids);
   return open + 1;
 }
 
@@ -180,11 +192,10 @@ export async function openNextPhase(): Promise<number> {
 export async function advancePhase(): Promise<number> {
   const open = await openPhases();
   if (open >= PHASES.length) return open;
-  const { count, error } = await db.from("fest_seats").select("id", { count: "exact", head: true })
-    .is("order_id", null).lte("id", `${pad2(PHASES[open - 1].to)}-Z`)
+  const { data, error } = await db.from("fest_seats").select("id").is("order_id", null)
     .or(`hold_token.is.null,hold_token.not.in.("${VIP_HOLD}","${BROKEN_HOLD}","${NOT_IN_PLAN}","${PHASE_HOLD}")`);
-  if (error || count === null) return open; // never open a phase on a failed count
-  return count > 0 ? open : openNextPhase();
+  if (error || !data) return open; // never open a phase on a failed read
+  return data.some((r) => phaseOf(r.id) <= open) ? open : openNextPhase();
 }
 
 /**
@@ -196,9 +207,11 @@ export async function reserveVip() {
     .is("order_id", null).is("hold_token", null)
     .or("id.like.01-M*,id.like.02-M*,id.like.03-M*,id.like.04-M*,id.like.05-M*");
   const open = await openPhases();
-  for (const p of PHASES.slice(open)) {
+  const { data } = await db.from("fest_seats").select("id").is("order_id", null).is("hold_token", null);
+  const ids = (data ?? []).map((r) => r.id).filter((id) => phaseOf(id) > open);
+  if (ids.length) {
     await db.from("fest_seats").update({ hold_token: PHASE_HOLD, held_until: FOREVER, hold_ip: null })
-      .is("order_id", null).is("hold_token", null).or(rowsLike(p.from, p.to));
+      .is("order_id", null).is("hold_token", null).in("id", ids);
   }
 }
 export const HOLD_MINUTES = 7;

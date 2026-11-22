@@ -18,13 +18,26 @@ export const SECTIONS = [
 export type SectionKey = (typeof SECTIONS)[number]['key'];
 export const MAX_SEATS = 10;
 export const VIP_ROWS = THEATRE.filter((r) => r.M.vip).length;
-/** The hall opens in three phases from the stage back (rows, 1 = A). Keep in sync with PHASES in _shared/shared.ts. */
-export const PHASES = [{ from: 1, to: 7 }, { from: 8, to: 14 }, { from: 15, to: 21 }];
+/**
+ * The hall opens in three phases from the stage back (rows, 1 = A). `plus` adds part of later rows to a
+ * phase: phase 1 also has the middle block of rows H-L. `ar`/`en` say which seats each phase has.
+ * Keep in sync with PHASES in _shared/shared.ts.
+ */
+export const PHASES: { from: number; to: number; plus?: { from: number; to: number; sections: string }; ar: string; en: string }[] = [
+  { from: 1, to: 7, plus: { from: 8, to: 12, sections: 'M' }, ar: 'الصفوف A – G ووسط الصفوف H – L', en: 'rows A – G and the middle of rows H – L' },
+  { from: 8, to: 14, ar: 'جانبا الصفوف H – L والصفوف M – N', en: 'the sides of rows H – L and rows M – N' },
+  { from: 15, to: 21, ar: 'الصفوف O – U', en: 'rows O – U' },
+];
+/** The phase (1-3) a seat opens in. */
+export function phaseOf(id: string) {
+  const row = Number(id.slice(0, 2)), sec = id[3];
+  const early = PHASES.findIndex((p) => p.plus && row >= p.plus.from && row <= p.plus.to && p.plus.sections.includes(sec));
+  return early >= 0 ? early + 1 : PHASES.findIndex((p) => row >= p.from && row <= p.to) + 1;
+}
 /** How many phases are open, given the seats that are still locked. */
 export function openPhasesFrom(locked: string[]) {
   if (!locked.length) return PHASES.length;
-  const first = Math.min(...locked.map((id) => Number(id.slice(0, 2))));
-  return Math.max(1, PHASES.findIndex((p) => first >= p.from && first <= p.to));
+  return Math.max(1, Math.min(...locked.map(phaseOf)) - 1);
 }
 /** The widest row of each block, so the blocks line up along the aisles. */
 export const WIDEST = { L: Math.max(...THEATRE.map((r) => r.L.count)), M: Math.max(...THEATRE.map((r) => r.M.count)), R: Math.max(...THEATRE.map((r) => r.R.count)) };
