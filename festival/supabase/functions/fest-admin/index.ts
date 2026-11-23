@@ -1,5 +1,5 @@
 // Organisers' board. Needs the admin passcode in the x-fest-key header. POST { action, ... }:
-//   stats | list { status?, q?, page? } | receipt { id } | set_status { id, status, note? }
+//   stats | list { status?, q?, leader?, page? } | receipt { id } | set_status { id, status, note? }
 //   undo_checkin { id } | issue { name, phone, note? } | settings_get | settings_set { ...fields } | scans
 //   set_passcode { role: admin | gate, passcode } | delete { id } | seat_map
 //   leaders_list | leader_save { id?, name, unit, passcode?, seat_quota?, active? } | open_phase
@@ -66,6 +66,8 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false });
       if (["verified", "review", "rejected"].includes(b.status)) q = q.eq("status", b.status);
       if (b.status === "checked_in") q = q.not("checked_in_at", "is", null);
+      // Bookings made by one leader account.
+      if (typeof b.leader === "string" && /^[0-9a-f-]{36}$/.test(b.leader)) q = q.eq("leader_id", b.leader);
       const term = String(b.q || "").trim().replace(/[%,()]/g, "").slice(0, 60);
       if (term) {
         const digits = normPhone(term);
@@ -153,7 +155,7 @@ Deno.serve(async (req) => {
 
     case "seat_map": {
       // Who sits where, for the organisers.
-      const { data } = await db.from("fest_seats").select("id,held_until,hold_token,checked_in_at,fest_orders(code,name,status,source)").order("id");
+      const { data } = await db.from("fest_seats").select("id,held_until,hold_token,checked_in_at,fest_orders(code,name,status,source,fest_leaders(name,unit))").order("id");
       const now = Date.now();
       return json({
         seats: (data ?? []).filter((r) => r.hold_token !== NOT_IN_PLAN || r.fest_orders).map((r) => {
@@ -162,7 +164,7 @@ Deno.serve(async (req) => {
           const kind = r.hold_token === BROKEN_HOLD ? "blocked" : isVipId(r.id) ? "vip" : "regular";
           const locked = !o && r.hold_token === PHASE_HOLD;
           const held = r.hold_token !== VIP_HOLD && !locked && r.held_until && Date.parse(r.held_until) > now;
-          return { id: r.id, label: seatLabel(r.id), kind, state: kind === "blocked" ? "blocked" : o ? o.status : locked ? "locked" : held ? "held" : "free", name: o?.name ?? null, code: o?.code ?? null, source: o?.source ?? null, in: !!r.checked_in_at };
+          return { id: r.id, label: seatLabel(r.id), kind, state: kind === "blocked" ? "blocked" : o ? o.status : locked ? "locked" : held ? "held" : "free", name: o?.name ?? null, code: o?.code ?? null, source: o?.source ?? null, booked_by: o?.fest_leaders?.name ?? null, in: !!r.checked_in_at };
         }),
       });
     }

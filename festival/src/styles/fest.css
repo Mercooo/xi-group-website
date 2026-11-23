@@ -368,6 +368,7 @@ html[dir='rtl'] .input[dir='ltr'] { text-align: right; }
 .chip--ok { background: var(--ok-soft); color: var(--ok); }
 .chip--warn { background: var(--warn-soft); color: var(--warn); }
 .chip--bad { background: var(--bad-soft); color: var(--bad); }
+.chip--leader { background: rgb(201 169 97 / 0.16); color: #7a5a12; font-size: 0.8125rem; padding: 4px 12px; }
 .perf { position: relative; height: 0; border-top: 2px dashed var(--line); margin: 0 18px; }
 .perf::before, .perf::after { content: ''; position: absolute; top: -14px; width: 28px; height: 28px; border-radius: 50%; background: var(--night); }
 .perf::before { left: -32px; } .perf::after { right: -32px; }

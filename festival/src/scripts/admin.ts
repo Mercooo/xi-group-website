@@ -83,18 +83,19 @@ async function loadStats() {
 
 // ---------------------------------------------------------------- orders
 let filter = '';
+let byLeader = ''; // '' = everyone, otherwise a leader account's id
 let page = 0;
 let rows: any[] = [];
 let qTimer = 0;
 
 async function loadOrders() {
   const box = $('#orders');
-  const r = await api({ action: 'list', status: filter, q: $<HTMLInputElement>('#q').value, page });
+  const r = await api({ action: 'list', status: filter, q: $<HTMLInputElement>('#q').value, leader: byLeader || undefined, page });
   if (r.status === 401) return $('#logout').click();
   box.textContent = '';
   if (!r.ok) { box.append(el('p', 'empty-list', 'تعذر تحميل الطلبات.')); return; }
   rows = r.data.rows;
-  if (!rows.length) box.append(el('p', 'empty-list', filter || $<HTMLInputElement>('#q').value ? 'لا توجد نتائج.' : 'لا توجد طلبات بعد.'));
+  if (!rows.length) box.append(el('p', 'empty-list', filter || byLeader || $<HTMLInputElement>('#q').value ? 'لا توجد نتائج.' : 'لا توجد طلبات بعد.'));
   for (const o of rows) {
     const b = el('button', 'order') as HTMLButtonElement;
     b.type = 'button';
@@ -112,6 +113,7 @@ async function loadOrders() {
     const side = el('div', 'order__side');
     const [label, cls] = STATUS[o.status];
     side.append(el('span', `chip ${cls}`, label));
+    if (o.source === 'leader' && o.fest_leaders) side.append(el('span', 'chip chip--leader', o.fest_leaders.name)); // who booked it
     if (o.checked_in_at) side.append(el('span', 'order__meta', `دخل ${formatDateTime(o.checked_in_at, 'ar')}`));
     else if (o.auto_verified) side.append(el('span', 'order__meta', 'تحقق آلي'));
     b.append(main, side);
@@ -133,6 +135,15 @@ document.querySelectorAll<HTMLElement>('.filter').forEach((f) =>
     loadOrders();
   }),
 );
+$<HTMLSelectElement>('#by').addEventListener('change', (e) => { byLeader = (e.target as HTMLSelectElement).value; page = 0; loadOrders(); });
+/** Fills the "who booked" filter with the leader accounts. */
+async function loadByOptions() {
+  const r = await api({ action: 'leaders_list' });
+  if (!r.ok) return;
+  const sel = $<HTMLSelectElement>('#by');
+  sel.replaceChildren(new Option('كل الحجوزات', ''), ...r.data.rows.map((l: any) => new Option(`حجز ${l.name} (${l.seats_used})`, l.id)));
+  sel.value = byLeader;
+}
 $('#q').addEventListener('input', () => { clearTimeout(qTimer); qTimer = window.setTimeout(() => { page = 0; loadOrders(); }, 350); });
 $('#prev').addEventListener('click', () => { page = Math.max(0, page - 1); loadOrders(); });
 $('#next').addEventListener('click', () => { page++; loadOrders(); });
@@ -259,14 +270,15 @@ $('#d-delete').addEventListener('click', async () => {
 
 // ------------------------------------------------------------------ CSV
 $('#csv').addEventListener('click', async () => {
-  const r = await api({ action: 'list', status: filter, q: $<HTMLInputElement>('#q').value, all: true });
+  const r = await api({ action: 'list', status: filter, q: $<HTMLInputElement>('#q').value, leader: byLeader || undefined, all: true });
   if (!r.ok) return alert('تعذر التصدير.');
-  const cols = ['code', 'name', 'phone', 'email', 'affiliation', 'status', 'qty', 'seats', 'source', 'auto_verified', 'amount', 'reference', 'recipient', 'paid_at', 'created_at', 'checked_in_at', 'checked_in_by', 'admin_note', 'reasons'];
+  const cols = ['code', 'name', 'phone', 'email', 'affiliation', 'status', 'qty', 'seats', 'source', 'booked_by', 'auto_verified', 'amount', 'reference', 'recipient', 'paid_at', 'created_at', 'checked_in_at', 'checked_in_by', 'admin_note', 'reasons'];
   const cell = (v: unknown) => {
     let s = Array.isArray(v) ? v.join(' | ') : v == null ? '' : String(v);
     if (/^[=+\-@]/.test(s)) s = "'" + s; // keep spreadsheets from running formulas
     return `"${s.replace(/"/g, '""')}"`;
   };
+  for (const row of r.data.rows) row.booked_by = row.fest_leaders ? `${row.fest_leaders.name} (${row.fest_leaders.unit})` : '';
   const csv = '﻿' + [cols.join(','), ...r.data.rows.map((row: any) => cols.map((c) => cell(row[c])).join(','))].join('\r\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -404,7 +416,7 @@ async function loadSeatMap() {
   for (const x of r.data.seats) {
     const vip = x.kind ? x.kind === 'vip' : isVipSeat(x.id);
     const st = x.state === 'blocked' || isBlockedSeat(x.id) ? 'blocked' : x.in ? 'in' : x.state === 'verified' ? 'taken' : x.state === 'review' ? 'review' : x.state === 'held' ? 'held' : vip ? 'vip' : x.state === 'locked' ? 'locked' : 'free';
-    adminMap.set(x.id, st, x.name ? `${x.name}${x.source === 'leader' ? ' · قائد' : x.source === 'admin' ? ' · يدوي' : ''}` : undefined);
+    adminMap.set(x.id, st, x.name ? `${x.name}${x.source === 'leader' ? ` · ${x.booked_by ?? 'قائد'}` : x.source === 'admin' ? ' · يدوي' : ''}` : undefined);
   }
 }
 $('#seats-refresh').addEventListener('click', loadSeatMap);
@@ -430,6 +442,7 @@ function showSeatInfo(id: string) {
   if (x?.kind === 'vip' || (!x?.kind && isVipSeat(id))) add('القسم', 'كبار الزوار (VIP): يُعطى من «إصدار تذكرة» فقط');
   if (x?.name) add('الاسم', x.name);
   if (x?.source) add('المصدر', SOURCE[x.source] ?? x.source);
+  if (x?.booked_by) add('حجزه', x.booked_by);
   box.append(dl);
   if (x?.code) {
     const a = el('a', 'btn btn--sm btn--ghost', 'فتح الطلب') as HTMLAnchorElement;
@@ -544,6 +557,7 @@ $('#leader-form').addEventListener('submit', async (e) => {
   $<HTMLInputElement>('#lf-id').value = r.data.id;
   $<HTMLInputElement>('#lf-pass').value = '';
   loadLeaders();
+  loadByOptions();
 });
 
 // ------------------------------------------------------------------ start
@@ -553,6 +567,7 @@ function start(stats?: any) {
   $('#app').hidden = false;
   if (stats) { renderStats(stats); price = stats.price ?? price; } else loadStats();
   loadOrders();
+  loadByOptions();
   clearInterval(auto);
   auto = window.setInterval(() => {
     if (sheet.open || document.visibilityState !== 'visible') return;

@@ -110,6 +110,9 @@ import Icon from '../components/Icon.astro';
             <button class="filter" data-f="rejected" aria-pressed="false">مرفوضة</button>
             <button class="filter" data-f="checked_in" aria-pressed="false">دخلوا</button>
           </div>
+          <select class="select" id="by" aria-label="من حجز" style="width:auto;min-height:38px;padding-block:0">
+            <option value="">كل الحجوزات</option>
+          </select>
           <span style="flex:1"></span>
           <button class="btn btn--sm btn--ghost" id="refresh" type="button"><Icon name="refresh" size={16} />تحديث</button>
           <button class="btn btn--sm" id="csv" type="button"><Icon name="download" size={16} />تصدير CSV</button>
