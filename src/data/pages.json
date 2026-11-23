@@ -1509,44 +1509,31 @@
        "span": 3,
        "blocks": [
         {
-         "type": "placeholder",
-         "ratio": 100.0
-        },
-        {
-         "type": "text",
-         "html": "<p dir=\"rtl\" class=\"ta-center\">ق/ ماركو مجدي</p><p dir=\"rtl\" class=\"ta-center\">رائد رهط المرشحين</p>"
-        }
-       ]
-      },
-      {
-       "span": 3,
-       "blocks": [
-        {
          "type": "image",
-         "src": "/images/cf82191d808acaca.webp",
+         "src": "/images/marco-magdy.webp",
          "alt": "",
-         "width": 1280,
-         "height": 1280
-        },
-        {
-         "type": "text",
-         "html": "<p dir=\"rtl\" class=\"ta-center\">ق/ مارتن ماهر</p><p dir=\"rtl\" class=\"ta-center\">\"القلب الشجاع\"🫀</p><p dir=\"rtl\" class=\"ta-center\">رائد رهط \"Alter Nexus\"</p>"
-        }
-       ]
-      },
-      {
-       "span": 3,
-       "blocks": [
-        {
-         "type": "image",
-         "src": "/images/556165cb4b6cb750.webp",
-         "alt": "",
-         "width": 1080,
+         "width": 864,
          "height": 1080
         },
         {
          "type": "text",
-         "html": "<p dir=\"rtl\" class=\"ta-center\">ق/ ماركو محب</p><p dir=\"rtl\" class=\"ta-center\">مساعد رائد رهط </p><p dir=\"rtl\" class=\"ta-center\">\"Alter Nexus\"</p>"
+         "html": "<p dir=\"rtl\" class=\"ta-center\">ق/ ماركو مجدي</p><p dir=\"rtl\" class=\"ta-center\">رائد رهط المرشحين</p><p dir=\"rtl\" class=\"ta-center\">\"Sparta\"</p>"
+        }
+       ]
+      },
+      {
+       "span": 3,
+       "blocks": [
+        {
+         "type": "image",
+         "src": "/images/marco-moheb.webp",
+         "alt": "",
+         "width": 864,
+         "height": 1080
+        },
+        {
+         "type": "text",
+         "html": "<p dir=\"rtl\" class=\"ta-center\">ق/ ماركو محب</p><p dir=\"rtl\" class=\"ta-center\">رائد رهط \"Alter Nexus\"</p>"
         }
        ]
       },
@@ -2045,22 +2032,6 @@
        "blocks": [
         {
          "type": "image",
-         "src": "/images/cf82191d808acaca.webp",
-         "alt": "",
-         "width": 1280,
-         "height": 1280
-        },
-        {
-         "type": "text",
-         "html": "<h1 dir=\"rtl\" class=\"ta-center\" id=\"h.nwbn2kbmyiz8\">ق/ مارتن ماهر</h1><h1 dir=\"rtl\" class=\"ta-center\" id=\"h.9jzfp4cfe2p4\">\"القلب الشجاع\" 🫀</h1><p dir=\"ltr\" class=\"ta-center\">2018 - 2022</p>"
-        }
-       ]
-      },
-      {
-       "span": 3,
-       "blocks": [
-        {
-         "type": "image",
          "src": "/images/b19b40c66c14b7a0.webp",
          "alt": "",
          "width": 1280,
@@ -2073,7 +2044,7 @@
        ]
       },
       {
-       "span": 6,
+       "span": 9,
        "blocks": []
       }
      ]
@@ -2405,22 +2376,6 @@
         {
          "type": "text",
          "html": "<h1 dir=\"rtl\" class=\"ta-center\" id=\"h.mrylqwrb7csn\">ق/ جان رمسيس</h1><h1 dir=\"rtl\" class=\"ta-center\" id=\"h.bz0x04lqnahz\">\"العنكبوت الملتزم\"🕷️</h1>"
-        }
-       ]
-      },
-      {
-       "span": 3,
-       "blocks": [
-        {
-         "type": "image",
-         "src": "/images/3fa94d06fd64a7af.webp",
-         "alt": "",
-         "width": 1280,
-         "height": 1335
-        },
-        {
-         "type": "text",
-         "html": "<h1 dir=\"rtl\" class=\"ta-center\" id=\"h.nj3gab2k5o9f\">ق/ مارتن ماهر</h1><h1 dir=\"rtl\" class=\"ta-center\" id=\"h.bq9ohiopnfpu\">\"القلب الشجاع\"🫀</h1>"
         }
        ]
       },
