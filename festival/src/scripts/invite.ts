@@ -411,6 +411,7 @@ const ERRORS: Record<string, [string, string]> = {
   save_failed: ['حدث خطأ أثناء الحفظ. حاول مرة أخرى.', 'Something went wrong saving it. Please try again.'],
   network: ['تعذر الاتصال. تأكد من الإنترنت وحاول مرة أخرى.', 'Could not connect. Check your internet and try again.'],
   seats_required: ['اختر مقاعدك من خريطة المسرح أولاً.', 'Choose your seats on the theatre plan first.'],
+  bad_request: ['تعذر إرسال الطلب من هذا المتصفح. افتح الرابط في Chrome أو Safari وحاول مرة أخرى.', 'This browser could not send the form. Open the link in Chrome or Safari and try again.'],
   seat_unavailable: ['أحد المقاعد التي اخترتها لم يعد متاحاً. راجع اختيارك على الخريطة وأعد الإرسال.', 'One of your seats is no longer available. Check your choice on the plan and send again.'],
 };
 
@@ -459,6 +460,7 @@ form.addEventListener('submit', async (e) => {
     if (!hold || hold.seats.join() !== chosen.join() || Date.parse(hold.expires) - Date.now() < 30_000) await syncHold();
     if (!chosen.length) throw new Error('seats_required');
     fd.set('seats', chosen.join(','));
+    fd.delete('website'); // in-app browsers autofill the hidden anti-spam field
     if (hold) fd.set('hold', hold.token);
     const blob = await prepare(file!);
     fd.set('receipt', blob, blob === file ? file!.name : 'receipt.jpg');

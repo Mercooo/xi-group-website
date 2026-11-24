@@ -26,6 +26,7 @@ export const REASONS: Record<string, { ar: string; en: string }> = {
   reader_ok: { ar: 'القارئ الآلي: الإيصال يبدو سليماً. راجعه ثم اقبله.', en: 'Receipt reader: looks right. Check it, then approve.' },
   reader_suggests_reject: { ar: 'القارئ الآلي يقترح الرفض. راجع الأسباب.', en: 'Receipt reader suggests rejecting. See why.' },
   issued_by_admin: { ar: 'تذكرة صادرة من المنظمين.', en: 'Issued by the organisers.' },
+  hidden_field_filled: { ar: 'امتلأ الحقل المخفي ضد الرسائل الآلية (غالباً ملء تلقائي من المتصفح). راجع الطلب بعناية.', en: 'The hidden anti-spam field was filled (usually browser autofill). Check this booking carefully.' },
   booked_by_leader: { ar: 'حجز قائد.', en: 'Booked by a leader.' },
 };
 export const reasonText = (code: string, lang: 'ar' | 'en') => REASONS[code]?.[lang] ?? code;

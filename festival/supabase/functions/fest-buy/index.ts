@@ -224,10 +224,13 @@ Deno.serve(async (req) => {
       if (v instanceof File) { if (k === "receipt" && v.size > 0) file = v; }
       else f[k] = String(v);
     }
-  } catch (_) {
+  } catch (e) {
+    console.error("form unreadable", e instanceof Error ? e.message : e);
     return json({ error: "bad_request" }, 400);
   }
-  if (f.website) return json({ error: "bad_request" }, 400); // honeypot
+  // Hidden anti-spam field. In-app browsers (Instagram, Facebook) autofill even hidden fields, so a
+  // filled one is only a note for the organisers, never a refusal: a person reviews every booking anyway.
+  const honeypot = !!f.website;
 
   const name = String(f.name || "").replace(/\s+/g, " ").trim().slice(0, 80);
   const phone = normPhone(f.phone || "");
@@ -316,6 +319,7 @@ Deno.serve(async (req) => {
   } else {
     reasons = [read.reason];
   }
+  if (honeypot) reasons = [...reasons, "hidden_field_filled"];
 
   const ocr = read.ok ? { ...read.ocr, model: read.model, suggested } : { error: read.reason, detail: read.ok ? undefined : read.detail };
   const row = {
