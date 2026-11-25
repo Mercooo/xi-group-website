@@ -2032,6 +2032,22 @@
        "blocks": [
         {
          "type": "image",
+         "src": "/images/cf82191d808acaca.webp",
+         "alt": "",
+         "width": 1280,
+         "height": 1280
+        },
+        {
+         "type": "text",
+         "html": "<h1 dir=\"rtl\" class=\"ta-center\" id=\"h.nwbn2kbmyiz8\">ق/ مارتن ماهر</h1><h1 dir=\"rtl\" class=\"ta-center\" id=\"h.9jzfp4cfe2p4\">\"القلب الشجاع\" 🫀</h1><p dir=\"ltr\" class=\"ta-center\">2018 - 2022</p>"
+        }
+       ]
+      },
+      {
+       "span": 3,
+       "blocks": [
+        {
+         "type": "image",
          "src": "/images/b19b40c66c14b7a0.webp",
          "alt": "",
          "width": 1280,
@@ -2044,7 +2060,7 @@
        ]
       },
       {
-       "span": 9,
+       "span": 6,
        "blocks": []
       }
      ]
@@ -2376,6 +2392,22 @@
         {
          "type": "text",
          "html": "<h1 dir=\"rtl\" class=\"ta-center\" id=\"h.mrylqwrb7csn\">ق/ جان رمسيس</h1><h1 dir=\"rtl\" class=\"ta-center\" id=\"h.bz0x04lqnahz\">\"العنكبوت الملتزم\"🕷️</h1>"
+        }
+       ]
+      },
+      {
+       "span": 3,
+       "blocks": [
+        {
+         "type": "image",
+         "src": "/images/3fa94d06fd64a7af.webp",
+         "alt": "",
+         "width": 1280,
+         "height": 1335
+        },
+        {
+         "type": "text",
+         "html": "<h1 dir=\"rtl\" class=\"ta-center\" id=\"h.nj3gab2k5o9f\">ق/ مارتن ماهر</h1><h1 dir=\"rtl\" class=\"ta-center\" id=\"h.bq9ohiopnfpu\">\"القلب الشجاع\"🫀</h1>"
         }
        ]
       },
