@@ -212,7 +212,7 @@ function setupCalendar(tk: Ticket) {
 
 // The festival's own ticket artwork (1925 × 817). The main part is printed as designed;
 // the stub on the right becomes the admission part: the seat's QR, its seat and the holder.
-const ART = '/img/journey/ticket-art.jpg';
+const ART = '/img/journey/ticket-art-kahk.jpg';
 const ART_W = 1925, ART_H = 817;
 let artImg: Promise<HTMLImageElement> | null = null;
 const loadArt = () => (artImg ??= new Promise((resolve, reject) => {
